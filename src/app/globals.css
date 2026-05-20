@@ -1,0 +1,129 @@
+@import "tailwindcss";
+
+/* === Design tokens (from preview HTML, source of truth) === */
+
+/* Dark theme as unconditional default — prevents FOUC before stylesheet parses */
+:root {
+  --bg: #0E2640;
+  --bg-2: #112D4B;
+  --surface: #143456;
+  --surface-2: #183D66;
+  --surface-3: #1F4978;
+  --border: rgba(184, 211, 240, 0.10);
+  --border-strong: rgba(184, 211, 240, 0.20);
+  --border-accent: rgba(242, 200, 121, 0.28);
+  --text: #E8F1FC;
+  --text-muted: #9DB4CE;
+  --text-dim: #5E7898;
+  --accent: #F2C879;
+  --accent-2: #E8B86D;
+  --accent-3: #C99454;
+  --accent-glow: rgba(242, 200, 121, 0.22);
+  --glow-color: rgba(242, 200, 121, 0.32);
+  --glow-color-2: rgba(242, 200, 121, 0);
+  --tile-text-on-accent: #1a1208;
+  --warning: #E5B454;
+}
+
+:root[data-theme="dark"] {
+  --bg: #0E2640;
+  --bg-2: #112D4B;
+  --surface: #143456;
+  --surface-2: #183D66;
+  --surface-3: #1F4978;
+  --border: rgba(184, 211, 240, 0.10);
+  --border-strong: rgba(184, 211, 240, 0.20);
+  --border-accent: rgba(242, 200, 121, 0.28);
+  --text: #E8F1FC;
+  --text-muted: #9DB4CE;
+  --text-dim: #5E7898;
+  --accent: #F2C879;
+  --accent-2: #E8B86D;
+  --accent-3: #C99454;
+  --accent-glow: rgba(242, 200, 121, 0.22);
+  --glow-color: rgba(242, 200, 121, 0.32);
+  --glow-color-2: rgba(242, 200, 121, 0);
+  --tile-text-on-accent: #1a1208;
+  --warning: #E5B454;
+}
+
+:root[data-theme="light"] {
+  --bg: #F5F1E8;
+  --bg-2: #FFFFFF;
+  --surface: #FFFFFF;
+  --surface-2: #FAF6EE;
+  --surface-3: #F0EBE0;
+  --border: rgba(26, 20, 16, 0.08);
+  --border-strong: rgba(26, 20, 16, 0.16);
+  --border-accent: rgba(154, 110, 51, 0.30);
+  --text: #1A1410;
+  --text-muted: #6B5E4F;
+  --text-dim: #998B7A;
+  --accent: #9A6E33;
+  --accent-2: #B5823F;
+  --accent-3: #6B4A1F;
+  --accent-glow: rgba(154, 110, 51, 0.14);
+  --glow-color: rgba(154, 110, 51, 0.38);
+  --glow-color-2: rgba(154, 110, 51, 0);
+  --tile-text-on-accent: #FFFFFF;
+  --warning: #8B5E1A;
+}
+
+/* === Expose tokens to Tailwind v4 utilities === */
+@theme inline {
+  --color-bg: var(--bg);
+  --color-bg-2: var(--bg-2);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-border-accent: var(--border-accent);
+  --color-text: var(--text);
+  --color-text-muted: var(--text-muted);
+  --color-text-dim: var(--text-dim);
+  --color-accent: var(--accent);
+  --color-accent-2: var(--accent-2);
+  --color-accent-3: var(--accent-3);
+  --color-warning: var(--warning);
+
+  --font-display: 'Fraunces', Georgia, serif;
+  --font-body: 'Geist', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+/* === Base styles === */
+* { box-sizing: border-box; }
+
+html {
+  scroll-behavior: smooth;
+}
+
+:root[data-loading="true"] body {
+  transition: none !important;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-weight: 400;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow-x: hidden;
+  transition: background-color 0.4s cubic-bezier(0.16, 1, 0.3, 1), color 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  min-height: 100vh;
+}
+
+/* Respect reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+  }
+}

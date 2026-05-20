@@ -1,0 +1,1568 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PhotoWhisperer — Design Preview v2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600&family=Geist:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root[data-theme="dark"] {
+  --bg: #0E2640;
+  --bg-2: #112D4B;
+  --surface: #143456;
+  --surface-2: #183D66;
+  --surface-3: #1F4978;
+  --border: rgba(184, 211, 240, 0.10);
+  --border-strong: rgba(184, 211, 240, 0.20);
+  --border-accent: rgba(242, 200, 121, 0.28);
+  --text: #E8F1FC;
+  --text-muted: #9DB4CE;
+  --text-dim: #5E7898;
+  --accent: #F2C879;
+  --accent-2: #E8B86D;
+  --accent-3: #C99454;
+  --accent-glow: rgba(242, 200, 121, 0.22);
+  --glow-color: rgba(242, 200, 121, 0.32);
+  --glow-color-2: rgba(242, 200, 121, 0);
+  --tile-text-on-accent: #1a1208;
+  --warning: #E5B454;
+}
+:root[data-theme="light"] {
+  --bg: #F5F1E8;
+  --bg-2: #FFFFFF;
+  --surface: #FFFFFF;
+  --surface-2: #FAF6EE;
+  --surface-3: #F0EBE0;
+  --border: rgba(26, 20, 16, 0.08);
+  --border-strong: rgba(26, 20, 16, 0.16);
+  --border-accent: rgba(154, 110, 51, 0.30);
+  --text: #1A1410;
+  --text-muted: #6B5E4F;
+  --text-dim: #998B7A;
+  --accent: #9A6E33;
+  --accent-2: #B5823F;
+  --accent-3: #6B4A1F;
+  --accent-glow: rgba(154, 110, 51, 0.14);
+  --glow-color: rgba(154, 110, 51, 0.38);
+  --glow-color-2: rgba(154, 110, 51, 0);
+  --tile-text-on-accent: #FFFFFF;
+  --warning: #8B5E1A;
+}
+
+:root {
+  --font-display: 'Fraunces', Georgia, serif;
+  --font-body: 'Geist', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-weight: 400;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow-x: hidden;
+  transition: background-color 0.4s ease, color 0.4s ease;
+}
+
+.spotlight {
+  position: fixed;
+  top: -250px;
+  left: 50%;
+  width: 1100px;
+  height: 800px;
+  margin-left: -550px;
+  background: radial-gradient(ellipse at center, var(--glow-color) 0%, var(--glow-color-2) 65%);
+  pointer-events: none;
+  z-index: 0;
+  transition:
+    left 1.4s cubic-bezier(0.16, 1, 0.3, 1),
+    top 1.4s cubic-bezier(0.16, 1, 0.3, 1),
+    background 0.4s ease;
+  will-change: left, top;
+  filter: blur(2px);
+}
+
+.logo {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+  color: inherit;
+}
+.logo-mark {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-3) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  box-shadow: 0 4px 14px var(--accent-glow);
+}
+.logo-mark svg { width: 20px; height: 20px; color: var(--tile-text-on-accent); }
+.logo-mark::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: 11px;
+  background: linear-gradient(135deg, rgba(255,255,255,0.4), transparent 40%);
+  pointer-events: none;
+}
+
+nav.top {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  background: color-mix(in srgb, var(--bg) 70%, transparent);
+  border-bottom: 1px solid var(--border);
+  transition: background 0.4s ease, border-color 0.4s ease;
+}
+.nav-inner {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 16px 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.nav-links {
+  display: flex;
+  gap: 36px;
+  list-style: none;
+}
+.nav-links a {
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  transition: color 0.2s ease;
+}
+.nav-links a:hover { color: var(--text); }
+.nav-cta {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.theme-toggle {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.25s ease;
+}
+.theme-toggle:hover {
+  color: var(--text);
+  border-color: var(--text-muted);
+  transform: translateY(-1px);
+}
+.theme-toggle svg { width: 16px; height: 16px; }
+.theme-toggle .icon-sun { display: none; }
+:root[data-theme="light"] .theme-toggle .icon-sun { display: block; }
+:root[data-theme="light"] .theme-toggle .icon-moon { display: none; }
+
+.btn {
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  padding: 10px 20px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.2, 0, 0, 1);
+  border: 1px solid transparent;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+.btn-ghost {
+  color: var(--text-muted);
+  background: transparent;
+}
+.btn-ghost:hover {
+  color: var(--text);
+  background: var(--surface);
+}
+.btn-outline {
+  color: var(--text);
+  background: transparent;
+  border-color: var(--border-strong);
+}
+.btn-outline:hover {
+  border-color: var(--text-muted);
+  background: var(--surface);
+}
+.btn-primary {
+  color: var(--tile-text-on-accent);
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
+  font-weight: 500;
+  position: relative;
+}
+.btn-primary::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-3));
+  border-radius: 12px;
+  filter: blur(14px);
+  opacity: 0.45;
+  z-index: -1;
+  transition: opacity 0.3s ease;
+}
+.btn-primary:hover::before { opacity: 0.7; }
+.btn-primary:hover { transform: translateY(-1px); }
+.btn-lg { padding: 14px 28px; font-size: 15px; border-radius: 12px; }
+
+.hero {
+  position: relative;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 120px 32px 100px;
+  text-align: center;
+  z-index: 1;
+}
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 14px;
+  border-radius: 100px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: 32px;
+  font-family: var(--font-mono);
+  letter-spacing: 0.02em;
+}
+.eyebrow-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 8px var(--accent-glow);
+}
+h1.hero-title {
+  font-family: var(--font-display);
+  font-weight: 300;
+  font-size: clamp(48px, 7vw, 84px);
+  line-height: 1.02;
+  letter-spacing: -0.035em;
+  margin-bottom: 28px;
+  font-variation-settings: "opsz" 144;
+}
+h1.hero-title em {
+  font-style: italic;
+  font-weight: 400;
+  color: var(--accent);
+}
+.hero-sub {
+  font-size: 19px;
+  color: var(--text-muted);
+  max-width: 580px;
+  margin: 0 auto 44px;
+  line-height: 1.5;
+}
+.hero-cta {
+  display: flex;
+  gap: 14px;
+  justify-content: center;
+  margin-bottom: 80px;
+  flex-wrap: wrap;
+}
+.hero-visual {
+  max-width: 880px;
+  margin: 0 auto;
+  background: linear-gradient(180deg, var(--surface) 0%, var(--surface-2) 100%);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 24px;
+  position: relative;
+}
+.hero-visual::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 16px;
+  padding: 1px;
+  background: linear-gradient(135deg, var(--border-accent) 0%, transparent 40%, transparent 60%, var(--border-accent) 100%);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+.demo-input {
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin-bottom: 18px;
+  font-size: 15px;
+  color: var(--text-muted);
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.demo-input::before {
+  content: '';
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  flex-shrink: 0;
+}
+.demo-input em { color: var(--text); font-style: normal; }
+.demo-output {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+.demo-cube {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 18px 14px;
+  text-align: left;
+}
+.demo-cube .label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-dim);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+.demo-cube .value {
+  font-family: var(--font-mono);
+  font-size: 22px;
+  font-weight: 500;
+  color: var(--text);
+  letter-spacing: -0.01em;
+}
+.demo-cube .value .unit { color: var(--text-muted); font-size: 14px; font-weight: 400; }
+
+section {
+  position: relative;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 100px 32px;
+  z-index: 1;
+}
+.section-head {
+  text-align: center;
+  margin-bottom: 64px;
+}
+.section-label {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 16px;
+}
+h2.section-title {
+  font-family: var(--font-display);
+  font-weight: 300;
+  font-size: clamp(36px, 5vw, 54px);
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  margin-bottom: 18px;
+}
+h2.section-title em {
+  font-style: italic;
+  font-weight: 400;
+  color: var(--accent);
+}
+.section-sub {
+  font-size: 17px;
+  color: var(--text-muted);
+  max-width: 560px;
+  margin: 0 auto;
+}
+
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+.feature {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 32px;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+.feature:hover {
+  border-color: var(--border-strong);
+  transform: translateY(-2px);
+}
+.feature-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 11px;
+  background: var(--surface-3);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+  color: var(--accent);
+}
+.feature h3 {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 400;
+  letter-spacing: -0.015em;
+  margin-bottom: 10px;
+}
+.feature p {
+  color: var(--text-muted);
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+.pricing-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  max-width: 1080px;
+  margin: 0 auto;
+}
+.tier {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 36px 30px;
+  position: relative;
+  transition: all 0.3s ease;
+}
+.tier.featured {
+  background: linear-gradient(180deg, var(--surface-2) 0%, var(--surface) 100%);
+  border-color: var(--border-accent);
+}
+.tier.featured::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: 18px;
+  padding: 1px;
+  background: linear-gradient(180deg, var(--accent) 0%, transparent 50%);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+.tier:hover { transform: translateY(-3px); }
+.tier-badge {
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
+  color: var(--tile-text-on-accent);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 5px 14px;
+  border-radius: 100px;
+  font-family: var(--font-mono);
+}
+.tier-name {
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 400;
+  letter-spacing: -0.015em;
+  margin-bottom: 8px;
+}
+.tier-tagline {
+  color: var(--text-muted);
+  font-size: 14px;
+  margin-bottom: 28px;
+  min-height: 22px;
+}
+.tier-price {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin-bottom: 28px;
+  padding-bottom: 28px;
+  border-bottom: 1px solid var(--border);
+}
+.tier-price .amount {
+  font-family: var(--font-display);
+  font-size: 52px;
+  font-weight: 300;
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+.tier.featured .tier-price .amount {
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.tier-price .period {
+  color: var(--text-muted);
+  font-size: 15px;
+}
+.tier-features {
+  list-style: none;
+  margin-bottom: 32px;
+}
+.tier-features li {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 8px 0;
+  font-size: 14px;
+  color: var(--text-muted);
+}
+.tier-features li::before {
+  content: '';
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  margin-top: 2px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23F2C879' stroke-width='3'%3E%3Cpolyline points='20 6 9 17 4 12'/%3E%3C/svg%3E");
+  background-position: center;
+  background-repeat: no-repeat;
+}
+:root[data-theme="light"] .tier-features li::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23C99454' stroke-width='3'%3E%3Cpolyline points='20 6 9 17 4 12'/%3E%3C/svg%3E");
+}
+.tier-features li.strong { color: var(--text); }
+.tier-cta { width: 100%; justify-content: center; }
+
+.faq-list {
+  max-width: 760px;
+  margin: 0 auto;
+}
+.faq-item {
+  border-bottom: 1px solid var(--border);
+  padding: 24px 0;
+}
+.faq-q {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  font-family: var(--font-display);
+  font-size: 21px;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  color: var(--text);
+  gap: 24px;
+}
+.faq-q .plus {
+  color: var(--accent);
+  font-size: 22px;
+  transition: transform 0.3s ease;
+  font-weight: 300;
+  flex-shrink: 0;
+}
+.faq-item.open .plus { transform: rotate(45deg); }
+.faq-a {
+  color: var(--text-muted);
+  font-size: 15px;
+  line-height: 1.6;
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease, padding 0.3s ease;
+}
+.faq-item.open .faq-a {
+  max-height: 200px;
+  padding-top: 14px;
+}
+
+.divider-section {
+  background: var(--bg-2);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  padding: 80px 0;
+  margin-top: 80px;
+  position: relative;
+  z-index: 1;
+  transition: background 0.4s ease;
+}
+.divider-section .label-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border-accent);
+  color: var(--accent);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 7px 16px;
+  border-radius: 100px;
+  margin-bottom: 20px;
+}
+
+.app-mock {
+  max-width: 1320px;
+  margin: 40px auto 0;
+  padding: 0 32px;
+}
+.app-frame {
+  background: var(--bg);
+  border: 1px solid var(--border-strong);
+  border-radius: 18px;
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  min-height: 680px;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.35);
+}
+:root[data-theme="light"] .app-frame {
+  box-shadow: 0 30px 80px rgba(14, 38, 64, 0.18);
+}
+.app-titlebar {
+  grid-column: 1 / -1;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.app-titlebar .dot {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: var(--surface-3);
+}
+.app-titlebar .dot.r { background: #D87A6A; }
+.app-titlebar .dot.y { background: #E5B454; }
+.app-titlebar .dot.g { background: #5DBFA8; }
+.app-titlebar .url {
+  margin-left: 16px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.sidebar {
+  background: var(--bg-2);
+  border-right: 1px solid var(--border);
+  padding: 18px 14px;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+.sidebar-top {
+  display: flex;
+  align-items: center;
+  padding: 4px 6px 18px;
+}
+.new-chat {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 14px;
+  background: var(--surface-2);
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: var(--font-body);
+}
+.new-chat:hover { background: var(--surface-3); }
+.sidebar-section { margin-top: 22px; }
+.sidebar-heading {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  padding: 0 10px 8px;
+}
+.sidebar-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 12px;
+  border-radius: 8px;
+  font-size: 13.5px;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.sidebar-item:hover { background: var(--surface); color: var(--text); }
+.sidebar-item.locked { color: var(--text-dim); cursor: not-allowed; }
+.sidebar-item.locked:hover { background: transparent; color: var(--text-dim); }
+.sidebar-item .left { display: flex; align-items: center; gap: 10px; }
+.lock-icon {
+  font-size: 10px;
+  opacity: 0.7;
+  font-family: var(--font-mono);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.sidebar-bottom {
+  margin-top: auto;
+  padding-top: 18px;
+  border-top: 1px solid var(--border);
+}
+.credits-block {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px;
+  margin-bottom: 12px;
+}
+.credits-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.credits-label {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+.credits-add {
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  background: var(--surface-3);
+  border: 1px solid var(--border);
+  color: var(--accent);
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  line-height: 1;
+}
+.credits-value {
+  font-family: var(--font-mono);
+  font-size: 17px;
+  font-weight: 500;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+.credits-bar {
+  height: 4px;
+  background: var(--surface-3);
+  border-radius: 100px;
+  overflow: hidden;
+}
+.credits-bar-fill {
+  height: 100%;
+  width: 62%;
+  background: linear-gradient(90deg, var(--accent) 0%, var(--accent-2) 100%);
+  border-radius: 100px;
+}
+.upgrade-btn {
+  width: 100%;
+  padding: 11px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-3) 100%);
+  color: var(--tile-text-on-accent);
+  font-weight: 500;
+  font-size: 13.5px;
+  border: none;
+  cursor: pointer;
+  margin-bottom: 12px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-family: var(--font-body);
+}
+.upgrade-btn::before {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-3));
+  border-radius: 12px;
+  filter: blur(10px);
+  opacity: 0.4;
+  z-index: -1;
+}
+.account-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 6px;
+}
+.avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-3) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 500;
+  font-family: var(--font-mono);
+  color: var(--tile-text-on-accent);
+}
+.account-info { flex: 1; min-width: 0; }
+.account-name {
+  font-size: 13px;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.account-tier {
+  font-size: 11px;
+  color: var(--text-dim);
+  font-family: var(--font-mono);
+}
+.account-icons {
+  display: flex;
+  gap: 4px;
+}
+.icon-btn {
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.icon-btn:hover { background: var(--surface); color: var(--text); }
+
+.chat-area {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  position: relative;
+}
+.chat-header {
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.chat-title {
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 400;
+  color: var(--text);
+}
+.chat-meta {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-dim);
+  letter-spacing: 0.05em;
+}
+.chat-scroll {
+  flex: 1;
+  padding: 32px 32px 24px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+.msg-user {
+  align-self: flex-end;
+  max-width: 70%;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  padding: 14px 18px;
+  border-radius: 14px 14px 4px 14px;
+  font-size: 14.5px;
+  color: var(--text);
+  line-height: 1.5;
+}
+.msg-ai {
+  max-width: 92%;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.ai-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-bottom: 2px;
+}
+.ai-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 8px var(--accent-glow);
+}
+
+.settings-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+.setting-cube {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 18px 16px;
+  position: relative;
+  overflow: hidden;
+}
+.setting-cube::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--border-accent), transparent);
+}
+.cube-label {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-bottom: 10px;
+}
+.cube-value {
+  font-family: var(--font-mono);
+  font-size: 26px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  line-height: 1;
+  margin-bottom: 6px;
+}
+.cube-value .unit { font-size: 14px; color: var(--text-muted); font-weight: 400; margin-left: 2px; }
+.cube-hint {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+.panels {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px 18px;
+}
+.panel.full { grid-column: 1 / -1; }
+.panel.warning {
+  border-color: rgba(229, 180, 84, 0.30);
+  background: linear-gradient(180deg, rgba(229, 180, 84, 0.06) 0%, var(--surface) 100%);
+}
+.panel-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-bottom: 10px;
+}
+.panel.warning .panel-label { color: var(--warning); }
+.panel-body {
+  font-size: 13.5px;
+  color: var(--text-muted);
+  line-height: 1.55;
+}
+.panel-body strong { color: var(--text); font-weight: 500; }
+
+.chat-input-wrap {
+  padding: 20px 32px 28px;
+  border-top: 1px solid var(--border);
+  background: linear-gradient(180deg, transparent 0%, var(--bg-2) 60%);
+}
+.chat-input {
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: 16px;
+  padding: 16px 18px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: border-color 0.2s;
+}
+.chat-input:focus-within { border-color: var(--accent); }
+.chat-input input {
+  flex: 1;
+  background: none;
+  border: none;
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 14.5px;
+  outline: none;
+}
+.chat-input input::placeholder { color: var(--text-dim); }
+.chat-send {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  border: none;
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
+  color: var(--tile-text-on-accent);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+.chat-send::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  background: var(--accent);
+  border-radius: 12px;
+  filter: blur(8px);
+  opacity: 0.35;
+  z-index: -1;
+}
+
+footer {
+  border-top: 1px solid var(--border);
+  padding: 50px 32px;
+  text-align: center;
+  color: var(--text-dim);
+  font-size: 13px;
+  margin-top: 80px;
+  position: relative;
+  z-index: 1;
+}
+footer .footer-logo {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+@media (max-width: 900px) {
+  .features-grid, .pricing-grid { grid-template-columns: 1fr; }
+  .demo-output { grid-template-columns: repeat(2, 1fr); }
+  .settings-grid { grid-template-columns: repeat(2, 1fr); }
+  .panels { grid-template-columns: 1fr; }
+  .nav-links { display: none; }
+  .app-frame { grid-template-columns: 1fr; min-height: 0; }
+  .sidebar { display: none; }
+}
+</style>
+</head>
+<body>
+
+<div class="spotlight" id="spotlight"></div>
+
+<nav class="top">
+  <div class="nav-inner">
+    <a href="#" class="logo" aria-label="PhotoWhisperer">
+      <span class="logo-mark">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="9"/>
+          <path d="M12 3l4 9-9 1"/>
+          <path d="M21 12l-9 4-1-9"/>
+          <path d="M3 12l9-4 1 9"/>
+        </svg>
+      </span>
+    </a>
+    <ul class="nav-links">
+      <li><a href="#features">Features</a></li>
+      <li><a href="#pricing">Pricing</a></li>
+      <li><a href="#faq">FAQ</a></li>
+    </ul>
+    <div class="nav-cta">
+      <a href="#" class="btn btn-ghost">Sign in</a>
+      <a href="#" class="btn btn-primary">Get my settings</a>
+      <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">
+        <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z"/></svg>
+        <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+      </button>
+    </div>
+  </div>
+</nav>
+
+<section class="hero" data-section="hero">
+  <div class="eyebrow">
+    <span class="eyebrow-dot"></span>
+    Now in early access · v0.1
+  </div>
+  <h1 class="hero-title">
+    Your camera, <em>finally</em><br>
+    speaks back.
+  </h1>
+  <p class="hero-sub">
+    Describe what you're shooting. PhotoWhisperer reads the light, the subject, the moment — and gives you the exact ISO, aperture, shutter, and white balance to dial in.
+  </p>
+  <div class="hero-cta">
+    <a href="#" class="btn btn-primary btn-lg">Get my settings →</a>
+    <a href="#" class="btn btn-outline btn-lg">See how it works</a>
+  </div>
+
+  <div class="hero-visual">
+    <div class="demo-input">
+      <em>Indoor wedding reception, dim warm lighting, bride dancing, 50mm prime, handheld</em>
+    </div>
+    <div class="demo-output">
+      <div class="demo-cube"><div class="label">ISO</div><div class="value">3200</div></div>
+      <div class="demo-cube"><div class="label">Aperture</div><div class="value">f/<span>1.8</span></div></div>
+      <div class="demo-cube"><div class="label">Shutter</div><div class="value">1/<span>200</span><span class="unit">s</span></div></div>
+      <div class="demo-cube"><div class="label">White Balance</div><div class="value">3200<span class="unit">K</span></div></div>
+    </div>
+  </div>
+</section>
+
+<section id="features" data-section="features">
+  <div class="section-head">
+    <div class="section-label">What it does</div>
+    <h2 class="section-title">From scene to <em>shutter</em>,<br>in seconds.</h2>
+    <p class="section-sub">Stop fumbling with settings while the moment passes. Describe it, and shoot it.</p>
+  </div>
+  <div class="features-grid">
+    <div class="feature">
+      <div class="feature-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="13" r="4"/><path d="M5 7h3l2-3h4l2 3h3a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1Z"/></svg>
+      </div>
+      <h3>Real-world scene parsing</h3>
+      <p>Describe the light, the subject, the lens, the mood. The model understands photographic context — golden hour vs. fluorescent, fast motion vs. still life — and adapts.</p>
+    </div>
+    <div class="feature">
+      <div class="feature-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 12a9 9 0 0 1 9-9 9 9 0 0 1 6.4 2.6"/><path d="M21 12a9 9 0 0 1-9 9 9 9 0 0 1-6.4-2.6"/><polyline points="17 6 21 5 22 9"/><polyline points="7 18 3 19 2 15"/></svg>
+      </div>
+      <h3>Four core settings, dialled</h3>
+      <p>ISO, aperture, shutter, and white balance — returned as concrete values you can punch into the camera right now. No vague "try a low ISO" suggestions.</p>
+    </div>
+    <div class="feature">
+      <div class="feature-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      </div>
+      <h3>Warnings that matter</h3>
+      <p>Motion blur risk at that shutter? Noise climbing past your sensor's ceiling? PhotoWhisperer flags it before you click — not after the shot is gone.</p>
+    </div>
+    <div class="feature">
+      <div class="feature-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 7h16M4 12h16M4 17h10"/></svg>
+      </div>
+      <h3>Reasoning, not guessing</h3>
+      <p>Every answer comes with a short scene summary and the assumptions we made — so you can correct us if we read the light wrong, or trust the call if we got it right.</p>
+    </div>
+  </div>
+</section>
+
+<section id="pricing" data-section="pricing">
+  <div class="section-head">
+    <div class="section-label">Pricing</div>
+    <h2 class="section-title">Pick your <em>aperture</em>.</h2>
+    <p class="section-sub">Start free. Upgrade when you outshoot your quota.</p>
+  </div>
+  <div class="pricing-grid">
+
+    <div class="tier">
+      <div class="tier-name">Snapshot</div>
+      <div class="tier-tagline">For the curious.</div>
+      <div class="tier-price">
+        <span class="amount">$0</span>
+        <span class="period">/ month</span>
+      </div>
+      <ul class="tier-features">
+        <li class="strong">25 settings / month</li>
+        <li>Core 4-setting output</li>
+        <li>Scene summary &amp; warnings</li>
+        <li>Web access</li>
+      </ul>
+      <a href="#" class="btn btn-outline tier-cta">Start free</a>
+    </div>
+
+    <div class="tier featured">
+      <div class="tier-badge">Most chosen</div>
+      <div class="tier-name">Portrait</div>
+      <div class="tier-tagline">For working photographers.</div>
+      <div class="tier-price">
+        <span class="amount">$14</span>
+        <span class="period">/ month</span>
+      </div>
+      <ul class="tier-features">
+        <li class="strong">500 settings / month</li>
+        <li>Everything in Snapshot</li>
+        <li>Saved chat history</li>
+        <li>Lens-specific recommendations</li>
+        <li>Priority response speed</li>
+      </ul>
+      <a href="#" class="btn btn-primary tier-cta">Choose Portrait</a>
+    </div>
+
+    <div class="tier">
+      <div class="tier-name">Studio</div>
+      <div class="tier-tagline">For pros &amp; teams.</div>
+      <div class="tier-price">
+        <span class="amount">$39</span>
+        <span class="period">/ month</span>
+      </div>
+      <ul class="tier-features">
+        <li class="strong">Unlimited settings</li>
+        <li>Everything in Portrait</li>
+        <li>Early access to upcoming tools</li>
+        <li>Editing &amp; AI Enhancement (soon)</li>
+        <li>Priority support</li>
+      </ul>
+      <a href="#" class="btn btn-outline tier-cta">Choose Studio</a>
+    </div>
+
+  </div>
+</section>
+
+<section id="faq" data-section="faq">
+  <div class="section-head">
+    <div class="section-label">FAQ</div>
+    <h2 class="section-title">Questions, <em>answered</em>.</h2>
+  </div>
+  <div class="faq-list">
+    <div class="faq-item open">
+      <div class="faq-q" onclick="this.parentElement.classList.toggle('open')">
+        <span>Does this replace knowing photography?</span>
+        <span class="plus">+</span>
+      </div>
+      <div class="faq-a">No. It's a co-pilot, not an autopilot. You'll still frame the shot, choose the moment, and click the shutter. PhotoWhisperer just removes the math between you and the picture.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q" onclick="this.parentElement.classList.toggle('open')">
+        <span>Which cameras does it work with?</span>
+        <span class="plus">+</span>
+      </div>
+      <div class="faq-a">Any camera with manual controls — DSLR, mirrorless, advanced compacts. You tell us your body and lens; we adapt the recommendations to your sensor and aperture range.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q" onclick="this.parentElement.classList.toggle('open')">
+        <span>What happens when I run out of credits?</span>
+        <span class="plus">+</span>
+      </div>
+      <div class="faq-a">Requests pause until your next billing cycle, or you can top up with extra credits or upgrade your plan. You'll always see your usage in-app before you hit the wall.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q" onclick="this.parentElement.classList.toggle('open')">
+        <span>Is my data stored?</span>
+        <span class="plus">+</span>
+      </div>
+      <div class="faq-a">Your chats are saved to your account so you can revisit past shoots. You can delete them anytime from your settings. We don't train models on your conversations.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q" onclick="this.parentElement.classList.toggle('open')">
+        <span>Can I cancel anytime?</span>
+        <span class="plus">+</span>
+      </div>
+      <div class="faq-a">Yes. Cancel from the customer portal — your plan stays active until the end of the billing period, then drops to Snapshot.</div>
+    </div>
+  </div>
+</section>
+
+<div class="divider-section" data-section="app">
+  <div style="max-width: 1280px; margin: 0 auto; padding: 0 32px; text-align: center;">
+    <span class="label-pill">
+      <span style="width: 6px; height: 6px; background: var(--accent); border-radius: 50%;"></span>
+      The app
+    </span>
+    <h2 class="section-title">Where the <em>shooting</em> happens.</h2>
+    <p class="section-sub">A focused chat interface. No clutter. Just the four numbers you came for.</p>
+  </div>
+
+  <div class="app-mock">
+    <div class="app-frame">
+      <div class="app-titlebar">
+        <span class="dot r"></span>
+        <span class="dot y"></span>
+        <span class="dot g"></span>
+        <span class="url">photowhisperer.com</span>
+      </div>
+
+      <aside class="sidebar">
+        <div class="sidebar-top">
+          <a href="#" class="logo">
+            <span class="logo-mark">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="9"/>
+                <path d="M12 3l4 9-9 1"/>
+                <path d="M21 12l-9 4-1-9"/>
+                <path d="M3 12l9-4 1 9"/>
+              </svg>
+            </span>
+          </a>
+        </div>
+
+        <button class="new-chat">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          New chat
+        </button>
+
+        <div class="sidebar-section">
+          <div class="sidebar-heading">History</div>
+          <div class="sidebar-item locked">
+            <div class="left">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              Saved chats
+            </div>
+            <span class="lock-icon">Pro</span>
+          </div>
+        </div>
+
+        <div class="sidebar-section">
+          <div class="sidebar-heading">Coming soon</div>
+          <div class="sidebar-item locked">
+            <div class="left">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="13" r="4"/><path d="M5 7h3l2-3h4l2 3h3a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1Z"/></svg>
+              Taking photos
+            </div>
+            <span class="lock-icon">soon</span>
+          </div>
+          <div class="sidebar-item locked">
+            <div class="left">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="13.5" cy="6.5" r="2.5"/><circle cx="19" cy="13" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="10" cy="20" r="2.5"/></svg>
+              Editing
+            </div>
+            <span class="lock-icon">soon</span>
+          </div>
+          <div class="sidebar-item locked">
+            <div class="left">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2L9 7l-7 1 5 5-1 7 6-3 6 3-1-7 5-5-7-1z"/></svg>
+              AI enhancement
+            </div>
+            <span class="lock-icon">soon</span>
+          </div>
+        </div>
+
+        <div class="sidebar-bottom">
+          <div class="credits-block">
+            <div class="credits-header">
+              <span class="credits-label">Credits</span>
+              <button class="credits-add">+</button>
+            </div>
+            <div class="credits-value">312 <span style="color: var(--text-dim); font-size: 12px;">/ 500</span></div>
+            <div class="credits-bar"><div class="credits-bar-fill"></div></div>
+          </div>
+
+          <button class="upgrade-btn">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 3 18 9"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            Upgrade to Studio
+          </button>
+
+          <div class="account-row">
+            <div class="avatar">AM</div>
+            <div class="account-info">
+              <div class="account-name">Alex Morgan</div>
+              <div class="account-tier">Portrait</div>
+            </div>
+            <div class="account-icons">
+              <button class="icon-btn" title="Theme">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z"/></svg>
+              </button>
+              <button class="icon-btn" title="Settings">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h0a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h0a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <div class="chat-area">
+        <div class="chat-header">
+          <div class="chat-title">Untitled session</div>
+          <div class="chat-meta">SESSION · 18:42</div>
+        </div>
+
+        <div class="chat-scroll">
+          <div class="msg-user">
+            Shooting my friend's outdoor proposal at golden hour next Saturday. They'll be standing under a big oak tree, sun behind them. Canon R6, 85mm f/1.4. I want soft backlight and a creamy background.
+          </div>
+
+          <div class="msg-ai">
+            <div class="ai-header">
+              <span class="ai-dot"></span>
+              PhotoWhisperer · settings ready
+            </div>
+
+            <div class="settings-grid">
+              <div class="setting-cube">
+                <div class="cube-label">ISO</div>
+                <div class="cube-value">200</div>
+                <div class="cube-hint">Clean files, golden-hour light is plenty bright.</div>
+              </div>
+              <div class="setting-cube">
+                <div class="cube-label">Aperture</div>
+                <div class="cube-value">f/<span>2.0</span></div>
+                <div class="cube-hint">Creamy bokeh while keeping both eyes sharp.</div>
+              </div>
+              <div class="setting-cube">
+                <div class="cube-label">Shutter</div>
+                <div class="cube-value">1/<span>500</span><span class="unit">s</span></div>
+                <div class="cube-hint">Freezes micro-movements; safe handheld at 85mm.</div>
+              </div>
+              <div class="setting-cube">
+                <div class="cube-label">White Balance</div>
+                <div class="cube-value">5600<span class="unit">K</span></div>
+                <div class="cube-hint">Or set "Cloudy" preset on your R6.</div>
+              </div>
+            </div>
+
+            <div class="panels">
+              <div class="panel full">
+                <div class="panel-label">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                  Scene summary
+                </div>
+                <div class="panel-body">
+                  Sun roughly <strong>30 minutes before sunset</strong>, behind subjects under a tree canopy. Expect <strong>rim-lit hair, soft front-fill from sky bounce</strong>, and a glowing warm background through the leaves. Backlight will lift exposure on faces — meter for the highlights and let shadows fall.
+                </div>
+              </div>
+              <div class="panel">
+                <div class="panel-label">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+                  Assumptions
+                </div>
+                <div class="panel-body">
+                  Clear skies · subjects roughly 4–6m apart from background · 85mm wide open is acceptable for soft background.
+                </div>
+              </div>
+              <div class="panel warning">
+                <div class="panel-label">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                  Warnings
+                </div>
+                <div class="panel-body">
+                  Lens flare likely with sun direct in frame — use a hood or shift angle 15°. If they hug, single AF point on the closer eye.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="chat-input-wrap">
+          <div class="chat-input">
+            <input type="text" placeholder="Describe your shot — light, subject, lens, mood..." />
+            <button class="chat-send">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <div class="footer-logo">
+    <a href="#" class="logo">
+      <span class="logo-mark">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="9"/>
+          <path d="M12 3l4 9-9 1"/>
+          <path d="M21 12l-9 4-1-9"/>
+          <path d="M3 12l9-4 1 9"/>
+        </svg>
+      </span>
+    </a>
+  </div>
+  <div>© 2026 PhotoWhisperer · Design preview v2 · Not yet shipped</div>
+</footer>
+
+<script>
+const root = document.documentElement;
+const toggle = document.getElementById('themeToggle');
+const stored = localStorage.getItem('pw-theme');
+if (stored) root.setAttribute('data-theme', stored);
+
+toggle.addEventListener('click', () => {
+  const next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+  root.setAttribute('data-theme', next);
+  localStorage.setItem('pw-theme', next);
+});
+
+const ANCHORS = {
+  hero:     { x: 50, y: -250 },
+  features: { x: 72, y: -200 },
+  pricing:  { x: 28, y: -200 },
+  faq:      { x: 60, y: -180 },
+  app:      { x: 50, y: -150 }
+};
+
+const sections = Array.from(document.querySelectorAll('[data-section]'));
+const spotlight = document.getElementById('spotlight');
+let ticking = false;
+let currentAnchor = 'hero';
+
+function updateSpotlight() {
+  const vh = window.innerHeight;
+  let best = sections[0];
+  let bestScore = -Infinity;
+  sections.forEach(s => {
+    const rect = s.getBoundingClientRect();
+    const top = Math.max(rect.top, 0);
+    const bottom = Math.min(rect.bottom, vh);
+    const visible = Math.max(0, bottom - top);
+    const center = (rect.top + rect.bottom) / 2;
+    const centerDist = Math.abs(center - vh / 2);
+    const score = visible - centerDist * 0.3;
+    if (score > bestScore) { bestScore = score; best = s; }
+  });
+  const key = best.dataset.section;
+  if (key !== currentAnchor) {
+    currentAnchor = key;
+    const a = ANCHORS[key] || ANCHORS.hero;
+    spotlight.style.left = a.x + '%';
+    spotlight.style.top = a.y + 'px';
+  }
+  ticking = false;
+}
+
+window.addEventListener('scroll', () => {
+  if (!ticking) {
+    window.requestAnimationFrame(updateSpotlight);
+    ticking = true;
+  }
+}, { passive: true });
+
+updateSpotlight();
+</script>
+
+</body>
+</html>
