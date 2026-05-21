@@ -1,3 +1,4 @@
+import Link from "next/link";
 import Logo from "./Logo";
 import ThemeToggle from "./ThemeToggle";
 
@@ -40,10 +41,10 @@ export default function Nav() {
       `}</style>
       <nav className="pw-top">
         <div className="pw-nav-inner">
-          <a href="/" className="pw-nav-brand">
+          <Link href="/" className="pw-nav-brand">
             <Logo />
             <span className="pw-nav-wordmark">PhotoWhisperer</span>
-          </a>
+          </Link>
           <ThemeToggle />
         </div>
       </nav>
