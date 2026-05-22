@@ -191,7 +191,9 @@ ALTER TABLE camera_profiles ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Users view own profile" ON camera_profiles
   FOR SELECT USING (auth.uid() = user_id);
 CREATE POLICY "Users update own profile" ON camera_profiles
-  FOR UPDATE USING (auth.uid() = user_id);
+  FOR UPDATE
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);  -- prevents user from rewriting user_id to another user's UUID
 CREATE POLICY "Users insert own profile" ON camera_profiles
   FOR INSERT WITH CHECK (auth.uid() = user_id);
 ```
