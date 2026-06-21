@@ -52,7 +52,7 @@ function ChevronIcon({ open }: { open: boolean }) {
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"
-      className={`shrink-0 transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+      className={`shrink-0 transition-transform duration-[450ms] ease-[cubic-bezier(0.16,1,0.3,1)] ${
         open ? "rotate-180" : ""
       }`}
     >
@@ -125,11 +125,11 @@ export default function FaqAccordion() {
                   id={panelId}
                   role="region"
                   aria-labelledby={questionId}
-                  className={`grid overflow-hidden transition-[grid-template-rows] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${
-                    isOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+                  className={`overflow-hidden transition-[max-height] duration-[450ms] ease-[cubic-bezier(0.16,1,0.3,1)] ${
+                    isOpen ? "max-h-[800px]" : "max-h-0"
                   }`}
                 >
-                  <div className="min-h-0 overflow-hidden px-6 pb-5 text-sm leading-[1.65] text-text-muted">
+                  <div className="px-6 pb-5 text-sm leading-[1.65] text-text-muted">
                     {item.answer}
                   </div>
                 </div>

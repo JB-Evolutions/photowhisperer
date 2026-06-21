@@ -13,14 +13,14 @@ interface ButtonProps {
 }
 
 const base =
-  "inline-flex items-center gap-2 whitespace-nowrap rounded-[10px] font-body font-medium text-sm tracking-[0.01em] transition-all duration-[250ms] ease-[cubic-bezier(0.2,0,0,1)] border border-transparent";
+  "inline-flex items-center gap-2 whitespace-nowrap rounded-[10px] font-body font-medium text-sm tracking-[0.01em] transition-all duration-[250ms] ease-[cubic-bezier(0.2,0,0,1)] border";
 
 const variants: Record<Variant, string> = {
   primary:
-    "pw-btn-primary text-[var(--tile-text-on-accent)] bg-gradient-to-br from-accent to-accent-2 hover:-translate-y-px",
+    "pw-btn-primary text-[var(--tile-text-on-accent)] bg-gradient-to-br from-accent to-accent-2 border-transparent hover:-translate-y-px",
   outline:
     "text-text bg-transparent border-border-strong hover:border-text-muted hover:bg-surface",
-  ghost: "text-text-muted bg-transparent hover:text-text hover:bg-surface",
+  ghost: "text-text-muted bg-transparent border-transparent hover:text-text hover:bg-surface",
 };
 
 const sizes: Record<Size, string> = {
