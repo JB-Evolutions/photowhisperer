@@ -7,6 +7,7 @@ import type {
   CreativeIntent,
   WhiteBalance,
 } from "../calculator/types.js";
+import type { CameraProfile, PriorContext } from "./types.js";
 
 export type OrchestrateResult =
   | {
@@ -83,11 +84,13 @@ function validateOkScene(obj: Record<string, unknown>): SceneInput | null {
 }
 
 export async function getSettings(
-  userText: string
+  conditions: string,
+  camera_profile: CameraProfile | null = null,
+  prior_context: PriorContext | null = null
 ): Promise<OrchestrateResult> {
   let raw: string;
   try {
-    raw = await callClassifier(userText);
+    raw = await callClassifier(conditions, camera_profile, prior_context);
   } catch (err) {
     console.error("Classifier API error:", err);
     return { status: "error", message: "Failed to reach the classification service." };
