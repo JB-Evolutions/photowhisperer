@@ -36,7 +36,7 @@ const TIERS: TierCardConfig[] = [
 ];
 
 function signupHref(tier: Tier): string {
-  return tier === "snapshot" ? "/signup" : `/signup?tier=${tier}`;
+  return tier === "snapshot" ? "/auth/signup" : `/auth/signup?tier=${tier}`;
 }
 
 function CurrentPlanBadge() {
