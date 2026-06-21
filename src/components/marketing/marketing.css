@@ -3,7 +3,7 @@
    spotlight's scroll-driven transition curve) are not practical as Tailwind
    utilities — everything else on marketing pages uses Tailwind classes. */
 
-.pw-spotlight {
+.marketing-shell .pw-spotlight {
   position: fixed;
   top: -250px;
   left: 50%;
@@ -22,14 +22,14 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .pw-spotlight {
+  .marketing-shell .pw-spotlight {
     opacity: 0.5;
     transition: none;
   }
 }
 
 @media (max-width: 900px) {
-  .pw-spotlight {
+  .marketing-shell .pw-spotlight {
     width: 700px;
     height: 600px;
     margin-left: -350px;
@@ -38,10 +38,10 @@
 }
 
 /* Masked gradient border — hero visual card */
-.pw-hero-visual {
+.marketing-shell .pw-hero-visual {
   position: relative;
 }
-.pw-hero-visual::after {
+.marketing-shell .pw-hero-visual::after {
   content: '';
   position: absolute;
   inset: 0;
@@ -55,10 +55,10 @@
 }
 
 /* Masked gradient border — featured pricing tier */
-.pw-tier-featured {
+.marketing-shell .pw-tier-featured {
   position: relative;
 }
-.pw-tier-featured::before {
+.marketing-shell .pw-tier-featured::before {
   content: '';
   position: absolute;
   inset: -1px;
@@ -69,23 +69,4 @@
   -webkit-mask-composite: xor;
   mask-composite: exclude;
   pointer-events: none;
-}
-
-/* btn-primary blur-glow */
-.pw-btn-primary {
-  position: relative;
-}
-.pw-btn-primary::before {
-  content: '';
-  position: absolute;
-  inset: -2px;
-  background: linear-gradient(135deg, var(--accent), var(--accent-3));
-  border-radius: 12px;
-  filter: blur(14px);
-  opacity: 0.45;
-  z-index: -1;
-  transition: opacity 0.3s ease;
-}
-.pw-btn-primary:hover::before {
-  opacity: 0.7;
 }
