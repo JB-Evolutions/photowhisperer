@@ -1,4 +1,5 @@
 import Button from "@/components/shared/Button";
+import PricingScrollTrack from "@/components/marketing/PricingScrollTrack";
 import { getMarketingAuthState } from "@/lib/auth-state";
 import { TIER_LIMITS, TIER_PRICES_USD, type Tier } from "@/lib/quota";
 
@@ -55,14 +56,15 @@ export default async function PricingTiers() {
   return (
     <section id="pricing" data-section="pricing" className="py-24">
       <div className="mx-auto max-w-[1280px] px-8">
-        <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
+        <PricingScrollTrack featuredTier="portrait">
           {TIERS.map((card) => {
             const isCurrentPlan = isLoggedIn && activeTier === card.tier;
 
             return (
               <div
                 key={card.tier}
-                className={`relative flex flex-col rounded-[20px] border border-border bg-surface p-8 ${
+                data-tier={card.tier}
+                className={`relative flex w-[85vw] shrink-0 snap-center flex-col rounded-[20px] border border-border bg-surface p-8 md:w-auto md:shrink md:snap-none ${
                   card.featured ? "pw-tier-featured" : ""
                 }`}
               >
@@ -105,7 +107,7 @@ export default async function PricingTiers() {
               </div>
             );
           })}
-        </div>
+        </PricingScrollTrack>
 
         <p className="mt-8 text-center text-sm text-text-dim">
           Need more? Buy extra credits anytime from your billing page.
