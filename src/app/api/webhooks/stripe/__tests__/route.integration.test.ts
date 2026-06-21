@@ -4,7 +4,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { randomUUID } from "node:crypto";
 import { NextRequest } from "next/server";
-import { stripe } from "@/lib/stripe";
+import { getStripe } from "@/lib/stripe";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { POST } from "../route";
 
@@ -52,7 +52,7 @@ function buildEventPayload(
 function signedRequest(rawBody: string, signatureOverride?: string): NextRequest {
   const signature =
     signatureOverride ??
-    stripe.webhooks.generateTestHeaderString({
+    getStripe().webhooks.generateTestHeaderString({
       payload: rawBody,
       secret: webhookSecret,
     });

@@ -1,8 +1,10 @@
 // Per implementation-guide.md Pack 5 Step 6.
 import { NextResponse, type NextRequest } from "next/server";
 import type Stripe from "stripe";
-import { stripe } from "@/lib/stripe";
+import { getStripe } from "@/lib/stripe";
 import { createAdminClient } from "@/lib/supabase/admin";
+
+export const dynamic = "force-dynamic";
 
 type AdminClient = ReturnType<typeof createAdminClient>;
 
@@ -12,6 +14,7 @@ function toId(value: string | { id: string } | null | undefined): string | null 
 }
 
 export async function POST(request: NextRequest) {
+  const stripe = getStripe();
   const rawBody = await request.text();
   const signature = request.headers.get("stripe-signature");
 

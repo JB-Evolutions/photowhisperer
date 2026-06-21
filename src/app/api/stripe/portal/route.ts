@@ -1,9 +1,12 @@
 // Per implementation-guide.md Pack 5 Step 5.
 import { NextResponse } from "next/server";
 import { createClient as createServerClient } from "@/lib/supabase/server";
-import { stripe } from "@/lib/stripe";
+import { getStripe } from "@/lib/stripe";
+
+export const dynamic = "force-dynamic";
 
 export async function GET() {
+  const stripe = getStripe();
   const supabase = await createServerClient();
   const {
     data: { user },

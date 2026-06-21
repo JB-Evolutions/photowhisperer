@@ -2,7 +2,14 @@ import Anthropic from "@anthropic-ai/sdk";
 import { buildClassifierPrompt } from "./classifierPrompt";
 import type { CameraProfile, PriorContext } from "./types";
 
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+let client: Anthropic | null = null;
+
+function getAnthropic(): Anthropic {
+  if (!client) {
+    client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+  }
+  return client;
+}
 
 export async function callClassifier(
   conditions: string,
@@ -10,7 +17,7 @@ export async function callClassifier(
   prior_context: PriorContext | null
 ): Promise<string> {
   const model = process.env.ANTHROPIC_MODEL ?? "claude-sonnet-4-6";
-  const response = await client.messages.create({
+  const response = await getAnthropic().messages.create({
     model,
     max_tokens: 400,
     temperature: 0,

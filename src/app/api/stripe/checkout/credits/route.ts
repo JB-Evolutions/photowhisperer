@@ -1,7 +1,9 @@
 // Per implementation-guide.md Pack 5 Step 4.
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient as createServerClient } from "@/lib/supabase/server";
-import { stripe } from "@/lib/stripe";
+import { getStripe } from "@/lib/stripe";
+
+export const dynamic = "force-dynamic";
 
 const CREDIT_PACKS: Record<"s" | "m" | "l", { priceId: string | undefined; amount: number }> = {
   s: { priceId: process.env.STRIPE_PRICE_ID_CREDITS_50, amount: 50 },
@@ -10,6 +12,7 @@ const CREDIT_PACKS: Record<"s" | "m" | "l", { priceId: string | undefined; amoun
 };
 
 export async function POST(request: NextRequest) {
+  const stripe = getStripe();
   const supabase = await createServerClient();
   const {
     data: { user },

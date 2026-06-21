@@ -1,7 +1,9 @@
 // Per implementation-guide.md Pack 5 Step 3.
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient as createServerClient } from "@/lib/supabase/server";
-import { stripe } from "@/lib/stripe";
+import { getStripe } from "@/lib/stripe";
+
+export const dynamic = "force-dynamic";
 
 const TIER_PRICE_IDS: Record<"portrait" | "studio", string | undefined> = {
   portrait: process.env.STRIPE_PRICE_ID_PORTRAIT,
@@ -9,6 +11,7 @@ const TIER_PRICE_IDS: Record<"portrait" | "studio", string | undefined> = {
 };
 
 export async function POST(request: NextRequest) {
+  const stripe = getStripe();
   const supabase = await createServerClient();
   const {
     data: { user },
