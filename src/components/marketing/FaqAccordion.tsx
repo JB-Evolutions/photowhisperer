@@ -2,12 +2,12 @@
 
 import { useId, useRef, useState, type KeyboardEvent } from "react";
 
-interface FaqItem {
+export interface FaqItem {
   question: string;
   answer: string;
 }
 
-const FAQ_ITEMS: FaqItem[] = [
+const DEFAULT_FAQ_ITEMS: FaqItem[] = [
   {
     question: "Does this work with my camera?",
     answer:
@@ -61,7 +61,11 @@ function ChevronIcon({ open }: { open: boolean }) {
   );
 }
 
-export default function FaqAccordion() {
+export default function FaqAccordion({
+  items = DEFAULT_FAQ_ITEMS,
+}: {
+  items?: FaqItem[];
+}) {
   const baseId = useId();
   const [openIndex, setOpenIndex] = useState<number | null>(0);
   const buttonRefs = useRef<(HTMLButtonElement | null)[]>([]);
@@ -73,16 +77,16 @@ export default function FaqAccordion() {
   function handleKeyDown(event: KeyboardEvent<HTMLButtonElement>, index: number) {
     if (event.key === "ArrowDown") {
       event.preventDefault();
-      buttonRefs.current[(index + 1) % FAQ_ITEMS.length]?.focus();
+      buttonRefs.current[(index + 1) % items.length]?.focus();
     } else if (event.key === "ArrowUp") {
       event.preventDefault();
-      buttonRefs.current[(index - 1 + FAQ_ITEMS.length) % FAQ_ITEMS.length]?.focus();
+      buttonRefs.current[(index - 1 + items.length) % items.length]?.focus();
     } else if (event.key === "Home") {
       event.preventDefault();
       buttonRefs.current[0]?.focus();
     } else if (event.key === "End") {
       event.preventDefault();
-      buttonRefs.current[FAQ_ITEMS.length - 1]?.focus();
+      buttonRefs.current[items.length - 1]?.focus();
     }
   }
 
@@ -94,7 +98,7 @@ export default function FaqAccordion() {
         </h2>
 
         <div className="mt-12 flex flex-col gap-4">
-          {FAQ_ITEMS.map((item, index) => {
+          {items.map((item, index) => {
             const isOpen = openIndex === index;
             const questionId = `${baseId}-question-${index}`;
             const panelId = `${baseId}-panel-${index}`;
