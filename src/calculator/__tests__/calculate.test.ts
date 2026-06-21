@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
-import { calculateSettings } from "../calculate.js";
-import { formatAperture, formatShutter } from "../format.js";
-import type { SceneInput } from "../types.js";
+import { calculateSettings } from "../calculate";
+import { formatAperture, formatShutter } from "../format";
+import type { SceneInput } from "../types";
 
 function scene(overrides: Partial<SceneInput> & Pick<SceneInput, "scene_ev" | "motion_tier" | "support" | "focal_length_mm" | "creative_intent" | "white_balance">): SceneInput {
   return {

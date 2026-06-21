@@ -1,13 +1,13 @@
-import { callClassifier } from "./classifier.js";
-import { calculateSettings } from "../calculator/calculate.js";
+import { callClassifier } from "./classifier";
+import { calculateSettings } from "../calculator/calculate";
 import type {
   SceneInput,
   MotionTier,
   Support,
   CreativeIntent,
   WhiteBalance,
-} from "../calculator/types.js";
-import type { CameraProfile, PriorContext } from "./types.js";
+} from "../calculator/types";
+import type { CameraProfile, PriorContext } from "./types";
 
 export type OrchestrateResult =
   | {

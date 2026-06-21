@@ -1,4 +1,4 @@
-import type { MotionTier, CreativeIntent, WhiteBalance } from "./types.js";
+import type { MotionTier, CreativeIntent, WhiteBalance } from "./types";
 
 export const STANDARD_APERTURES = [1.4, 1.8, 2.0, 2.8, 4.0, 5.6, 8.0, 11.0, 16.0];
 

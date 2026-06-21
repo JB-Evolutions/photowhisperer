@@ -1,4 +1,4 @@
-import type { SceneInput, SettingsOutput } from "./types.js";
+import type { SceneInput, SettingsOutput } from "./types";
 import {
   STANDARD_APERTURES,
   STANDARD_SHUTTERS,
@@ -11,8 +11,8 @@ import {
   TRIPOD_LONG_EXPOSURE_LIMIT_S,
   FLASH_SYNC_SHUTTER_S,
   FLASH_DEFAULT_ISO,
-} from "./constants.js";
-import { formatAperture, formatShutter } from "./format.js";
+} from "./constants";
+import { formatAperture, formatShutter } from "./format";
 
 function slowestStandardShutterMeetingFloor(floor: number): number {
   const valid = STANDARD_SHUTTERS.filter((s) => s <= floor);

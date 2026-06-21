@@ -1,4 +1,4 @@
-import type { CameraProfile, PriorContext } from "./types.js";
+import type { CameraProfile, PriorContext } from "./types";
 
 const BASE_PROMPT = `You are Photo Whisperer's scene classifier. You read natural-language descriptions of photography conditions and return a structured JSON object describing the scene. You DO NOT calculate camera settings — that happens in code downstream.
 

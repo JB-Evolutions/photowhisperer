@@ -2,8 +2,8 @@
 // when no key is configured so CI/local runs without ANTHROPIC_API_KEY don't
 // fail or incur cost.
 import { describe, it, expect } from "vitest";
-import { getSettings } from "../orchestrate.js";
-import type { CameraProfile, PriorContext } from "../types.js";
+import { getSettings } from "../orchestrate";
+import type { CameraProfile, PriorContext } from "../types";
 
 const hasApiKey = Boolean(process.env.ANTHROPIC_API_KEY);
 const maybeDescribe = hasApiKey ? describe : describe.skip;

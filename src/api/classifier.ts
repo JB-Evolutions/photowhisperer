@@ -1,6 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { buildClassifierPrompt } from "./classifierPrompt.js";
-import type { CameraProfile, PriorContext } from "./types.js";
+import { buildClassifierPrompt } from "./classifierPrompt";
+import type { CameraProfile, PriorContext } from "./types";
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 

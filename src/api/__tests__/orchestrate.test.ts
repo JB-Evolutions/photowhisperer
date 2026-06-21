@@ -8,7 +8,7 @@ vi.mock("@anthropic-ai/sdk", () => ({
   })),
 }));
 
-import { getSettings } from "../orchestrate.js";
+import { getSettings } from "../orchestrate";
 
 function apiResponse(text: string) {
   return { content: [{ type: "text", text }] };
