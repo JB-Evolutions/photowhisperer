@@ -126,9 +126,12 @@ function Panel({
 
 export default function AppShowcase() {
   return (
-    <section className="py-24">
+    <section className="border-t border-border py-24">
       <div className="mx-auto max-w-[1280px] px-8">
-        <ol className="grid grid-cols-1 gap-8 sm:grid-cols-3">
+        <h2 className="text-center font-display text-3xl text-text">
+          How it works
+        </h2>
+        <ol className="mt-12 grid grid-cols-1 gap-8 sm:grid-cols-3">
           {STEPS.map((step, index) => (
             <li key={step.title} className="flex gap-4">
               <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border-accent font-mono text-sm text-accent">
