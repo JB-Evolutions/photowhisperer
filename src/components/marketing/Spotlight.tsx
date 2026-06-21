@@ -53,8 +53,8 @@ export default function Spotlight() {
       if (key !== currentAnchor) {
         currentAnchor = key;
         const a = ANCHORS[key] ?? ANCHORS.hero;
-        spotlight.style.left = `${a.x}%`;
-        spotlight.style.top = `${a.y}px`;
+        spotlight!.style.left = `${a.x}%`;
+        spotlight!.style.top = `${a.y}px`;
       }
       ticking = false;
     }
