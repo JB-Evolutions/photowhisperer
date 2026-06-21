@@ -28,7 +28,7 @@ export async function proxy(request: NextRequest) {
         setAll(cookiesToSet) {
           // Write onto the request so subsequent proxy sees them.
           cookiesToSet.forEach(({ name, value, options }) =>
-            request.cookies.set(name, value, options)
+            request.cookies.set({ name, value, ...options })
           );
           // Rebuild the response so the cookie mutations are included.
           supabaseResponse = NextResponse.next({ request });
