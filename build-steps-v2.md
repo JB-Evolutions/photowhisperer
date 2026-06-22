@@ -68,7 +68,7 @@ All RLS policies as specified. The `handle_new_user` trigger creates `users`, `s
 
 ### Phase 3 — JWT middleware
 
-`middleware.ts` enforces JWT on all `/api/*` except `/api/webhooks/*` and `/api/auth/callback`. Invalid or missing JWT returns 401 JSON.
+`src/proxy.ts` (Next.js 16's middleware convention file) enforces JWT on all `/api/*` except `/api/webhooks/*` and `/api/test-login`. Invalid or missing JWT returns 401 JSON. `/auth/callback` is a page route outside `/api/*`, so it needs no exception.
 
 **Exit criteria:** `curl` to `/api/settings` without auth returns 401. With a valid JWT, gets past middleware.
 

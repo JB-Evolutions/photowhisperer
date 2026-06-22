@@ -23,6 +23,7 @@
   --glow-color-2: rgba(242, 200, 121, 0);
   --tile-text-on-accent: #1a1208;
   --warning: #E5B454;
+  --danger: #EA7B85;
 }
 
 :root[data-theme="dark"] {
@@ -45,6 +46,7 @@
   --glow-color-2: rgba(242, 200, 121, 0);
   --tile-text-on-accent: #1a1208;
   --warning: #E5B454;
+  --danger: #EA7B85;
 }
 
 :root[data-theme="light"] {
@@ -67,6 +69,7 @@
   --glow-color-2: rgba(154, 110, 51, 0);
   --tile-text-on-accent: #FFFFFF;
   --warning: #8B5E1A;
+  --danger: #C2333F;
 }
 
 /* === Expose tokens to Tailwind v4 utilities === */
@@ -86,6 +89,7 @@
   --color-accent-2: var(--accent-2);
   --color-accent-3: var(--accent-3);
   --color-warning: var(--warning);
+  --color-danger: var(--danger);
 
   --font-display: 'Fraunces', Georgia, serif;
   --font-body: 'Geist', system-ui, sans-serif;
