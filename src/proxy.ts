@@ -46,15 +46,18 @@ export async function proxy(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    const unauthorized = NextResponse.json(
-      { error: "Unauthorized" },
-      { status: 401 }
-    );
-    // Preserve any refreshed auth cookies even on the 401 path.
-    supabaseResponse.cookies.getAll().forEach(({ name, value, ...options }) =>
-      unauthorized.cookies.set(name, value, options)
-    );
-    return unauthorized;
+    if (request.nextUrl.pathname.startsWith("/api/")) {
+      const unauthorized = NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      );
+      // Preserve any refreshed auth cookies even on the 401 path.
+      supabaseResponse.cookies.getAll().forEach(({ name, value, ...options }) =>
+        unauthorized.cookies.set(name, value, options)
+      );
+      return unauthorized;
+    }
+    return NextResponse.redirect(new URL("/auth/signin", request.url));
   }
 
   // Return the supabase-mutated response so refreshed cookies reach the client.
@@ -62,5 +65,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/api/:path*"],
+  matcher: ["/api/:path*", "/onboarding/:path*"],
 };
