@@ -4,6 +4,9 @@ import { useState } from "react";
 import Sidebar from "@/components/app/Sidebar";
 import MobileTopBar from "@/components/app/MobileTopBar";
 import MobileDrawer from "@/components/app/MobileDrawer";
+import EmptyState from "@/components/app/EmptyState";
+import ChatComposer from "@/components/app/ChatComposer";
+import Button from "@/components/shared/Button";
 import type { AccountData, SessionRow } from "@/app/app/page";
 
 interface AppShellProps {
@@ -26,6 +29,27 @@ export default function AppShell({
   sessionsError,
 }: AppShellProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [composerValue, setComposerValue] = useState("");
+
+  const outOfCredits =
+    account != null &&
+    account.monthly_used >= account.monthly_limit &&
+    account.credits_remaining <= 0;
+
+  const outOfCreditsNotice = outOfCredits ? (
+    <div className="flex flex-col items-center gap-3 text-center">
+      {/* TODO(9.7): paid-tier out-of-credits copy */}
+      <p className="text-sm text-text-muted">You&apos;ve used your 5 free settings.</p>
+      <div className="flex gap-2">
+        <Button variant="outline" onClick={() => { /* TODO(9.10): billing modal */ }}>
+          Buy credits
+        </Button>
+        <Button variant="outline" onClick={() => { /* TODO(9.10): billing modal */ }}>
+          Upgrade
+        </Button>
+      </div>
+    </div>
+  ) : undefined;
 
   const sidebarProps = {
     account,
@@ -52,8 +76,22 @@ export default function AppShell({
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
         <MobileTopBar onMenuClick={() => setDrawerOpen(true)} />
         <main className="flex-1 overflow-y-auto bg-bg">
-          <div className="mx-auto flex h-full max-w-[880px] items-center justify-center">
-            <p className="select-none text-text-muted">Your scene will appear here</p>
+          <div className="mx-auto flex min-h-full max-w-[880px] flex-col">
+            <div className="flex flex-1 items-center justify-center">
+              <EmptyState
+                onChipSelect={setComposerValue}
+                disabled={outOfCredits}
+                outOfCreditsNotice={outOfCreditsNotice}
+              />
+            </div>
+            <div className="flex-shrink-0 border-t border-border p-4">
+              <ChatComposer
+                value={composerValue}
+                onChange={setComposerValue}
+                onSend={() => { setComposerValue(""); /* TODO: wire /api/settings in 9.6 */ }}
+                disabled={outOfCredits}
+              />
+            </div>
           </div>
         </main>
       </div>

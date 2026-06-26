@@ -150,3 +150,16 @@ body {
     scroll-behavior: auto !important;
   }
 }
+
+/* ChatComposer: shake on empty-send (motion), border flash (reduced-motion) */
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes pw-composer-shake {
+    0%,100% { transform: translateX(0); }
+    20%     { transform: translateX(-4px); }
+    40%     { transform: translateX( 4px); }
+    60%     { transform: translateX(-3px); }
+    80%     { transform: translateX( 3px); }
+  }
+  .pw-composer-shake { animation: pw-composer-shake 300ms ease-in-out; }
+}
+.pw-composer-flash { border-color: var(--border-accent) !important; }
