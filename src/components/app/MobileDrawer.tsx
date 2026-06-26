@@ -32,6 +32,8 @@ export default function MobileDrawer({
   const panelRef = useRef<HTMLDivElement>(null);
   // Captures the element that triggered open so focus returns to it on close.
   const returnFocusRef = useRef<Element | null>(null);
+  // Mutable gesture state — never causes re-renders, purely imperative.
+  const gestureRef = useRef({ startX: 0, startY: 0, lastX: 0, lastTime: 0, intent: null as "horizontal" | "vertical" | null, active: false });
 
   // Lock body scroll while drawer is open.
   useEffect(() => {
@@ -64,8 +66,13 @@ export default function MobileDrawer({
   }, [open, onClose]);
 
   // Capture opener, move focus in on open; return focus to opener on close.
+  // Also clears any inline styles left by a previous swipe gesture.
   useEffect(() => {
     if (open) {
+      if (panelRef.current) {
+        panelRef.current.style.transform = "";
+        panelRef.current.style.transition = "";
+      }
       returnFocusRef.current = document.activeElement;
       panelRef.current?.focus();
     } else {
@@ -74,6 +81,86 @@ export default function MobileDrawer({
       returnFocusRef.current = null;
     }
   }, [open]);
+
+  useEffect(() => {
+    const rawPanel = panelRef.current;
+    if (!rawPanel || !open) return;
+    const panel: HTMLDivElement = rawPanel;
+
+    const g = gestureRef.current;
+
+    function onTouchStart(e: TouchEvent) {
+      const t = e.touches[0];
+      g.startX = t.clientX;
+      g.startY = t.clientY;
+      g.lastX = t.clientX;
+      g.lastTime = Date.now();
+      g.intent = null;
+      g.active = false;
+    }
+
+    function onTouchMove(e: TouchEvent) {
+      const t = e.touches[0];
+      const deltaX = t.clientX - g.startX;
+      const deltaY = t.clientY - g.startY;
+
+      if (g.intent === null && (Math.abs(deltaX) > 5 || Math.abs(deltaY) > 5)) {
+        g.intent = Math.abs(deltaY) > Math.abs(deltaX) ? "vertical" : "horizontal";
+      }
+      if (g.intent !== "horizontal") return;
+      if (deltaX >= 0) return;
+
+      e.preventDefault();
+      g.active = true;
+      g.lastX = t.clientX;
+      g.lastTime = Date.now();
+
+      panel.style.transition = "none";
+      panel.style.transform = `translateX(${Math.max(deltaX, -panel.offsetWidth)}px)`;
+    }
+
+    function settle(close: boolean) {
+      g.active = false;
+      panel.style.transition = "transform 280ms ease-out";
+      if (close) {
+        panel.style.transform = "translateX(-100%)";
+        onClose();
+      } else {
+        panel.style.transform = "translateX(0)";
+        function onTransitionEnd(ev: TransitionEvent) {
+          if (ev.propertyName !== "transform") return;
+          panel.removeEventListener("transitionend", onTransitionEnd);
+          panel.style.transform = "";
+          panel.style.transition = "";
+        }
+        panel.addEventListener("transitionend", onTransitionEnd);
+      }
+    }
+
+    function onTouchEnd(e: TouchEvent) {
+      if (!g.active) return;
+      const t = e.changedTouches[0];
+      const deltaX = t.clientX - g.startX;
+      const elapsed = Date.now() - g.lastTime;
+      const velocity = elapsed > 0 ? (t.clientX - g.lastX) / elapsed : 0;
+      settle(Math.abs(deltaX) / panel.offsetWidth > 0.4 || velocity < -0.3);
+    }
+
+    function onTouchCancel() {
+      if (g.active) settle(false);
+    }
+
+    panel.addEventListener("touchstart", onTouchStart);
+    panel.addEventListener("touchmove", onTouchMove, { passive: false });
+    panel.addEventListener("touchend", onTouchEnd);
+    panel.addEventListener("touchcancel", onTouchCancel);
+    return () => {
+      panel.removeEventListener("touchstart", onTouchStart);
+      panel.removeEventListener("touchmove", onTouchMove);
+      panel.removeEventListener("touchend", onTouchEnd);
+      panel.removeEventListener("touchcancel", onTouchCancel);
+    };
+  }, [open, onClose]);
 
   return (
     // Always mounted — visibility controlled via transform/opacity so slide-out animates.
@@ -91,7 +178,6 @@ export default function MobileDrawer({
       />
 
       {/* Drawer panel — slides in from left */}
-      {/* TODO(9.4 swipe): attach swipe-to-dismiss gesture handler here */}
       <div
         ref={panelRef}
         role="dialog"
