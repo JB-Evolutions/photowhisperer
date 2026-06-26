@@ -33,14 +33,19 @@ export async function GET() {
       .order("updated_at", { ascending: false });
 
     if (limit !== -1) {
-      query = query.limit(limit);
+      // Fetch one extra to detect overflow without a second query.
+      query = query.limit(limit + 1);
     }
 
-    const { data: sessions, error: sessionsError } = await query;
+    const { data: rows, error: sessionsError } = await query;
 
     if (sessionsError) throw sessionsError;
 
-    return NextResponse.json({ sessions: sessions ?? [] });
+    const all = rows ?? [];
+    const has_more = limit !== -1 && all.length > limit;
+    const sessions = has_more ? all.slice(0, limit) : all;
+
+    return NextResponse.json({ sessions, has_more });
   } catch (err) {
     console.error("GET /api/sessions failure:", err);
     return NextResponse.json(
