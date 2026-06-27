@@ -163,3 +163,12 @@ body {
   .pw-composer-shake { animation: pw-composer-shake 300ms ease-in-out; }
 }
 .pw-composer-flash { border-color: var(--border-accent) !important; }
+
+/* Toast: fade-in for motion-preferring users; visible immediately under reduced-motion */
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes pw-toast-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+  .pw-toast { animation: pw-toast-in 150ms ease-out both; }
+}
