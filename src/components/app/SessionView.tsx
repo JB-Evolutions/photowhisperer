@@ -23,10 +23,13 @@ export default function SessionView({ fakeParam }: SessionViewProps) {
   const [pending, setPending] = useState(false);
   const [headerText, setHeaderText] = useState(DEFAULT_HEADER);
   const [showSlowRetry, setShowSlowRetry] = useState(false);
+  const [invalidCount, setInvalidCount] = useState(0);
+  const [retryCount, setRetryCount] = useState(0);
 
   const inputRef = useRef<HTMLInputElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const inFlightConditions = useRef<string>("");
+  const lastConditions = useRef<string>("");
   // Mirrors pending state but updated synchronously so send()'s guard
   // and the 20s retry handler agree without waiting for a re-render.
   const pendingRef = useRef(false);
@@ -51,6 +54,11 @@ export default function SessionView({ fakeParam }: SessionViewProps) {
     setShowSlowRetry(false);
   }
 
+  // TODO(4c-3): focus composer after clarification_required / invalid_input
+  function requestFocus() {
+    // no-op until ChatComposer is wired in 4c-3
+  }
+
   useEffect(() => {
     return () => {
       clearTimers();
@@ -64,6 +72,7 @@ export default function SessionView({ fakeParam }: SessionViewProps) {
     const controller = new AbortController();
     abortControllerRef.current = controller;
     inFlightConditions.current = text;
+    lastConditions.current = text;
 
     const requestId = ++requestIdRef.current;
 
@@ -86,8 +95,26 @@ export default function SessionView({ fakeParam }: SessionViewProps) {
       setSessionId(result.session_id);
     }
 
+    // Update consecutive counters based on result status.
+    if (result.status === "invalid_input") {
+      setInvalidCount((n) => n + 1);
+      setRetryCount(0);
+    } else if (result.status === "error") {
+      setRetryCount((n) => n + 1);
+      setInvalidCount(0);
+    } else {
+      setInvalidCount(0);
+      setRetryCount(0);
+    }
+
     setMessages((prev) => [...prev, { role: "assistant", response: result }]);
+
+    if (result.status === "clarification_required" || result.status === "invalid_input") {
+      requestFocus();
+    }
   }
+
+  const lastIndex = messages.length - 1;
 
   return (
     <div className="flex flex-col gap-4">
@@ -95,7 +122,18 @@ export default function SessionView({ fakeParam }: SessionViewProps) {
         msg.role === "user" ? (
           <UserMessage key={i} text={msg.text} />
         ) : (
-          <AssistantResponse key={i} response={msg.response} />
+          <AssistantResponse
+            key={i}
+            response={msg.response}
+            invalidCount={i === lastIndex ? invalidCount : undefined}
+            retryCount={i === lastIndex ? retryCount : undefined}
+            onRetry={i === lastIndex ? () => send(lastConditions.current) : undefined}
+            onSeeExamples={
+              i === lastIndex
+                ? () => { /* TODO(4c-3): wire See-examples target */ }
+                : undefined
+            }
+          />
         )
       )}
 

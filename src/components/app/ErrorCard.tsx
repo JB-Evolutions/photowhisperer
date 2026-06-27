@@ -29,7 +29,7 @@ export default function ErrorCard({
       </div>
       <p className="text-[15px] leading-relaxed text-text">{message}</p>
       <div className="mt-3">
-        {count < 3 ? (
+        {onRetry !== undefined && count < 3 ? (
           <Button
             variant="outline"
             onClick={onRetry}
@@ -37,7 +37,7 @@ export default function ErrorCard({
           >
             Retry
           </Button>
-        ) : (
+        ) : count >= 3 ? (
           <p className="text-[13px] text-text-muted">
             Still failing?{" "}
             <a
@@ -52,7 +52,7 @@ export default function ErrorCard({
               Report a problem
             </a>
           </p>
-        )}
+        ) : null}
       </div>
     </div>
   );
