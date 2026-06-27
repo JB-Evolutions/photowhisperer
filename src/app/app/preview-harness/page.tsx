@@ -4,6 +4,7 @@ import UserMessage from "@/components/app/UserMessage";
 import SettingsCubes from "@/components/app/SettingsCubes";
 import ResponsePanels from "@/components/app/ResponsePanels";
 import ResponseActions from "@/components/app/ResponseActions";
+import AssistantResponse from "@/components/app/AssistantResponse";
 import type { SettingsResponseOk } from "@/lib/settings";
 
 const FIXTURES: Array<{ prompt: string; response: SettingsResponseOk }> = [
@@ -115,6 +116,46 @@ export default function PreviewPage() {
               />
             </section>
           ))}
+
+          {/* F5–F9: AssistantResponse switch exercised */}
+          <section className="flex flex-col gap-4">
+            <p className="font-mono text-xs text-text-dim">Fixture 5 — clarification_required</p>
+            <AssistantResponse
+              response={{ status: "clarification_required", question: "Is this indoors or outdoors, and is the subject moving?" }}
+            />
+          </section>
+
+          <section className="flex flex-col gap-4">
+            <p className="font-mono text-xs text-text-dim">Fixture 6 — invalid_input (count 1, no link)</p>
+            <AssistantResponse
+              response={{ status: "invalid_input", message: "Please describe your shooting conditions: lighting, subject, and movement." }}
+              invalidCount={1}
+            />
+          </section>
+
+          <section className="flex flex-col gap-4">
+            <p className="font-mono text-xs text-text-dim">Fixture 7 — invalid_input (count 3, See examples visible)</p>
+            <AssistantResponse
+              response={{ status: "invalid_input", message: "Please describe your shooting conditions: lighting, subject, and movement." }}
+              invalidCount={3}
+            />
+          </section>
+
+          <section className="flex flex-col gap-4">
+            <p className="font-mono text-xs text-text-dim">Fixture 8 — error (retryCount 1, Retry visible)</p>
+            <AssistantResponse
+              response={{ status: "error", message: "Couldn't reach the photography service. Try again?" }}
+              retryCount={1}
+            />
+          </section>
+
+          <section className="flex flex-col gap-4">
+            <p className="font-mono text-xs text-text-dim">Fixture 9 — error (retryCount 3, Report a problem)</p>
+            <AssistantResponse
+              response={{ status: "error", message: "Couldn't reach the photography service. Try again?" }}
+              retryCount={3}
+            />
+          </section>
         </div>
       </div>
     </ToastProvider>

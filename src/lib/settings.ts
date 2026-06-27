@@ -29,3 +29,9 @@ export function formatWbCopyValue(
 ): string {
   return color_temperature !== null ? `${color_temperature} (${wbLabel})` : "Auto";
 }
+
+export type SettingsResponse =
+  | SettingsResponseOk
+  | { status: "clarification_required"; question: string }
+  | { status: "invalid_input"; message: string }
+  | { status: "error"; message: string };
