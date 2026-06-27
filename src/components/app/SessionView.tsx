@@ -18,13 +18,12 @@ export interface SessionViewHandle {
 const DEFAULT_HEADER = "PhotoWhisperer · thinking…";
 
 interface SessionViewProps {
-  fakeParam?: string;
   onRequestFocus?: () => void;
   onThreadEmptyChange?: (isEmpty: boolean) => void;
 }
 
 const SessionView = forwardRef<SessionViewHandle, SessionViewProps>(
-  function SessionView({ fakeParam, onRequestFocus, onThreadEmptyChange }, ref) {
+  function SessionView({ onRequestFocus, onThreadEmptyChange }, ref) {
     const [messages, setMessages] = useState<Message[]>([]);
     const [sessionId, setSessionId] = useState<string | null>(null);
     const [pending, setPending] = useState(false);
@@ -90,7 +89,7 @@ const SessionView = forwardRef<SessionViewHandle, SessionViewProps>(
       timer20Ref.current = setTimeout(() => setShowSlowRetry(true), 20000);
       timer30Ref.current = setTimeout(() => controller.abort(), 30000);
 
-      const result = await requestSettings(text, sessionId, fakeParam, controller.signal);
+      const result = await requestSettings(text, sessionId, controller.signal);
 
       // A newer send() superseded this one (20s retry was clicked) — discard.
       if (requestId !== requestIdRef.current) return;
@@ -120,7 +119,7 @@ const SessionView = forwardRef<SessionViewHandle, SessionViewProps>(
       }
     }
 
-    useImperativeHandle(ref, () => ({ send }), [sessionId, fakeParam]);
+    useImperativeHandle(ref, () => ({ send }), [sessionId]);
 
     const lastIndex = messages.length - 1;
 

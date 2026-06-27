@@ -3,12 +3,9 @@ import type { SettingsResponse } from "@/lib/settings";
 export async function requestSettings(
   conditions: string,
   sessionId: string | null,
-  fakeParam?: string,
   signal?: AbortSignal,
 ): Promise<SettingsResponse> {
-  const url = fakeParam
-    ? `/api/settings?fake=${encodeURIComponent(fakeParam)}`
-    : "/api/settings";
+  const url = "/api/settings";
 
   const body: Record<string, string> = { conditions };
   if (sessionId) body.session_id = sessionId;
