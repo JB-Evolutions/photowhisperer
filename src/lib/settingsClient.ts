@@ -4,6 +4,7 @@ export async function requestSettings(
   conditions: string,
   sessionId: string | null,
   fakeParam?: string,
+  signal?: AbortSignal,
 ): Promise<SettingsResponse> {
   const url = fakeParam
     ? `/api/settings?fake=${encodeURIComponent(fakeParam)}`
@@ -18,9 +19,12 @@ export async function requestSettings(
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
+      signal,
     });
-    // TODO(4c): handle AbortError for 30s client-abort timeout
-  } catch {
+  } catch (err) {
+    if (err instanceof DOMException && err.name === "AbortError") {
+      return { status: "error", message: "Request timed out — try again?" };
+    }
     return {
       status: "error",
       message: "Couldn't reach the photography service. Try again?",

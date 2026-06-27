@@ -93,7 +93,7 @@ export default function PreviewPage() {
       <div className="min-h-screen bg-bg px-4 py-12">
         <div className="mx-auto max-w-[880px] space-y-16">
           {/* Live dispatch — 4b SessionView instances */}
-          {(["ok", "clarification", "invalid", "error"] as const).map((fake) => (
+          {(["ok", "clarification", "invalid", "error", "slow", "hang"] as const).map((fake) => (
             <section key={fake} className="flex flex-col gap-4">
               <p className="font-mono text-xs text-text-dim">
                 Live · fake={fake}

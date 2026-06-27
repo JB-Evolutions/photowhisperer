@@ -172,3 +172,18 @@ body {
   }
   .pw-toast { animation: pw-toast-in 150ms ease-out both; }
 }
+
+/* Skeleton: pulse for motion-preferring users; static opacity under reduced-motion */
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes pw-skeleton-pulse {
+    0%, 100% { opacity: 0.4; }
+    50%       { opacity: 0.8; }
+  }
+  .pw-skeleton-pulse { animation: pw-skeleton-pulse 1.5s ease-in-out infinite; }
+
+  @keyframes pw-dot-pulse {
+    0%, 100% { opacity: 0.5; }
+    50%       { opacity: 1; }
+  }
+  .pw-dot-pulse { animation: pw-dot-pulse 1.2s ease-in-out infinite; }
+}
