@@ -5,6 +5,7 @@ import SettingsCubes from "@/components/app/SettingsCubes";
 import ResponsePanels from "@/components/app/ResponsePanels";
 import ResponseActions from "@/components/app/ResponseActions";
 import AssistantResponse from "@/components/app/AssistantResponse";
+import SessionView from "@/components/app/SessionView";
 import type { SettingsResponseOk } from "@/lib/settings";
 
 const FIXTURES: Array<{ prompt: string; response: SettingsResponseOk }> = [
@@ -91,6 +92,19 @@ export default function PreviewPage() {
     <ToastProvider>
       <div className="min-h-screen bg-bg px-4 py-12">
         <div className="mx-auto max-w-[880px] space-y-16">
+          {/* Live dispatch — 4b SessionView instances */}
+          {(["ok", "clarification", "invalid", "error"] as const).map((fake) => (
+            <section key={fake} className="flex flex-col gap-4">
+              <p className="font-mono text-xs text-text-dim">
+                Live · fake={fake}
+              </p>
+              <SessionView fakeParam={fake} />
+            </section>
+          ))}
+
+          <div className="border-t border-border" />
+          <p className="font-mono text-xs text-text-dim">Static fixtures below (F1–F9)</p>
+
           {FIXTURES.map((fixture, i) => (
             <section key={fixture.response.session_id} className="flex flex-col gap-4">
               <p className="font-mono text-xs text-text-dim">Fixture {i + 1}</p>
