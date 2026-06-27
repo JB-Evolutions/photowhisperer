@@ -1,12 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
+import { ToastProvider } from "@/components/app/useToast";
 import Sidebar from "@/components/app/Sidebar";
 import MobileTopBar from "@/components/app/MobileTopBar";
 import MobileDrawer from "@/components/app/MobileDrawer";
 import EmptyState from "@/components/app/EmptyState";
 import ChatComposer from "@/components/app/ChatComposer";
+import SessionView from "@/components/app/SessionView";
 import Button from "@/components/shared/Button";
+import type { ChatComposerHandle } from "@/components/app/ChatComposer";
+import type { SessionViewHandle } from "@/components/app/SessionView";
 import type { AccountData, SessionRow } from "@/app/app/page";
 
 interface AppShellProps {
@@ -30,6 +34,10 @@ export default function AppShell({
 }: AppShellProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [composerValue, setComposerValue] = useState("");
+  const [hasThread, setHasThread] = useState(false);
+
+  const composerRef = useRef<ChatComposerHandle>(null);
+  const sessionViewRef = useRef<SessionViewHandle>(null);
 
   const outOfCredits =
     account != null &&
@@ -63,45 +71,70 @@ export default function AppShell({
   };
 
   return (
-    <div
-      className="flex h-screen flex-col overflow-hidden md:grid"
-      style={{ gridTemplateColumns: "260px 1fr" }}
-    >
-      {/* Desktop sidebar — hidden on mobile */}
-      <aside className="hidden h-screen overflow-hidden border-r border-border md:block">
-        <Sidebar {...sidebarProps} />
-      </aside>
+    <ToastProvider>
+      <div
+        className="flex h-screen flex-col overflow-hidden md:grid"
+        style={{ gridTemplateColumns: "260px 1fr" }}
+      >
+        {/* Desktop sidebar — hidden on mobile */}
+        <aside className="hidden h-screen overflow-hidden border-r border-border md:block">
+          <Sidebar {...sidebarProps} />
+        </aside>
 
-      {/* Main column — flex-col stack on mobile, grid cell on desktop */}
-      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-        <MobileTopBar onMenuClick={() => setDrawerOpen(true)} />
-        <main className="flex-1 overflow-y-auto bg-bg">
-          <div className="mx-auto flex min-h-full max-w-[880px] flex-col">
-            <div className="flex flex-1 items-center justify-center">
-              <EmptyState
-                onChipSelect={setComposerValue}
-                disabled={outOfCredits}
-                outOfCreditsNotice={outOfCreditsNotice}
-              />
+        {/* Main column */}
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+          <MobileTopBar onMenuClick={() => setDrawerOpen(true)} />
+
+          {/* overflow-hidden so the thread div controls its own scroll */}
+          <main className="flex min-h-0 flex-1 flex-col overflow-hidden bg-bg">
+            <div className="mx-auto flex min-h-0 w-full max-w-[880px] flex-1 flex-col">
+
+              {/* Thread — always mounted so sessionViewRef is live for the first send.
+                  Tailwind `hidden` (display:none) until onThreadEmptyChange fires. */}
+              <div className={hasThread ? "flex-1 overflow-y-auto px-4 py-6" : "hidden"}>
+                <SessionView
+                  ref={sessionViewRef}
+                  onRequestFocus={() => composerRef.current?.focus()}
+                  onThreadEmptyChange={(isEmpty) => setHasThread(!isEmpty)}
+                />
+              </div>
+
+              {/* Empty state — centered, conditionally rendered (not just hidden) */}
+              {!hasThread && (
+                <div className="flex flex-1 items-center justify-center">
+                  <EmptyState
+                    onChipSelect={setComposerValue}
+                    disabled={outOfCredits}
+                    outOfCreditsNotice={outOfCreditsNotice}
+                  />
+                </div>
+              )}
+
+              {/* Composer — always pinned at bottom */}
+              <div className="flex-shrink-0 border-t border-border p-4">
+                <ChatComposer
+                  ref={composerRef}
+                  value={composerValue}
+                  onChange={setComposerValue}
+                  onSend={(text) => {
+                    sessionViewRef.current?.send(text);
+                    setComposerValue("");
+                  }}
+                  disabled={outOfCredits}
+                />
+              </div>
+
             </div>
-            <div className="flex-shrink-0 border-t border-border p-4">
-              <ChatComposer
-                value={composerValue}
-                onChange={setComposerValue}
-                onSend={() => { setComposerValue(""); /* TODO: wire /api/settings in 9.6 */ }}
-                disabled={outOfCredits}
-              />
-            </div>
-          </div>
-        </main>
+          </main>
+        </div>
+
+        {/* Mobile drawer — always mounted so slide-out animates */}
+        <MobileDrawer
+          open={drawerOpen}
+          onClose={() => setDrawerOpen(false)}
+          {...sidebarProps}
+        />
       </div>
-
-      {/* Mobile drawer — always mounted so slide-out animates */}
-      <MobileDrawer
-        open={drawerOpen}
-        onClose={() => setDrawerOpen(false)}
-        {...sidebarProps}
-      />
-    </div>
+    </ToastProvider>
   );
 }
