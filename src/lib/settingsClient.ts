@@ -44,7 +44,9 @@ export async function requestSettings(
     if (res.status === 429 && errorField === "quota_exceeded") {
       return {
         status: "error",
-        // TODO(9.7 §4.10): replace with rich tier-aware out-of-credits card
+        // Fallback message: the rich OutOfCreditsCard is driven by account state
+        // (onUsageUpdate propagation). This generic error only surfaces if a
+        // quota_exceeded 429 lands before that state update.
         message:
           "You've hit your limit for now. Credits or an upgrade will let you keep going.",
         ...(errorMonthlyCount !== undefined && { monthly_count: errorMonthlyCount }),
