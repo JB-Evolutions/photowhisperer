@@ -1,5 +1,7 @@
 # Phase 9.8a State Checkpoint
 
+> **SUPERSEDED (8eab96f):** The single `pendingPriorContextRef` described below was split into `pendingRefineContextRef` (armed by Refine, cleared by clearPendingRefinement/stale-guard) and `pendingClarificationContextRef` (armed by clarification_required). Consume at send() top takes `refine ?? clarification`. 9.8a verified end-to-end on the wire (Tests 1/3/4 pass, Test 2 code-verified) and pushed. This doc is historical.
+
 ## DONE
 
 - **FILE 1** (`42b1a96`): `SettingsRequestBody` exported from `src/lib/settings.ts`
