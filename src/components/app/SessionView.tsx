@@ -41,7 +41,8 @@ const SessionView = forwardRef<SessionViewHandle, SessionViewProps>(
     const lastConditions = useRef<string>("");
     const lastSceneSummary = useRef<string | null>(null);
     const clarificationOriginRef = useRef<string | null>(null);
-    const pendingPriorContextRef = useRef<{ user_msg: string; assistant_summary: string } | null>(null);
+    const pendingRefineContextRef = useRef<{ user_msg: string; assistant_summary: string } | null>(null);
+    const pendingClarificationContextRef = useRef<{ user_msg: string; assistant_summary: string } | null>(null);
     // Mirrors pending state but updated synchronously so send()'s guard
     // and the 20s retry handler agree without waiting for a re-render.
     const pendingRef = useRef(false);
@@ -77,10 +78,11 @@ const SessionView = forwardRef<SessionViewHandle, SessionViewProps>(
     async function send(text: string) {
       if (pendingRef.current || !text.trim()) return;
 
-      // Consume + null before first await so the ref is clear before
-      // setComposerValue("") triggers the stale-guard effect after render.
-      const priorContext = pendingPriorContextRef.current;
-      pendingPriorContextRef.current = null;
+      // Consume both prior-context slots before first await. Refine takes
+      // precedence if both are set; in practice only one ever is.
+      const priorContext = pendingRefineContextRef.current ?? pendingClarificationContextRef.current;
+      pendingRefineContextRef.current = null;
+      pendingClarificationContextRef.current = null;
 
       const controller = new AbortController();
       abortControllerRef.current = controller;
@@ -152,7 +154,7 @@ const SessionView = forwardRef<SessionViewHandle, SessionViewProps>(
         if (clarificationOriginRef.current === null) {
           clarificationOriginRef.current = text;
         }
-        pendingPriorContextRef.current = {
+        pendingClarificationContextRef.current = {
           user_msg: clarificationOriginRef.current,
           assistant_summary: "Clarifying question I asked: " + result.question,
         };
@@ -167,7 +169,7 @@ const SessionView = forwardRef<SessionViewHandle, SessionViewProps>(
 
     useImperativeHandle(ref, () => ({
       send,
-      clearPendingRefinement: () => { pendingPriorContextRef.current = null; },
+      clearPendingRefinement: () => { pendingRefineContextRef.current = null; },
     }), [sessionId]);
 
     const lastIndex = messages.length - 1;
@@ -191,7 +193,7 @@ const SessionView = forwardRef<SessionViewHandle, SessionViewProps>(
                       // after render; order is intentional so the ref is set before
                       // the effect can clear it.
                       if (lastSceneSummary.current !== null) {
-                        pendingPriorContextRef.current = {
+                        pendingRefineContextRef.current = {
                           user_msg: lastConditions.current,
                           assistant_summary: lastSceneSummary.current,
                         };
