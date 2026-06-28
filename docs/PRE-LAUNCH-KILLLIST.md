@@ -38,7 +38,10 @@ of these outstanding.
 
 - **T4 classifier drift check** — verify the Anthropic model used in
   `src/app/api/settings/route.ts` is still current and the JSON schema contract hasn't
-  drifted.
+  drifted. **2026-06-28: T4 observed failure** — `orchestrate.integration.test.ts` T4
+  (`"?" only`) returned `invalid_input` instead of `clarification_required`. No flakiness
+  annotation exists; this is the first recorded failure. Investigate whether the model
+  changed its boundary between ambiguous-input and invalid-input before launch.
 
 - **ResetConfirmForm session check** — `src/components/auth/ResetConfirmForm.tsx` line
   27 uses `getSession()` (local cookie read, no network round-trip) rather than
