@@ -64,6 +64,11 @@ export default function AppPage() {
       userEmail={userEmail}
       accountError={accountError}
       sessionsError={sessionsError}
+      onUsageUpdate={({ monthly_count, credits_remaining }) =>
+        setAccount((prev) =>
+          prev ? { ...prev, monthly_used: monthly_count, credits_remaining } : prev
+        )
+      }
     />
   );
 }

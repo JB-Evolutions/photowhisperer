@@ -20,10 +20,11 @@ const DEFAULT_HEADER = "PhotoWhisperer · thinking…";
 interface SessionViewProps {
   onRequestFocus?: () => void;
   onThreadEmptyChange?: (isEmpty: boolean) => void;
+  onUsageUpdate?: (update: { monthly_count: number; credits_remaining: number }) => void;
 }
 
 const SessionView = forwardRef<SessionViewHandle, SessionViewProps>(
-  function SessionView({ onRequestFocus, onThreadEmptyChange }, ref) {
+  function SessionView({ onRequestFocus, onThreadEmptyChange, onUsageUpdate }, ref) {
     const [messages, setMessages] = useState<Message[]>([]);
     const [sessionId, setSessionId] = useState<string | null>(null);
     const [pending, setPending] = useState(false);
@@ -98,6 +99,17 @@ const SessionView = forwardRef<SessionViewHandle, SessionViewProps>(
 
       if (result.status === "ok" && result.session_id) {
         setSessionId(result.session_id);
+      }
+
+      // Propagate fresh quota numbers to AppShell's account state.
+      if (result.status === "ok") {
+        onUsageUpdate?.({ monthly_count: result.monthly_count, credits_remaining: result.credits_remaining });
+      } else if (
+        result.status === "error" &&
+        result.monthly_count !== undefined &&
+        result.credits_remaining !== undefined
+      ) {
+        onUsageUpdate?.({ monthly_count: result.monthly_count, credits_remaining: result.credits_remaining });
       }
 
       // Update consecutive counters based on result status.

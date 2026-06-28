@@ -30,9 +30,13 @@ export async function requestSettings(
 
   if (!res.ok) {
     let errorField: string | undefined;
+    let errorMonthlyCount: number | undefined;
+    let errorCreditsRemaining: number | undefined;
     try {
       const errBody = await res.json() as Record<string, unknown>;
       errorField = typeof errBody.error === "string" ? errBody.error : undefined;
+      errorMonthlyCount = typeof errBody.monthly_count === "number" ? errBody.monthly_count : undefined;
+      errorCreditsRemaining = typeof errBody.credits_remaining === "number" ? errBody.credits_remaining : undefined;
     } catch {
       // unparseable body — fall through to generic
     }
@@ -43,6 +47,8 @@ export async function requestSettings(
         // TODO(9.7 §4.10): replace with rich tier-aware out-of-credits card
         message:
           "You've hit your limit for now. Credits or an upgrade will let you keep going.",
+        ...(errorMonthlyCount !== undefined && { monthly_count: errorMonthlyCount }),
+        ...(errorCreditsRemaining !== undefined && { credits_remaining: errorCreditsRemaining }),
       };
     }
     if (res.status === 429 && errorField === "rate_limited") {

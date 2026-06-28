@@ -21,6 +21,7 @@ interface AppShellProps {
   userEmail: string;
   accountError: boolean;
   sessionsError: boolean;
+  onUsageUpdate?: (update: { monthly_count: number; credits_remaining: number }) => void;
 }
 
 export default function AppShell({
@@ -31,6 +32,7 @@ export default function AppShell({
   userEmail,
   accountError,
   sessionsError,
+  onUsageUpdate,
 }: AppShellProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [composerValue, setComposerValue] = useState("");
@@ -96,6 +98,7 @@ export default function AppShell({
                   ref={sessionViewRef}
                   onRequestFocus={() => composerRef.current?.focus()}
                   onThreadEmptyChange={(isEmpty) => setHasThread(!isEmpty)}
+                  onUsageUpdate={onUsageUpdate}
                 />
               </div>
 
