@@ -40,3 +40,6 @@ export function nextResetDate(now = new Date()): string {
   const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1));
   return d.toLocaleDateString("en-GB", { month: "long", day: "numeric", year: "numeric" });
 }
+
+// TODO(Phase 10): replace with real retry_after from Upstash 429.
+export const RATE_LIMIT_COOLDOWN_SECONDS = 20;

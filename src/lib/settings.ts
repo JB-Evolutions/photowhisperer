@@ -34,4 +34,5 @@ export type SettingsResponse =
   | SettingsResponseOk
   | { status: "clarification_required"; question: string }
   | { status: "invalid_input"; message: string }
-  | { status: "error"; message: string; monthly_count?: number; credits_remaining?: number };
+  | { status: "error"; message: string; monthly_count?: number; credits_remaining?: number }
+  | { status: "rate_limited" };

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { ToastProvider } from "@/components/app/useToast";
 import Sidebar from "@/components/app/Sidebar";
 import MobileTopBar from "@/components/app/MobileTopBar";
@@ -10,7 +10,8 @@ import ChatComposer from "@/components/app/ChatComposer";
 import SessionView from "@/components/app/SessionView";
 import OutOfCreditsCard from "@/components/app/OutOfCreditsCard";
 import SoftWarningBanner from "@/components/app/SoftWarningBanner";
-import { SOFT_WARNING_THRESHOLD } from "@/lib/quota";
+import RateLimitBanner from "@/components/app/RateLimitBanner";
+import { SOFT_WARNING_THRESHOLD, RATE_LIMIT_COOLDOWN_SECONDS } from "@/lib/quota";
 import type { ChatComposerHandle } from "@/components/app/ChatComposer";
 import type { SessionViewHandle } from "@/components/app/SessionView";
 import type { AccountData, SessionRow } from "@/app/app/page";
@@ -53,6 +54,17 @@ export default function AppShell({
     account.monthly_used >= SOFT_WARNING_THRESHOLD * account.monthly_limit &&
     !outOfCredits;
 
+  const [cooldown, setCooldown] = useState(0);
+  const rateLimited = cooldown > 0;
+
+  useEffect(() => {
+    if (!rateLimited) return;
+    const id = setInterval(() => {
+      setCooldown((c) => (c <= 1 ? 0 : c - 1));
+    }, 1000);
+    return () => clearInterval(id);
+  }, [rateLimited]); // fires only on active↔idle transition, not every tick
+
   const sidebarProps = {
     account,
     sessions,
@@ -91,6 +103,7 @@ export default function AppShell({
                   onRequestFocus={() => composerRef.current?.focus()}
                   onThreadEmptyChange={(isEmpty) => setHasThread(!isEmpty)}
                   onUsageUpdate={onUsageUpdate}
+                  onRateLimit={() => setCooldown(RATE_LIMIT_COOLDOWN_SECONDS)}
                 />
               </div>
 
@@ -111,6 +124,10 @@ export default function AppShell({
                 />
               )}
 
+              {rateLimited && !outOfCredits && (
+                <RateLimitBanner cooldown={cooldown} />
+              )}
+
               {/* Composer — always pinned at bottom */}
               <div className="flex-shrink-0 border-t border-border p-4">
                 {outOfCredits && account ? (
@@ -127,7 +144,7 @@ export default function AppShell({
                       sessionViewRef.current?.send(text);
                       setComposerValue("");
                     }}
-                    disabled={outOfCredits}
+                    disabled={outOfCredits || rateLimited}
                   />
                 )}
               </div>

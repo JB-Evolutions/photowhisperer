@@ -255,6 +255,9 @@ export async function POST(request: NextRequest) {
         message: "Couldn't reach the photography service. Try again?",
       });
     }
+    if (fake === "rate_limited") {
+      return NextResponse.json({ error: "rate_limited" }, { status: 429 });
+    }
     if (fake === "slow") {
       await new Promise((r) => setTimeout(r, 12000));
       return NextResponse.json(OK_FIXTURE);

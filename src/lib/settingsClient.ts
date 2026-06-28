@@ -52,11 +52,7 @@ export async function requestSettings(
       };
     }
     if (res.status === 429 && errorField === "rate_limited") {
-      return {
-        status: "error",
-        // TODO(9.7 §4.11): replace with countdown UI
-        message: "Easy — give it a moment and try again.",
-      };
+      return { status: "rate_limited" };
     }
     if (res.status === 401) {
       return {

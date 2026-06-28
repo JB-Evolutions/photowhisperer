@@ -21,10 +21,11 @@ interface SessionViewProps {
   onRequestFocus?: () => void;
   onThreadEmptyChange?: (isEmpty: boolean) => void;
   onUsageUpdate?: (update: { monthly_count: number; credits_remaining: number }) => void;
+  onRateLimit?: () => void;
 }
 
 const SessionView = forwardRef<SessionViewHandle, SessionViewProps>(
-  function SessionView({ onRequestFocus, onThreadEmptyChange, onUsageUpdate }, ref) {
+  function SessionView({ onRequestFocus, onThreadEmptyChange, onUsageUpdate, onRateLimit }, ref) {
     const [messages, setMessages] = useState<Message[]>([]);
     const [sessionId, setSessionId] = useState<string | null>(null);
     const [pending, setPending] = useState(false);
@@ -96,6 +97,13 @@ const SessionView = forwardRef<SessionViewHandle, SessionViewProps>(
       if (requestId !== requestIdRef.current) return;
 
       resetPendingState();
+
+      if (result.status === "rate_limited") {
+        onRateLimit?.();
+        setInvalidCount(0);
+        setRetryCount(0);
+        return;
+      }
 
       if (result.status === "ok" && result.session_id) {
         setSessionId(result.session_id);
