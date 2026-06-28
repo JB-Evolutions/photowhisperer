@@ -91,7 +91,7 @@ const SessionView = forwardRef<SessionViewHandle, SessionViewProps>(
       timer20Ref.current = setTimeout(() => setShowSlowRetry(true), 20000);
       timer30Ref.current = setTimeout(() => controller.abort(), 30000);
 
-      const result = await requestSettings(text, sessionId, controller.signal);
+      const result = await requestSettings(text, sessionId, undefined, controller.signal);
 
       // A newer send() superseded this one (20s retry was clicked) — discard.
       if (requestId !== requestIdRef.current) return;

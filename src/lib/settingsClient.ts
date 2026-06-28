@@ -1,14 +1,18 @@
-import type { SettingsResponse } from "@/lib/settings";
+import type { SettingsRequestBody, SettingsResponse } from "@/lib/settings";
 
 export async function requestSettings(
   conditions: string,
   sessionId: string | null,
+  priorContext?: { user_msg: string; assistant_summary: string },
   signal?: AbortSignal,
 ): Promise<SettingsResponse> {
   const url = "/api/settings";
 
-  const body: Record<string, string> = { conditions };
+  const body: SettingsRequestBody = { conditions };
   if (sessionId) body.session_id = sessionId;
+  if (priorContext && priorContext.assistant_summary) {
+    body.prior_context = priorContext;
+  }
 
   let res: Response;
   try {
