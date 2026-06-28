@@ -43,6 +43,10 @@ const SessionView = forwardRef<SessionViewHandle, SessionViewProps>(
     const clarificationOriginRef = useRef<string | null>(null);
     const pendingRefineContextRef = useRef<{ user_msg: string; assistant_summary: string } | null>(null);
     const pendingClarificationContextRef = useRef<{ user_msg: string; assistant_summary: string } | null>(null);
+    // Tracks consecutive clarification_required responses. Must be a ref (not state)
+    // because send() reads it before the await; useState would stale-close inside the
+    // [sessionId] useImperativeHandle and suppression would never fire.
+    const clarificationCountRef = useRef(0);
     // Mirrors pending state but updated synchronously so send()'s guard
     // and the 20s retry handler agree without waiting for a re-render.
     const pendingRef = useRef(false);
@@ -78,6 +82,12 @@ const SessionView = forwardRef<SessionViewHandle, SessionViewProps>(
     async function send(text: string) {
       if (pendingRef.current || !text.trim()) return;
 
+      // If the classifier has already asked 2 consecutive clarifications, append a
+      // suppression directive so it produces a best-effort answer this turn.
+      const conditions = clarificationCountRef.current >= 2
+        ? text + " — Please provide your best recommendation with the information given; do not ask for further clarification."
+        : text;
+
       // Consume both prior-context slots before first await. Refine takes
       // precedence if both are set; in practice only one ever is.
       const priorContext = pendingRefineContextRef.current ?? pendingClarificationContextRef.current;
@@ -103,7 +113,7 @@ const SessionView = forwardRef<SessionViewHandle, SessionViewProps>(
       timer20Ref.current = setTimeout(() => setShowSlowRetry(true), 20000);
       timer30Ref.current = setTimeout(() => controller.abort(), 30000);
 
-      const result = await requestSettings(text, sessionId, priorContext ?? undefined, controller.signal);
+      const result = await requestSettings(conditions, sessionId, priorContext ?? undefined, controller.signal);
 
       // A newer send() superseded this one (20s retry was clicked) — discard.
       if (requestId !== requestIdRef.current) return;
@@ -139,13 +149,22 @@ const SessionView = forwardRef<SessionViewHandle, SessionViewProps>(
       }
 
       // Update consecutive counters based on result status.
-      if (result.status === "invalid_input") {
+      if (result.status === "clarification_required") {
+        clarificationCountRef.current += 1;
+        setInvalidCount(0);
+        setRetryCount(0);
+      } else if (result.status === "invalid_input") {
+        clarificationCountRef.current = 0;
+        clarificationOriginRef.current = null;
         setInvalidCount((n) => n + 1);
         setRetryCount(0);
       } else if (result.status === "error") {
+        clarificationCountRef.current = 0;
         setRetryCount((n) => n + 1);
         setInvalidCount(0);
       } else {
+        // ok
+        clarificationCountRef.current = 0;
         setInvalidCount(0);
         setRetryCount(0);
       }
