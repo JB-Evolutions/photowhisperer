@@ -13,6 +13,7 @@ export type Message =
 
 export interface SessionViewHandle {
   send: (text: string) => void;
+  clearPendingRefinement: () => void;
 }
 
 const DEFAULT_HEADER = "PhotoWhisperer · thinking…";
@@ -22,10 +23,11 @@ interface SessionViewProps {
   onThreadEmptyChange?: (isEmpty: boolean) => void;
   onUsageUpdate?: (update: { monthly_count: number; credits_remaining: number }) => void;
   onRateLimit?: () => void;
+  onPreFillComposer?: (text: string) => void;
 }
 
 const SessionView = forwardRef<SessionViewHandle, SessionViewProps>(
-  function SessionView({ onRequestFocus, onThreadEmptyChange, onUsageUpdate, onRateLimit }, ref) {
+  function SessionView({ onRequestFocus, onThreadEmptyChange, onUsageUpdate, onRateLimit, onPreFillComposer }, ref) {
     const [messages, setMessages] = useState<Message[]>([]);
     const [sessionId, setSessionId] = useState<string | null>(null);
     const [pending, setPending] = useState(false);
@@ -37,6 +39,9 @@ const SessionView = forwardRef<SessionViewHandle, SessionViewProps>(
     const abortControllerRef = useRef<AbortController | null>(null);
     const inFlightConditions = useRef<string>("");
     const lastConditions = useRef<string>("");
+    const lastSceneSummary = useRef<string | null>(null);
+    const clarificationOriginRef = useRef<string | null>(null);
+    const pendingPriorContextRef = useRef<{ user_msg: string; assistant_summary: string } | null>(null);
     // Mirrors pending state but updated synchronously so send()'s guard
     // and the 20s retry handler agree without waiting for a re-render.
     const pendingRef = useRef(false);
@@ -72,6 +77,11 @@ const SessionView = forwardRef<SessionViewHandle, SessionViewProps>(
     async function send(text: string) {
       if (pendingRef.current || !text.trim()) return;
 
+      // Consume + null before first await so the ref is clear before
+      // setComposerValue("") triggers the stale-guard effect after render.
+      const priorContext = pendingPriorContextRef.current;
+      pendingPriorContextRef.current = null;
+
       const controller = new AbortController();
       abortControllerRef.current = controller;
       inFlightConditions.current = text;
@@ -91,7 +101,7 @@ const SessionView = forwardRef<SessionViewHandle, SessionViewProps>(
       timer20Ref.current = setTimeout(() => setShowSlowRetry(true), 20000);
       timer30Ref.current = setTimeout(() => controller.abort(), 30000);
 
-      const result = await requestSettings(text, sessionId, undefined, controller.signal);
+      const result = await requestSettings(text, sessionId, priorContext ?? undefined, controller.signal);
 
       // A newer send() superseded this one (20s retry was clicked) — discard.
       if (requestId !== requestIdRef.current) return;
@@ -112,12 +122,18 @@ const SessionView = forwardRef<SessionViewHandle, SessionViewProps>(
       // Propagate fresh quota numbers to AppShell's account state.
       if (result.status === "ok") {
         onUsageUpdate?.({ monthly_count: result.monthly_count, credits_remaining: result.credits_remaining });
+        lastSceneSummary.current = result.scene_summary ?? null;
       } else if (
         result.status === "error" &&
         result.monthly_count !== undefined &&
         result.credits_remaining !== undefined
       ) {
         onUsageUpdate?.({ monthly_count: result.monthly_count, credits_remaining: result.credits_remaining });
+      }
+
+      // Terminal statuses end the clarification chain — clear origin anchor.
+      if (result.status === "ok" || result.status === "error") {
+        clarificationOriginRef.current = null;
       }
 
       // Update consecutive counters based on result status.
@@ -132,6 +148,16 @@ const SessionView = forwardRef<SessionViewHandle, SessionViewProps>(
         setRetryCount(0);
       }
 
+      if (result.status === "clarification_required") {
+        if (clarificationOriginRef.current === null) {
+          clarificationOriginRef.current = text;
+        }
+        pendingPriorContextRef.current = {
+          user_msg: clarificationOriginRef.current,
+          assistant_summary: "Clarifying question I asked: " + result.question,
+        };
+      }
+
       setMessages((prev) => [...prev, { role: "assistant", response: result }]);
 
       if (result.status === "clarification_required" || result.status === "invalid_input") {
@@ -139,7 +165,10 @@ const SessionView = forwardRef<SessionViewHandle, SessionViewProps>(
       }
     }
 
-    useImperativeHandle(ref, () => ({ send }), [sessionId]);
+    useImperativeHandle(ref, () => ({
+      send,
+      clearPendingRefinement: () => { pendingPriorContextRef.current = null; },
+    }), [sessionId]);
 
     const lastIndex = messages.length - 1;
 
@@ -155,6 +184,22 @@ const SessionView = forwardRef<SessionViewHandle, SessionViewProps>(
               invalidCount={i === lastIndex ? invalidCount : undefined}
               retryCount={i === lastIndex ? retryCount : undefined}
               onRetry={i === lastIndex ? () => send(lastConditions.current) : undefined}
+              onRefine={
+                i === lastIndex && msg.response.status === "ok"
+                  ? () => {
+                      // Arm BEFORE prefill — prefill triggers the stale-guard effect
+                      // after render; order is intentional so the ref is set before
+                      // the effect can clear it.
+                      if (lastSceneSummary.current !== null) {
+                        pendingPriorContextRef.current = {
+                          user_msg: lastConditions.current,
+                          assistant_summary: lastSceneSummary.current,
+                        };
+                      }
+                      onPreFillComposer?.("Same scene but ");
+                    }
+                  : undefined
+              }
               onSeeExamples={
                 i === lastIndex
                   ? () => { /* TODO(4c-3): wire See-examples target */ }
