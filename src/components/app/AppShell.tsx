@@ -9,6 +9,8 @@ import EmptyState from "@/components/app/EmptyState";
 import ChatComposer from "@/components/app/ChatComposer";
 import SessionView from "@/components/app/SessionView";
 import OutOfCreditsCard from "@/components/app/OutOfCreditsCard";
+import SoftWarningBanner from "@/components/app/SoftWarningBanner";
+import { SOFT_WARNING_THRESHOLD } from "@/lib/quota";
 import type { ChatComposerHandle } from "@/components/app/ChatComposer";
 import type { SessionViewHandle } from "@/components/app/SessionView";
 import type { AccountData, SessionRow } from "@/app/app/page";
@@ -45,6 +47,11 @@ export default function AppShell({
     account != null &&
     account.monthly_used >= account.monthly_limit &&
     account.credits_remaining <= 0;
+
+  const softWarning =
+    account != null &&
+    account.monthly_used >= SOFT_WARNING_THRESHOLD * account.monthly_limit &&
+    !outOfCredits;
 
   const sidebarProps = {
     account,
@@ -95,6 +102,13 @@ export default function AppShell({
                     disabled={outOfCredits}
                   />
                 </div>
+              )}
+
+              {softWarning && account && (
+                <SoftWarningBanner
+                  monthlyUsed={account.monthly_used}
+                  monthlyLimit={account.monthly_limit}
+                />
               )}
 
               {/* Composer — always pinned at bottom */}
