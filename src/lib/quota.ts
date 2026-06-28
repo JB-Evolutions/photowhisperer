@@ -35,3 +35,8 @@ export function getTierLimit(tier: string): number {
 export function getHistoryLimit(tier: string): number {
   return TIER_HISTORY_LIMITS[tier as Tier] ?? 3;
 }
+
+export function nextResetDate(now = new Date()): string {
+  const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1));
+  return d.toLocaleDateString("en-GB", { month: "long", day: "numeric", year: "numeric" });
+}

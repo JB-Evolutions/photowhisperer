@@ -8,7 +8,7 @@ import MobileDrawer from "@/components/app/MobileDrawer";
 import EmptyState from "@/components/app/EmptyState";
 import ChatComposer from "@/components/app/ChatComposer";
 import SessionView from "@/components/app/SessionView";
-import Button from "@/components/shared/Button";
+import OutOfCreditsCard from "@/components/app/OutOfCreditsCard";
 import type { ChatComposerHandle } from "@/components/app/ChatComposer";
 import type { SessionViewHandle } from "@/components/app/SessionView";
 import type { AccountData, SessionRow } from "@/app/app/page";
@@ -45,21 +45,6 @@ export default function AppShell({
     account != null &&
     account.monthly_used >= account.monthly_limit &&
     account.credits_remaining <= 0;
-
-  const outOfCreditsNotice = outOfCredits ? (
-    <div className="flex flex-col items-center gap-3 text-center">
-      {/* TODO(9.7): paid-tier out-of-credits copy */}
-      <p className="text-sm text-text-muted">You&apos;ve used your 5 free settings.</p>
-      <div className="flex gap-2">
-        <Button variant="outline" onClick={() => { /* TODO(9.10): billing modal */ }}>
-          Buy credits
-        </Button>
-        <Button variant="outline" onClick={() => { /* TODO(9.10): billing modal */ }}>
-          Upgrade
-        </Button>
-      </div>
-    </div>
-  ) : undefined;
 
   const sidebarProps = {
     account,
@@ -108,23 +93,29 @@ export default function AppShell({
                   <EmptyState
                     onChipSelect={setComposerValue}
                     disabled={outOfCredits}
-                    outOfCreditsNotice={outOfCreditsNotice}
                   />
                 </div>
               )}
 
               {/* Composer — always pinned at bottom */}
               <div className="flex-shrink-0 border-t border-border p-4">
-                <ChatComposer
-                  ref={composerRef}
-                  value={composerValue}
-                  onChange={setComposerValue}
-                  onSend={(text) => {
-                    sessionViewRef.current?.send(text);
-                    setComposerValue("");
-                  }}
-                  disabled={outOfCredits}
-                />
+                {outOfCredits && account ? (
+                  <OutOfCreditsCard
+                    tier={account.tier}
+                    monthlyLimit={account.monthly_limit}
+                  />
+                ) : (
+                  <ChatComposer
+                    ref={composerRef}
+                    value={composerValue}
+                    onChange={setComposerValue}
+                    onSend={(text) => {
+                      sessionViewRef.current?.send(text);
+                      setComposerValue("");
+                    }}
+                    disabled={outOfCredits}
+                  />
+                )}
               </div>
 
             </div>
