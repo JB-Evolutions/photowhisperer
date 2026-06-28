@@ -36,3 +36,9 @@ export type SettingsResponse =
   | { status: "invalid_input"; message: string }
   | { status: "error"; message: string; monthly_count?: number; credits_remaining?: number }
   | { status: "rate_limited" };
+
+export interface SettingsRequestBody {
+  conditions: string;
+  session_id?: string;
+  prior_context?: { user_msg: string; assistant_summary: string };
+}
