@@ -65,6 +65,12 @@ export default function AppShell({
     return () => clearInterval(id);
   }, [rateLimited]); // fires only on active↔idle transition, not every tick
 
+  useEffect(() => {
+    if (!composerValue.startsWith("Same scene but ")) {
+      sessionViewRef.current?.clearPendingRefinement();
+    }
+  }, [composerValue]);
+
   const sidebarProps = {
     account,
     sessions,
@@ -104,6 +110,10 @@ export default function AppShell({
                   onThreadEmptyChange={(isEmpty) => setHasThread(!isEmpty)}
                   onUsageUpdate={onUsageUpdate}
                   onRateLimit={() => setCooldown(RATE_LIMIT_COOLDOWN_SECONDS)}
+                  onPreFillComposer={(text) => {
+                    setComposerValue(text);
+                    composerRef.current?.focus();
+                  }}
                 />
               </div>
 
