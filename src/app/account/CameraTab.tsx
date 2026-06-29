@@ -108,16 +108,22 @@ export default function CameraTab({ onDirtyChange, registerActions }: CameraTabP
         ? [...lenses, pendingLens]
         : lenses;
 
-    const res = await fetch("/api/camera-profile", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        body: body.trim() || null,
-        lenses: finalLenses.length > 0 ? finalLenses : null,
-        flash: flash || null,
-        notes: notes.trim() || null,
-      }),
-    });
+    let res: Response;
+    try {
+      res = await fetch("/api/camera-profile", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          body: body.trim() || null,
+          lenses: finalLenses.length > 0 ? finalLenses : null,
+          flash: flash || null,
+          notes: notes.trim() || null,
+        }),
+      });
+    } catch {
+      setSaveError("Couldn't reach the server — check your connection and try again.");
+      throw new Error("network failure");
+    }
 
     if (!res.ok) {
       const err = await res.json().catch(() => ({})) as Record<string, unknown>;
