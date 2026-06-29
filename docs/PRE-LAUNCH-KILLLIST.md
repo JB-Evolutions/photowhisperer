@@ -50,7 +50,21 @@ of these outstanding.
   launch.
 
 - **Disabled coming-soon buttons not keyboard-focusable** — Profile tab ("Edit email",
-  "Manage billing") and Preferences tab ("Default focal length", "Product emails") use
-  the `disabled` attribute, dropping them from tab order; their "coming soon" tooltips
-  are invisible to keyboard and screen-reader users. Fix in Phase 9.13: switch to
-  `aria-disabled="true"` + `onClick` no-op so the buttons remain focusable.
+  "Manage billing"), Preferences tab ("Default focal length", "Product emails"), and
+  Security tab ("Change password") use the `disabled` attribute, dropping them from tab
+  order; their "coming soon" tooltips are invisible to keyboard and screen-reader users.
+  Fix in Phase 9.13: switch to `aria-disabled="true"` + `onClick` no-op so the buttons
+  remain focusable.
+
+- **9.9a Security: password change DEFERRED to 9.9b** — `{currentPassword}` is absent
+  from the supabase-js 2.106 bundle (verified via bundle inspection). 9.9b must build
+  verified-credential mutation: either nonce flow
+  (reauthenticate → email code → updateUser{password, nonce}) OR upgrade supabase-js to
+  a version supporting `{currentPassword}` for the standard current-password UX. Project
+  has "Secure password change / reauthentication" ON in Supabase Auth — relevant to
+  whichever path is chosen.
+
+- **9.9b scope** — now includes: display_name migration + route, email-change verified
+  flow, password-change verified flow (above), Danger Zone (export + account deletion
+  w/ grace period). Email and password change share the verified-credential-mutation
+  pattern — build together.
