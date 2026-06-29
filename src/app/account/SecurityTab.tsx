@@ -3,10 +3,7 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { PASSWORD_MIN_LENGTH } from "@/lib/auth-validation";
-import TextField from "@/components/shared/TextField";
 import Button from "@/components/shared/Button";
-import { useToastContext } from "@/components/app/useToast";
 
 // ─── SignOutConfirm ──────────────────────────────────────────────────────────
 
@@ -86,53 +83,11 @@ function SignOutConfirm({
 
 export default function SecurityTab() {
   const router = useRouter();
-  const showToast = useToastContext();
-  // Memoized so password-typing re-renders don't create a new client each time.
   const supabase = useMemo(() => createClient(), []);
 
-  // Password change
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [confirmTouched, setConfirmTouched] = useState(false);
-  const [pwPending, setPwPending] = useState(false);
-  const [pwError, setPwError] = useState<string | null>(null);
-
-  // Sign-out
   const [showSignOutConfirm, setShowSignOutConfirm] = useState(false);
   const [signOutPending, setSignOutPending] = useState(false);
   const [signOutError, setSignOutError] = useState<string | null>(null);
-
-  const passwordsMatch = confirmPassword.length === 0 || confirmPassword === newPassword;
-  const confirmError = confirmTouched && !passwordsMatch ? "Passwords don't match" : undefined;
-  const tooShort = newPassword.length > 0 && newPassword.length < PASSWORD_MIN_LENGTH;
-  const newPasswordError = tooShort
-    ? `Must be at least ${PASSWORD_MIN_LENGTH} characters`
-    : undefined;
-  const canSubmit =
-    newPassword.length >= PASSWORD_MIN_LENGTH &&
-    confirmPassword === newPassword &&
-    !pwPending;
-
-  async function handlePasswordChange() {
-    if (!canSubmit) return;
-    setPwPending(true);
-    setPwError(null);
-    try {
-      const { error } = await supabase.auth.updateUser({ password: newPassword });
-      if (error) {
-        setPwError(error.message ?? "Couldn't update password — try again.");
-        return;
-      }
-      setNewPassword("");
-      setConfirmPassword("");
-      setConfirmTouched(false);
-      showToast("Password updated");
-    } catch {
-      setPwError("Couldn't reach the server — check your connection and try again.");
-    } finally {
-      setPwPending(false);
-    }
-  }
 
   async function handleSignOut() {
     setSignOutPending(true);
@@ -173,44 +128,31 @@ export default function SecurityTab() {
       <div className="flex max-w-lg flex-col gap-8 px-6 py-8">
         <h2 className="font-display text-base text-text">Security</h2>
 
-        {/* Password change.
-            No current-password field: supabase.auth.updateUser() validates
-            against the active session token server-side; a UI-only
-            current-password check would be spoofable and provides no real
-            security. §5.1 lists it but it's theatre without server
-            enforcement — omitted intentionally. */}
+        {/* Password change — deferred to 9.9b.
+            {currentPassword} is absent from the supabase-js 2.106 bundle;
+            the nonce/reauthenticate flow belongs with the email-change work. */}
         <section className="flex flex-col gap-4">
           <h3 className="text-sm font-semibold text-text">Change password</h3>
-          <TextField
-            id="new-password"
-            label="New password"
-            type="password"
-            value={newPassword}
-            onChange={setNewPassword}
-            error={newPasswordError}
-            autoComplete="new-password"
-          />
-          <TextField
-            id="confirm-password"
-            label="Confirm new password"
-            type="password"
-            value={confirmPassword}
-            onChange={(v) => { setConfirmPassword(v); setConfirmTouched(true); }}
-            error={confirmError}
-            autoComplete="new-password"
-          />
-          {pwError && (
-            <p role="alert" className="text-sm text-danger">{pwError}</p>
-          )}
-          <Button
-            variant="primary"
-            onClick={handlePasswordChange}
-            pending={pwPending}
-            pendingLabel="Updating…"
-            disabled={!canSubmit}
-          >
-            Update password
-          </Button>
+          <p className="text-sm text-text-muted">
+            Update the password for your account.
+          </p>
+          <div className="group relative self-start">
+            <button
+              type="button"
+              disabled
+              aria-describedby="change-password-tooltip"
+              className="cursor-not-allowed text-sm text-accent opacity-40"
+            >
+              Change password
+            </button>
+            <div
+              id="change-password-tooltip"
+              role="tooltip"
+              className="pointer-events-none absolute left-0 top-full z-10 mt-1.5 hidden whitespace-nowrap rounded-lg border border-border bg-surface-2 px-3 py-1.5 text-xs text-text-muted shadow-sm group-focus-within:block group-hover:block"
+            >
+              Password change coming soon
+            </div>
+          </div>
         </section>
 
         {/* Global sign-out.
