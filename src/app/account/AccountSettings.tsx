@@ -7,6 +7,7 @@ import Button from "@/components/shared/Button";
 import ProfileTab from "./ProfileTab";
 import CameraTab from "./CameraTab";
 import PreferencesTab from "./PreferencesTab";
+import SecurityTab from "./SecurityTab";
 
 export type TabId = "profile" | "camera" | "preferences" | "security";
 
@@ -314,7 +315,7 @@ export default function AccountSettings({ email }: { email: string }) {
                       <CameraTab onDirtyChange={setIsDirty} registerActions={registerActions} />
                     )}
                     {tab.id === "preferences" && <PreferencesTab />}
-                    {tab.id === "security"    && <div className="px-6 py-8"><p className="text-sm text-text-muted">Security — coming soon</p></div>}
+                    {tab.id === "security" && <SecurityTab />}
                     {isDirty && (
                       <SaveBar
                         onSave={handleSave}
