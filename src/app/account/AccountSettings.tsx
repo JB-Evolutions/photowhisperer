@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { ToastProvider } from "@/components/app/useToast";
 import Button from "@/components/shared/Button";
+import ProfileTab from "./ProfileTab";
 
 export type TabId = "profile" | "camera" | "preferences" | "security";
 
@@ -306,10 +307,10 @@ export default function AccountSettings({ email }: { email: string }) {
               >
                 {tab.id === activeTab && (
                   <>
-                    {/* Placeholder — replaced per tab in subsequent commits */}
-                    <div className="px-6 py-8">
-                      <p className="text-sm text-text-muted">{tab.label} — coming soon</p>
-                    </div>
+                    {tab.id === "profile"     && <ProfileTab email={email} />}
+                    {tab.id === "camera"      && <div className="px-6 py-8"><p className="text-sm text-text-muted">Camera — coming soon</p></div>}
+                    {tab.id === "preferences" && <div className="px-6 py-8"><p className="text-sm text-text-muted">Preferences — coming soon</p></div>}
+                    {tab.id === "security"    && <div className="px-6 py-8"><p className="text-sm text-text-muted">Security — coming soon</p></div>}
                     {isDirty && (
                       <SaveBar
                         onSave={handleSave}
