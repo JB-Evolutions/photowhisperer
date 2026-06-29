@@ -310,7 +310,13 @@ export default function AccountSettings({ email }: { email: string }) {
               >
                 {tab.id === activeTab && (
                   <>
-                    {tab.id === "profile"     && <ProfileTab email={email} />}
+                    {tab.id === "profile" && (
+                      <ProfileTab
+                        email={email}
+                        onDirtyChange={setIsDirty}
+                        registerActions={registerActions}
+                      />
+                    )}
                     {tab.id === "camera" && (
                       <CameraTab onDirtyChange={setIsDirty} registerActions={registerActions} />
                     )}
