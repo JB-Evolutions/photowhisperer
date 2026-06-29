@@ -48,3 +48,9 @@ of these outstanding.
   `getUser()` (authoritative server check). The in-code comment acknowledges the
   limitation. Review whether this is acceptable for the password-reset flow before
   launch.
+
+- **Disabled coming-soon buttons not keyboard-focusable** — Profile tab ("Edit email",
+  "Manage billing") and Preferences tab ("Default focal length", "Product emails") use
+  the `disabled` attribute, dropping them from tab order; their "coming soon" tooltips
+  are invisible to keyboard and screen-reader users. Fix in Phase 9.13: switch to
+  `aria-disabled="true"` + `onClick` no-op so the buttons remain focusable.
