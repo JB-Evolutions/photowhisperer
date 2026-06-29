@@ -6,6 +6,7 @@ import { ToastProvider } from "@/components/app/useToast";
 import Button from "@/components/shared/Button";
 import ProfileTab from "./ProfileTab";
 import CameraTab from "./CameraTab";
+import PreferencesTab from "./PreferencesTab";
 
 export type TabId = "profile" | "camera" | "preferences" | "security";
 
@@ -312,7 +313,7 @@ export default function AccountSettings({ email }: { email: string }) {
                     {tab.id === "camera" && (
                       <CameraTab onDirtyChange={setIsDirty} registerActions={registerActions} />
                     )}
-                    {tab.id === "preferences" && <div className="px-6 py-8"><p className="text-sm text-text-muted">Preferences — coming soon</p></div>}
+                    {tab.id === "preferences" && <PreferencesTab />}
                     {tab.id === "security"    && <div className="px-6 py-8"><p className="text-sm text-text-muted">Security — coming soon</p></div>}
                     {isDirty && (
                       <SaveBar
