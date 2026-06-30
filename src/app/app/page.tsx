@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import AppShell from "@/components/app/AppShell";
 
@@ -19,6 +20,7 @@ export interface SessionRow {
 }
 
 export default function AppPage() {
+  const router = useRouter();
   const [account, setAccount] = useState<AccountData | null>(null);
   const [sessions, setSessions] = useState<SessionRow[]>([]);
   const [hasMore, setHasMore] = useState(false);
@@ -30,16 +32,37 @@ export default function AppPage() {
   useEffect(() => {
     const supabase = createClient();
 
+    // Redirect to sign-in when the session is revoked (global sign-out, token expiry).
+    // SIGNED_OUT is the only event that triggers a redirect — INITIAL_SESSION and
+    // TOKEN_REFRESHED fire during normal operation and must not bounce the user.
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "SIGNED_OUT") {
+        router.push("/auth/signin");
+      }
+    });
+
     const fetchAccount = fetch("/api/account")
-      .then((r) => r.json())
-      .then((data: AccountData) => setAccount(data))
+      .then((r) => {
+        if (!r.ok) { setAccountError(true); return; }
+        return r.json() as Promise<AccountData>;
+      })
+      .then((data) => { if (data) setAccount(data); })
       .catch(() => setAccountError(true));
 
     const fetchSessions = fetch("/api/sessions")
-      .then((r) => r.json())
-      .then((data: { sessions: SessionRow[]; has_more: boolean }) => {
-        setSessions(data.sessions);
-        setHasMore(data.has_more);
+      .then((r) => {
+        if (!r.ok) { setSessionsError(true); return; }
+        return r.json() as Promise<{ sessions: SessionRow[]; has_more: boolean }>;
+      })
+      .then((data) => {
+        if (data) {
+          // ?? [] is belt-and-suspenders: sessions state is never undefined
+          // even if the server response omits the key.
+          setSessions(data.sessions ?? []);
+          setHasMore(data.has_more);
+        }
       })
       .catch(() => setSessionsError(true));
 
@@ -53,7 +76,9 @@ export default function AppPage() {
     Promise.all([fetchAccount, fetchSessions, fetchEmail]).finally(() =>
       setLoading(false)
     );
-  }, []);
+
+    return () => subscription.unsubscribe();
+  }, [router]);
 
   return (
     <AppShell
