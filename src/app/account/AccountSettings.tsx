@@ -320,7 +320,12 @@ export default function AccountSettings({ email }: { email: string }) {
                     {tab.id === "camera" && (
                       <CameraTab onDirtyChange={setIsDirty} registerActions={registerActions} />
                     )}
-                    {tab.id === "preferences" && <PreferencesTab />}
+                    {tab.id === "preferences" && (
+                      <PreferencesTab
+                        onDirtyChange={setIsDirty}
+                        registerActions={registerActions}
+                      />
+                    )}
                     {tab.id === "security" && <SecurityTab />}
                     {isDirty && (
                       <SaveBar
