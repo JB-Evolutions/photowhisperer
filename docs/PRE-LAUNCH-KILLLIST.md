@@ -69,12 +69,10 @@ of these outstanding.
   w/ grace period). Email and password change share the verified-credential-mutation
   pattern — build together.
 
-- **Sidebar crash on session revocation** (`src/app/app/page.tsx` + `src/components/app/Sidebar.tsx:108`)
-  — when a second device has `/app` open and the first signs out globally, the `/api/sessions`
-  re-fetch returns 401 `{ error: "unauthorized" }`. The fetch chain calls `.then((r) => r.json())`
-  without checking `res.ok` first, so the 401 body is passed to the typed handler which calls
-  `setSessions(data.sessions)` — `data.sessions` is `undefined` on the error shape, crashing
-  `sessions.length` in Sidebar. Fix: (1) guard the `/api/sessions` fetch `.then()` for
-  `res.ok` before destructuring (stops the crash); (2) add `supabase.auth.onAuthStateChange`
-  in AppPage to redirect to `/auth/signin` on `SIGNED_OUT` (correct behaviour — page should
-  not remain mounted after auth loss).
+- ~~**Sidebar crash on session revocation**~~ — **FIXED** (commit `8c6e0e2`).
+  `res.ok` guard added to both `/api/sessions` and `/api/account` fetch chains in
+  `src/app/app/page.tsx`; non-ok responses set error state and return before `.json()`,
+  preventing `setSessions(undefined)`. `sessions` state also gets a `?? []` fallback.
+  `supabase.auth.onAuthStateChange` added in AppPage; redirects to `/auth/signin` on
+  `SIGNED_OUT` only (excludes `INITIAL_SESSION`/`TOKEN_REFRESHED` so normal refresh
+  does not bounce the user). Unsubscribes on effect cleanup.
