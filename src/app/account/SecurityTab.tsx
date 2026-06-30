@@ -131,11 +131,16 @@ export default function SecurityTab() {
       });
       if (error) {
         const msg = error.message ?? "";
-        // Exact match — live-verified on @supabase/supabase-js 2.108.2 (2026-07-01).
-        // If field-level routing stops working after a Supabase upgrade, this string
-        // is the first thing to check. Kept as exact equality (not includes) so it
-        // cannot accidentally match the same-password-reuse message.
-        if (msg === "Email or password doesn't match.") {
+        // GoTrue's PUT /user response when Secure Password Change is ON and the supplied
+        // current_password is wrong (live-verified 2026-07-01, @supabase/supabase-js 2.108.2).
+        // GoTrue returns the same "required" phrasing for wrong vs missing; missing is
+        // impossible through our UI (submit disabled on empty currentPw). Displayed text
+        // intentionally reworded — "required when setting new password" is confusing when
+        // the user did enter one. If field-routing stops working after a Supabase upgrade,
+        // this match string is the first thing to check.
+        // Cannot catch the reuse message ("New password should be different from the old
+        // password.") — entirely different string, no overlap possible.
+        if (msg === "Current password required when setting new password.") {
           setCurrentPwError("Current password is incorrect.");
         } else {
           setPwError(msg || "Couldn't update password — try again.");
