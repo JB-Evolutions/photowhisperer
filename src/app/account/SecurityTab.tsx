@@ -142,6 +142,12 @@ export default function SecurityTab() {
         // password.") — entirely different string, no overlap possible.
         if (msg === "Current password required when setting new password.") {
           setCurrentPwError("Current password is incorrect.");
+        } else if (error.name === "AuthRetryableFetchError") {
+          // updateUser catches network/infrastructure errors internally and returns
+          // them as { error } (AuthRetryableFetchError) rather than throwing —
+          // our catch{} never runs for these. Covers true network failures (status 0)
+          // and Cloudflare 5xx; cannot match real auth errors (those are AuthApiError).
+          setPwError("Couldn't reach the server — check your connection and try again.");
         } else {
           setPwError(msg || "Couldn't update password — try again.");
         }
