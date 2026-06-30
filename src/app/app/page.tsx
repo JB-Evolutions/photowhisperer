@@ -43,8 +43,16 @@ export default function AppPage() {
       }
     });
 
+    // Both fetches run in parallel and may both 401 on a dead session.
+    // Flag ensures only the first fires the redirect.
+    let redirected = false;
+    function redirectOnAuthLoss() {
+      if (!redirected) { redirected = true; router.push("/auth/signin"); }
+    }
+
     const fetchAccount = fetch("/api/account")
       .then((r) => {
+        if (r.status === 401) { redirectOnAuthLoss(); return; }
         if (!r.ok) { setAccountError(true); return; }
         return r.json() as Promise<AccountData>;
       })
@@ -53,6 +61,7 @@ export default function AppPage() {
 
     const fetchSessions = fetch("/api/sessions")
       .then((r) => {
+        if (r.status === 401) { redirectOnAuthLoss(); return; }
         if (!r.ok) { setSessionsError(true); return; }
         return r.json() as Promise<{ sessions: SessionRow[]; has_more: boolean }>;
       })
