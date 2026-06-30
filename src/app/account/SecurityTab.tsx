@@ -3,6 +3,9 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
 import Button from "@/components/shared/Button";
+import PasswordField from "@/components/auth/PasswordField";
+import { useToastContext } from "@/components/app/useToast";
+import { PASSWORD_MIN_LENGTH } from "@/lib/auth-validation";
 
 // ─── SignOutConfirm ──────────────────────────────────────────────────────────
 
@@ -19,8 +22,6 @@ function SignOutConfirm({
 
   useEffect(() => { dialogRef.current?.focus(); }, []);
 
-  // Escape dismisses; Tab/Shift+Tab trapped within dialog.
-  // Mirrors the pattern in MobileDrawer.tsx and DirtyGuard.
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
       if (e.key === "Escape") { if (!pending) onCancel(); return; }
@@ -82,10 +83,17 @@ function SignOutConfirm({
 
 export default function SecurityTab() {
   const supabase = useMemo(() => createClient(), []);
+  const showToast = useToastContext();
 
   const [showSignOutConfirm, setShowSignOutConfirm] = useState(false);
   const [signOutPending, setSignOutPending] = useState(false);
   const [signOutError, setSignOutError] = useState<string | null>(null);
+
+  const [currentPw, setCurrentPw] = useState("");
+  const [newPw, setNewPw] = useState("");
+  const [confirmPw, setConfirmPw] = useState("");
+  const [pwPending, setPwPending] = useState(false);
+  const [pwError, setPwError] = useState<string | null>(null);
 
   async function handleSignOut() {
     setSignOutPending(true);
@@ -110,6 +118,39 @@ export default function SecurityTab() {
     window.location.href = "/auth/signin";
   }
 
+  async function handleChangePassword() {
+    if (!currentPw || newPw.length < PASSWORD_MIN_LENGTH || confirmPw !== newPw) return;
+    setPwPending(true);
+    setPwError(null);
+    try {
+      const { error } = await supabase.auth.updateUser({
+        current_password: currentPw,
+        password: newPw,
+      });
+      if (error) {
+        // TODO(live-test): once the exact error signature for a wrong current_password
+        // is confirmed, re-add a currentPwError state and pass error={currentPwError}
+        // to the current-password PasswordField so the error lands there specifically.
+        // Until then: showing error.message directly — a broad 422 check mislabels
+        // same-password-reuse errors (also 422) as "current password incorrect".
+        setPwError(error.message ?? "Couldn't update password — try again.");
+        return;
+      }
+    } catch {
+      setPwError("Couldn't reach the server — check your connection and try again.");
+      return;
+    } finally {
+      setPwPending(false);
+    }
+    setCurrentPw("");
+    setNewPw("");
+    setConfirmPw("");
+    showToast("Password updated");
+  }
+
+  const confirmMismatch = confirmPw.length > 0 && confirmPw !== newPw;
+  const submitDisabled = !currentPw || newPw.length < PASSWORD_MIN_LENGTH || confirmPw !== newPw;
+
   return (
     <>
       {showSignOutConfirm && (
@@ -126,31 +167,55 @@ export default function SecurityTab() {
       <div className="flex max-w-lg flex-col gap-8 px-6 py-8">
         <h2 className="font-display text-base text-text">Security</h2>
 
-        {/* Password change — deferred to 9.9b.
-            {currentPassword} is absent from the supabase-js 2.106 bundle;
-            the nonce/reauthenticate flow belongs with the email-change work. */}
         <section className="flex flex-col gap-4">
           <h3 className="text-sm font-semibold text-text">Change password</h3>
-          <p className="text-sm text-text-muted">
-            Update the password for your account.
-          </p>
-          <div className="group relative self-start">
-            <button
-              type="button"
-              disabled
-              aria-describedby="change-password-tooltip"
-              className="cursor-not-allowed text-sm text-accent opacity-40"
-            >
-              Change password
-            </button>
-            <div
-              id="change-password-tooltip"
-              role="tooltip"
-              className="pointer-events-none absolute left-0 top-full z-10 mt-1.5 hidden whitespace-nowrap rounded-lg border border-border bg-surface-2 px-3 py-1.5 text-xs text-text-muted shadow-sm group-focus-within:block group-hover:block"
-            >
-              Password change coming soon
+          <p className="text-sm text-text-muted">Update the password for your account.</p>
+          <form
+            noValidate
+            onSubmit={(e) => { e.preventDefault(); void handleChangePassword(); }}
+            className="flex flex-col gap-4"
+          >
+            {/* Once live-test confirms the exact error GoTrue returns for a wrong
+                current_password, re-add a currentPwError state and pass
+                error={currentPwError} here so the error lands on this field
+                rather than in the general pwError below. */}
+            <PasswordField
+              id="current-password"
+              label="Current password"
+              value={currentPw}
+              onChange={setCurrentPw}
+              autoComplete="current-password"
+            />
+            <PasswordField
+              id="new-password"
+              label="New password"
+              value={newPw}
+              onChange={setNewPw}
+              autoComplete="new-password"
+              showStrengthMeter
+            />
+            <PasswordField
+              id="confirm-password"
+              label="Confirm new password"
+              value={confirmPw}
+              onChange={setConfirmPw}
+              autoComplete="new-password"
+              error={confirmMismatch ? "Passwords don't match." : undefined}
+            />
+            {pwError && (
+              <p role="alert" className="text-sm text-danger">{pwError}</p>
+            )}
+            <div>
+              <Button
+                type="submit"
+                disabled={submitDisabled}
+                pending={pwPending}
+                pendingLabel="Saving…"
+              >
+                Update password
+              </Button>
             </div>
-          </div>
+          </form>
         </section>
 
         {/* Global sign-out.
