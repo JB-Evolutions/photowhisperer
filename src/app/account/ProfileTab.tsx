@@ -1,8 +1,11 @@
 "use client";
 
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import TextField from "@/components/shared/TextField";
 import { useToastContext } from "@/components/app/useToast";
+import { createClient } from "@/lib/supabase/client";
+import { isValidEmail } from "@/lib/auth-validation";
+import Button from "@/components/shared/Button";
 import type { TabActions } from "./AccountSettings";
 
 type ProfileSnapshot = {
@@ -25,18 +28,159 @@ const TIER_LABELS: Record<string, string> = {
   studio:   "Studio",
 };
 
+// ─── ChangeEmailModal ─────────────────────────────────────────────────────────
+
+function ChangeEmailModal({
+  currentEmail,
+  onClose,
+  onSuccess,
+}: {
+  currentEmail: string;
+  onClose: () => void;
+  onSuccess: (newEmail: string) => void;
+}) {
+  const supabase = useMemo(() => createClient(), []);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const [newEmail, setNewEmail] = useState("");
+  const [emailError, setEmailError] = useState<string | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [pending, setPending] = useState(false);
+
+  useEffect(() => { dialogRef.current?.focus(); }, []);
+
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") { if (!pending) onClose(); return; }
+      if (e.key !== "Tab" || !dialogRef.current) return;
+      const focusable = Array.from(
+        dialogRef.current.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])'
+        )
+      );
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.shiftKey) {
+        if (document.activeElement === first) { e.preventDefault(); last.focus(); }
+      } else {
+        if (document.activeElement === last) { e.preventDefault(); first.focus(); }
+      }
+    }
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [onClose, pending]);
+
+  function validate(value: string): string | null {
+    if (!isValidEmail(value)) return "Enter a valid email address.";
+    if (value.toLowerCase() === currentEmail.toLowerCase()) return "That's already your email address.";
+    return null;
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    const err = validate(newEmail);
+    if (err) { setEmailError(err); return; }
+    setPending(true);
+    setSubmitError(null);
+    try {
+      const { data, error } = await supabase.auth.updateUser({ email: newEmail });
+      if (error) {
+        if (error.name === "AuthRetryableFetchError") {
+          setSubmitError("Couldn't reach the server — check your connection and try again.");
+        } else {
+          // TODO(live-test): once the exact "email already in use" error string is
+          // confirmed, add a targeted setEmailError branch here so the error lands
+          // on the email field (same approach as password change mapping).
+          setSubmitError(error.message ?? "Couldn't update email — try again.");
+        }
+        return;
+      }
+      onSuccess(data.user?.new_email ?? newEmail);
+    } catch {
+      setSubmitError("Couldn't reach the server — check your connection and try again.");
+    } finally {
+      setPending(false);
+    }
+  }
+
+  const submitDisabled =
+    !isValidEmail(newEmail) || newEmail.toLowerCase() === currentEmail.toLowerCase();
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <div
+        ref={dialogRef}
+        role="alertdialog"
+        aria-modal="true"
+        aria-labelledby="change-email-heading"
+        tabIndex={-1}
+        className="w-full max-w-sm rounded-[16px] border border-border bg-surface p-6 shadow-xl outline-none"
+      >
+        <h2 id="change-email-heading" className="font-display text-lg text-text">
+          Change email address
+        </h2>
+        <form noValidate onSubmit={handleSubmit} className="mt-4 flex flex-col gap-4">
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="new-email" className="text-sm font-medium text-text-muted">
+              New email address
+            </label>
+            <input
+              id="new-email"
+              type="email"
+              autoComplete="email"
+              value={newEmail}
+              onChange={(e) => { setNewEmail(e.target.value); setEmailError(null); }}
+              onBlur={() => { if (newEmail) setEmailError(validate(newEmail)); }}
+              aria-invalid={emailError ? true : undefined}
+              aria-describedby={emailError ? "new-email-error" : undefined}
+              className={`min-h-[52px] w-full rounded-[10px] border bg-surface px-4 text-base text-text outline-none transition-colors focus:border-accent ${
+                emailError ? "border-danger" : "border-border-strong"
+              }`}
+            />
+            {emailError && (
+              <p id="new-email-error" className="text-sm text-danger">{emailError}</p>
+            )}
+          </div>
+          {submitError && (
+            <p role="alert" className="text-sm text-danger">{submitError}</p>
+          )}
+          <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+            <Button variant="ghost" type="button" onClick={onClose} disabled={pending}>
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              disabled={submitDisabled}
+              pending={pending}
+              pendingLabel="Sending…"
+            >
+              Send confirmation
+            </Button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// ─── ProfileTab ───────────────────────────────────────────────────────────────
+
 interface ProfileTabProps {
   email: string;
+  newEmail: string | null;
   onDirtyChange: (dirty: boolean) => void;
   registerActions: (actions: TabActions | null) => void;
 }
 
-export default function ProfileTab({ email, onDirtyChange, registerActions }: ProfileTabProps) {
+export default function ProfileTab({ email, newEmail, onDirtyChange, registerActions }: ProfileTabProps) {
   const showToast = useToastContext();
 
   const [fetchState, setFetchState] = useState<FetchState>({ status: "loading" });
   const [displayName, setDisplayName] = useState("");
   const [saveError, setSaveError] = useState<string | null>(null);
+
+  const [pendingNewEmail, setPendingNewEmail] = useState<string | null>(newEmail);
+  const [showEmailModal, setShowEmailModal] = useState(false);
 
   const savedRef = useRef<ProfileSnapshot | null>(null);
   const saveRef = useRef<() => Promise<void>>(async () => {});
@@ -61,6 +205,13 @@ export default function ProfileTab({ email, onDirtyChange, registerActions }: Pr
   }, []);
 
   useEffect(() => { loadAccount(); }, [loadAccount]);
+
+  // Sync pendingNewEmail when the server re-renders with an updated newEmail prop
+  // (e.g. after confirmation completes or the pending change expires).
+  // No conflict with handleEmailChangeSuccess: local state and prop agree on the
+  // new address; when the change is confirmed the server sends newEmail=null and
+  // this clears the banner.
+  useEffect(() => { setPendingNewEmail(newEmail); }, [newEmail]);
 
   // ─── Dirty tracking ──────────────────────────────────────────────────────
 
@@ -109,7 +260,6 @@ export default function ProfileTab({ email, onDirtyChange, registerActions }: Pr
     onDirtyChange(false);
   };
 
-  // Register stable wrappers once on mount; cleanup on unmount.
   useEffect(() => {
     registerActions({
       save: () => saveRef.current(),
@@ -118,108 +268,138 @@ export default function ProfileTab({ email, onDirtyChange, registerActions }: Pr
     return () => registerActions(null);
   }, [registerActions]);
 
+  // ─── Email change ─────────────────────────────────────────────────────────
+
+  function handleEmailChangeSuccess(returnedNewEmail: string) {
+    setPendingNewEmail(returnedNewEmail);
+    setShowEmailModal(false);
+    showToast("Confirmation sent — check your email.");
+  }
+
   // ─── Render ──────────────────────────────────────────────────────────────
 
   return (
-    <div className="flex max-w-lg flex-col gap-8 px-6 py-8">
+    <>
+      {showEmailModal && (
+        <ChangeEmailModal
+          currentEmail={email}
+          onClose={() => setShowEmailModal(false)}
+          onSuccess={handleEmailChangeSuccess}
+        />
+      )}
 
-      {/* Profile */}
-      <section className="flex flex-col gap-4">
-        <h2 className="font-display text-base text-text">Profile</h2>
+      <div className="flex max-w-lg flex-col gap-8 px-6 py-8">
 
-        {/* Display name — gated on fetchState. Field is absent on error/loading
-            so the user can never save over data they haven't loaded. */}
-        {fetchState.status === "loading" && (
-          <div className="h-[52px] animate-pulse rounded-[10px] bg-surface-2" />
-        )}
-        {fetchState.status === "ok" && (
-          <div className="flex flex-col gap-1.5">
-            <TextField
-              id="profile-display-name"
-              label="Display name"
-              value={displayName}
-              onChange={setDisplayName}
-              placeholder="How you'd like to be addressed"
-              autoComplete="nickname"
-            />
-            {saveError && (
-              <p role="alert" className="text-sm text-danger">{saveError}</p>
-            )}
-          </div>
-        )}
+        {/* Profile */}
+        <section className="flex flex-col gap-4">
+          <h2 className="font-display text-base text-text">Profile</h2>
 
-        {/* Email — always available from props, not gated */}
-        <div className="flex flex-col gap-1.5">
-          <TextField id="profile-email" label="Email" value={email} readOnly />
-          {/* Email change is a verified multi-step flow — deferred to 9.9b */}
-          <div className="group relative self-start">
-            <button
-              type="button"
-              disabled
-              aria-describedby="edit-email-tooltip"
-              className="cursor-not-allowed text-sm text-accent opacity-40"
-            >
-              Edit email
-            </button>
-            <div
-              id="edit-email-tooltip"
-              role="tooltip"
-              className="pointer-events-none absolute left-0 top-full z-10 mt-1.5 hidden whitespace-nowrap rounded-lg border border-border bg-surface-2 px-3 py-1.5 text-xs text-text-muted shadow-sm group-focus-within:block group-hover:block"
-            >
-              Email change coming soon
+          {/* Display name — gated on fetchState. Field is absent on error/loading
+              so the user can never save over data they haven't loaded. */}
+          {fetchState.status === "loading" && (
+            <div className="h-[52px] animate-pulse rounded-[10px] bg-surface-2" />
+          )}
+          {fetchState.status === "ok" && (
+            <div className="flex flex-col gap-1.5">
+              <TextField
+                id="profile-display-name"
+                label="Display name"
+                value={displayName}
+                onChange={setDisplayName}
+                placeholder="How you'd like to be addressed"
+                autoComplete="nickname"
+              />
+              {saveError && (
+                <p role="alert" className="text-sm text-danger">{saveError}</p>
+              )}
             </div>
-          </div>
-        </div>
-      </section>
+          )}
 
-      {/* Plan */}
-      <section className="flex flex-col gap-4">
-        <h2 className="font-display text-base text-text">Plan</h2>
-
-        {fetchState.status === "loading" && (
-          <div className="h-8 w-28 animate-pulse rounded-lg bg-surface-2" />
-        )}
-
-        {fetchState.status === "error" && (
-          <div className="flex items-center gap-3">
-            <span className="text-sm text-text-muted">Couldn&rsquo;t load profile data.</span>
-            <button
-              type="button"
-              onClick={loadAccount}
-              className="rounded text-sm text-accent transition-colors duration-[250ms] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--border-accent)]"
-            >
-              Retry
-            </button>
-          </div>
-        )}
-
-        {fetchState.status === "ok" && (
-          <div className="flex items-center gap-3">
-            <span className="inline-flex items-center rounded-full border border-border-accent bg-surface-2 px-3 py-1 text-sm font-medium text-text">
-              {TIER_LABELS[fetchState.data.tier] ?? fetchState.data.tier}
-            </span>
-            {/* Stripe portal is a POST — /billing page not yet built (Phase 9.11) */}
-            <div className="group relative">
+          {/* Email — always available from props, not gated on fetchState */}
+          <div className="flex flex-col gap-1.5">
+            <TextField id="profile-email" label="Email" value={email} readOnly />
+            {pendingNewEmail ? (
+              <div className="flex flex-col gap-2 rounded-[10px] border border-border bg-surface-2 px-4 py-3 text-sm">
+                <p className="text-text">
+                  <span className="font-medium">Email change pending.</span>{" "}
+                  We sent confirmation links to{" "}
+                  <span className="font-medium">{email}</span> and{" "}
+                  <span className="font-medium">{pendingNewEmail}</span>. Click the link
+                  in <span className="font-medium">both</span> to complete the change.
+                </p>
+                <p className="text-text-muted">
+                  Didn&rsquo;t mean to? Just don&rsquo;t click the links — the request will
+                  expire on its own.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setShowEmailModal(true)}
+                  className="self-start rounded text-sm text-accent transition-colors duration-[250ms] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--border-accent)]"
+                >
+                  Use a different address
+                </button>
+              </div>
+            ) : (
               <button
                 type="button"
-                disabled
-                aria-describedby="billing-tooltip"
-                className="cursor-not-allowed text-sm text-accent opacity-40"
+                onClick={() => setShowEmailModal(true)}
+                className="self-start rounded text-sm text-accent transition-colors duration-[250ms] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--border-accent)]"
               >
-                Manage billing
+                Edit email
               </button>
-              <div
-                id="billing-tooltip"
-                role="tooltip"
-                className="pointer-events-none absolute left-0 top-full z-10 mt-1.5 hidden whitespace-nowrap rounded-lg border border-border bg-surface-2 px-3 py-1.5 text-xs text-text-muted shadow-sm group-focus-within:block group-hover:block"
+            )}
+          </div>
+        </section>
+
+        {/* Plan */}
+        <section className="flex flex-col gap-4">
+          <h2 className="font-display text-base text-text">Plan</h2>
+
+          {fetchState.status === "loading" && (
+            <div className="h-8 w-28 animate-pulse rounded-lg bg-surface-2" />
+          )}
+
+          {fetchState.status === "error" && (
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-text-muted">Couldn&rsquo;t load profile data.</span>
+              <button
+                type="button"
+                onClick={loadAccount}
+                className="rounded text-sm text-accent transition-colors duration-[250ms] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--border-accent)]"
               >
-                Billing coming soon
+                Retry
+              </button>
+            </div>
+          )}
+
+          {fetchState.status === "ok" && (
+            <div className="flex items-center gap-3">
+              <span className="inline-flex items-center rounded-full border border-border-accent bg-surface-2 px-3 py-1 text-sm font-medium text-text">
+                {TIER_LABELS[fetchState.data.tier] ?? fetchState.data.tier}
+              </span>
+              {/* Stripe portal is a POST — /billing page not yet built (Phase 9.11) */}
+              <div className="group relative">
+                <button
+                  type="button"
+                  disabled
+                  aria-describedby="billing-tooltip"
+                  className="cursor-not-allowed text-sm text-accent opacity-40"
+                >
+                  Manage billing
+                </button>
+                <div
+                  id="billing-tooltip"
+                  role="tooltip"
+                  className="pointer-events-none absolute left-0 top-full z-10 mt-1.5 hidden whitespace-nowrap rounded-lg border border-border bg-surface-2 px-3 py-1.5 text-xs text-text-muted shadow-sm group-focus-within:block group-hover:block"
+                >
+                  Billing coming soon
+                </div>
               </div>
             </div>
-          </div>
-        )}
-      </section>
+          )}
+        </section>
 
-    </div>
+      </div>
+    </>
   );
 }

@@ -132,7 +132,7 @@ function DirtyGuard({
 
 // ─── AccountSettings ────────────────────────────────────────────────────────
 
-export default function AccountSettings({ email }: { email: string }) {
+export default function AccountSettings({ email, newEmail }: { email: string; newEmail: string | null }) {
   const [activeTab, setActiveTab] = useState<TabId>("profile");
   const [savePending, setSavePending] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
@@ -313,6 +313,7 @@ export default function AccountSettings({ email }: { email: string }) {
                     {tab.id === "profile" && (
                       <ProfileTab
                         email={email}
+                        newEmail={newEmail}
                         onDirtyChange={setIsDirty}
                         registerActions={registerActions}
                       />
