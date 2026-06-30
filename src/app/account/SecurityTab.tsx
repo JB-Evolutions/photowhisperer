@@ -94,6 +94,7 @@ export default function SecurityTab() {
   const [confirmPw, setConfirmPw] = useState("");
   const [pwPending, setPwPending] = useState(false);
   const [pwError, setPwError] = useState<string | null>(null);
+  const [currentPwError, setCurrentPwError] = useState<string | null>(null);
 
   async function handleSignOut() {
     setSignOutPending(true);
@@ -122,18 +123,23 @@ export default function SecurityTab() {
     if (!currentPw || newPw.length < PASSWORD_MIN_LENGTH || confirmPw !== newPw) return;
     setPwPending(true);
     setPwError(null);
+    setCurrentPwError(null);
     try {
       const { error } = await supabase.auth.updateUser({
         current_password: currentPw,
         password: newPw,
       });
       if (error) {
-        // TODO(live-test): once the exact error signature for a wrong current_password
-        // is confirmed, re-add a currentPwError state and pass error={currentPwError}
-        // to the current-password PasswordField so the error lands there specifically.
-        // Until then: showing error.message directly — a broad 422 check mislabels
-        // same-password-reuse errors (also 422) as "current password incorrect".
-        setPwError(error.message ?? "Couldn't update password — try again.");
+        const msg = error.message ?? "";
+        // Exact match — live-verified on @supabase/supabase-js 2.108.2 (2026-07-01).
+        // If field-level routing stops working after a Supabase upgrade, this string
+        // is the first thing to check. Kept as exact equality (not includes) so it
+        // cannot accidentally match the same-password-reuse message.
+        if (msg === "Email or password doesn't match.") {
+          setCurrentPwError("Current password is incorrect.");
+        } else {
+          setPwError(msg || "Couldn't update password — try again.");
+        }
         return;
       }
     } catch {
@@ -175,16 +181,13 @@ export default function SecurityTab() {
             onSubmit={(e) => { e.preventDefault(); void handleChangePassword(); }}
             className="flex flex-col gap-4"
           >
-            {/* Once live-test confirms the exact error GoTrue returns for a wrong
-                current_password, re-add a currentPwError state and pass
-                error={currentPwError} here so the error lands on this field
-                rather than in the general pwError below. */}
             <PasswordField
               id="current-password"
               label="Current password"
               value={currentPw}
-              onChange={setCurrentPw}
+              onChange={(v) => { setCurrentPw(v); setCurrentPwError(null); }}
               autoComplete="current-password"
+              error={currentPwError ?? undefined}
             />
             <PasswordField
               id="new-password"
