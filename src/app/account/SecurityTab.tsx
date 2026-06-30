@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useRef, useMemo } from "react";
-import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import Button from "@/components/shared/Button";
 
@@ -82,7 +81,6 @@ function SignOutConfirm({
 // ─── SecurityTab ─────────────────────────────────────────────────────────────
 
 export default function SecurityTab() {
-  const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
 
   const [showSignOutConfirm, setShowSignOutConfirm] = useState(false);
@@ -109,7 +107,7 @@ export default function SecurityTab() {
     }
     // Redirect only on confirmed success.
     setShowSignOutConfirm(false);
-    router.push("/auth/signin");
+    window.location.href = "/auth/signin";
   }
 
   return (
