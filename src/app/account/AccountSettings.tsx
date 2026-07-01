@@ -8,14 +8,16 @@ import ProfileTab from "./ProfileTab";
 import CameraTab from "./CameraTab";
 import PreferencesTab from "./PreferencesTab";
 import SecurityTab from "./SecurityTab";
+import DangerZoneTab from "./DangerZoneTab";
 
-export type TabId = "profile" | "camera" | "preferences" | "security";
+export type TabId = "profile" | "camera" | "preferences" | "security" | "danger-zone";
 
 const TABS: { id: TabId; label: string }[] = [
   { id: "profile",     label: "Profile"     },
   { id: "camera",      label: "Camera"      },
   { id: "preferences", label: "Preferences" },
   { id: "security",    label: "Security"    },
+  { id: "danger-zone", label: "Danger Zone" },
 ];
 
 export interface TabActions {
@@ -328,6 +330,7 @@ export default function AccountSettings({ email, newEmail }: { email: string; ne
                       />
                     )}
                     {tab.id === "security" && <SecurityTab />}
+                    {tab.id === "danger-zone" && <DangerZoneTab />}
                     {isDirty && (
                       <SaveBar
                         onSave={handleSave}
