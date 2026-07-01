@@ -87,10 +87,12 @@ function ChangeEmailModal({
       if (error) {
         if (error.name === "AuthRetryableFetchError") {
           setSubmitError("Couldn't reach the server — check your connection and try again.");
+        } else if (error.message === "A user with this email address has already been registered") {
+          // Exact match — live-verified 2026-07-01, @supabase/supabase-js 2.108.2.
+          // If field-routing stops working after a Supabase upgrade, this string is the
+          // first thing to check. Degrades gracefully to the general area if it changes.
+          setEmailError("That email is already in use.");
         } else {
-          // TODO(live-test): once the exact "email already in use" error string is
-          // confirmed, add a targeted setEmailError branch here so the error lands
-          // on the email field (same approach as password change mapping).
           setSubmitError(error.message ?? "Couldn't update email — try again.");
         }
         return;
@@ -129,7 +131,7 @@ function ChangeEmailModal({
               type="email"
               autoComplete="email"
               value={newEmail}
-              onChange={(e) => { setNewEmail(e.target.value); setEmailError(null); }}
+              onChange={(e) => { setNewEmail(e.target.value); setEmailError(null); setSubmitError(null); }}
               onBlur={() => { if (newEmail) setEmailError(validate(newEmail)); }}
               aria-invalid={emailError ? true : undefined}
               aria-describedby={emailError ? "new-email-error" : undefined}

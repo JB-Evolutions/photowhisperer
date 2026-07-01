@@ -34,6 +34,14 @@ of these outstanding.
   button, SoftWarningBanner "Upgrade" link (if both fire together), and any future
   billing modal trigger. Resolve in Phase 9.11/9.13 — pick one primary CTA path.
 
+## Infrastructure
+
+- **Custom SMTP required before launch** — Supabase built-in email service hit rate limit
+  during 9.9b-3 testing. Built-in service rate-limits all auth emails (signup, reset, magic
+  link, email change — email change doubles volume with Secure email change ON). Before launch:
+  configure custom SMTP (Resend, SendGrid, Postmark, or SES) in Supabase → Auth → SMTP Settings.
+  Config only, no code changes.
+
 ## Technical debt
 
 - **T4 classifier drift check** — verify the Anthropic model used in
@@ -60,8 +68,12 @@ of these outstanding.
   SecurityTab (3-field, `type="submit"`, conservative error mapping with TODO for
   field-level routing after live test).
 
-- **9.9b scope** — remaining: email-change verified flow, Danger Zone (export +
-  account deletion w/ grace period).
+- **9.9b scope** — remaining: Danger Zone (export + account deletion w/ grace period).
+
+- **9.9b-3 test 1b — in-flight email replace ("Use a different address") NOT live-verified**
+  — blocked by Supabase email rate limit during testing. Logic is sound (GoTrue stores one
+  pending change per user; re-submitting overwrites it) and fails gracefully if the server
+  rejects it. Re-verify when rate limit resets or after custom SMTP is configured.
 
 - ~~**Sidebar crash on session revocation**~~ — **FIXED** (commit `8c6e0e2`).
   `res.ok` guard added to both `/api/sessions` and `/api/account` fetch chains in
