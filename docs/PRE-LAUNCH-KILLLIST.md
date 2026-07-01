@@ -34,6 +34,24 @@ of these outstanding.
   button, SoftWarningBanner "Upgrade" link (if both fire together), and any future
   billing modal trigger. Resolve in Phase 9.11/9.13 — pick one primary CTA path.
 
+## Account deletion (deferred from 9.9b-6 Option C)
+
+- **Hard-delete cron sweep not implemented** — past-grace soft-deleted accounts are
+  permanently blocked (proxy signs them out and redirects to `signin?account=expired`)
+  but their rows are never purged. `users.deleted_at` is set; all related user data
+  persists in the DB indefinitely. Before scale or GDPR hard-compliance: add a
+  scheduled job that hard-deletes accounts where `deleted_at < NOW() - GRACE_PERIOD_DAYS`
+  (cascade through `users`, `subscriptions`, `credit_balances`, `usage_tracking`,
+  `camera_profiles`, `sessions`, `session_messages`, and the GoTrue `auth.users` row via
+  Supabase Admin API). Data is inaccessible at launch, but accumulation is unbounded.
+
+- **Stripe cancel is best-effort — no reconciliation** — if `stripe.subscriptions.cancel()`
+  throws during account deletion, the soft-delete still commits and the failure is only
+  logged via `console.error`. No retry, no reconciliation job. Before launch: add monitoring
+  on the error log (or a periodic reconcile job) to catch orphaned active Stripe subscriptions
+  on soft-deleted accounts. Low frequency, but a billing-leak risk if Stripe hiccups during
+  the delete request.
+
 ## Infrastructure
 
 - **Custom SMTP required before launch** — Supabase built-in email service hit rate limit
