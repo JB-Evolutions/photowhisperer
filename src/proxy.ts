@@ -1,16 +1,19 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { isWithinGracePeriod } from "@/lib/account-deletion";
 
 export async function proxy(request: NextRequest) {
+  const pathname = request.nextUrl.pathname;
+
   // Stripe webhooks use signature-based auth — bypass JWT check entirely.
-  if (request.nextUrl.pathname.startsWith("/api/webhooks/")) {
+  if (pathname.startsWith("/api/webhooks/")) {
     return NextResponse.next();
   }
 
   // Dev-only login route mints the session itself, so it can't require one
   // to be reached. The route's own NODE_ENV/ALLOW_TEST_LOGIN guard is the
   // real gate; this bypass is a no-op (404) whenever that guard is off.
-  if (request.nextUrl.pathname === "/api/test-login") {
+  if (pathname === "/api/test-login") {
     return NextResponse.next();
   }
 
@@ -46,7 +49,7 @@ export async function proxy(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    if (request.nextUrl.pathname.startsWith("/api/")) {
+    if (pathname.startsWith("/api/")) {
       const unauthorized = NextResponse.json(
         { error: "Unauthorized" },
         { status: 401 }
@@ -60,10 +63,57 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL("/auth/signin", request.url));
   }
 
+  // Soft-delete gate — /app/* and /account/* only. API routes return 401 via
+  // their own getUser() checks; redirecting them to /account/restore would
+  // break the client's fetch error handling.
+  if (pathname.startsWith("/app") || pathname.startsWith("/account")) {
+    const { data: profile } = await supabase
+      .from("users")
+      .select("deleted_at")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    const deletedAt =
+      (profile as { deleted_at: string | null } | null)?.deleted_at ?? null;
+
+    if (deletedAt) {
+      if (isWithinGracePeriod(deletedAt)) {
+        // /account/restore must be reachable — it IS the recovery page.
+        // Redirecting here unconditionally would loop: restore → proxy →
+        // within grace → redirect restore → proxy → ... indefinitely.
+        if (pathname !== "/account/restore") {
+          return redirectTo("/account/restore", request, supabaseResponse);
+        }
+      } else {
+        // Past 7-day grace: revoke session + permanent block.
+        await supabase.auth.signOut();
+        return redirectTo("/auth/signin?account=expired", request, supabaseResponse);
+      }
+    }
+  }
+
   // Return the supabase-mutated response so refreshed cookies reach the client.
   return supabaseResponse;
 }
 
+// Copies refreshed/cleared auth cookies from supabaseResponse into the redirect
+// so the browser always receives the current cookie state on every branch.
+function redirectTo(
+  destination: string,
+  request: NextRequest,
+  supabaseResponse: NextResponse
+): NextResponse {
+  const dest = new URL(destination, request.nextUrl.origin);
+  const url = request.nextUrl.clone();
+  url.pathname = dest.pathname;
+  url.search = dest.search;
+  const res = NextResponse.redirect(url);
+  supabaseResponse.cookies.getAll().forEach(({ name, value, ...options }) => {
+    res.cookies.set(name, value, options as Parameters<typeof res.cookies.set>[2]);
+  });
+  return res;
+}
+
 export const config = {
-  matcher: ["/api/:path*", "/onboarding/:path*"],
+  matcher: ["/api/:path*", "/onboarding/:path*", "/app/:path*", "/account/:path*"],
 };

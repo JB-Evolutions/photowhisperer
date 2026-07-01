@@ -1,3 +1,4 @@
+import { forwardRef } from "react";
 import Link from "next/link";
 import type { MouseEvent, ReactNode } from "react";
 
@@ -54,7 +55,7 @@ function Spinner() {
   );
 }
 
-export default function Button({
+const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button({
   href,
   type = "button",
   variant = "primary",
@@ -66,7 +67,7 @@ export default function Button({
   disabled = false,
   onClick,
   children,
-}: ButtonProps) {
+}: ButtonProps, ref) {
   const isBlocked = disabled || pending;
   const classes = `${buttonBase} ${buttonVariants[variant]} ${buttonSizes[size]} ${
     fullWidth ? "w-full justify-center" : ""
@@ -105,6 +106,7 @@ export default function Button({
 
   return (
     <button
+      ref={ref}
       type={type}
       onClick={onClick}
       disabled={isBlocked}
@@ -114,4 +116,6 @@ export default function Button({
       {content}
     </button>
   );
-}
+});
+
+export default Button;
