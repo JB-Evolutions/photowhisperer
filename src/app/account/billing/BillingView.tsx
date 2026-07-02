@@ -6,6 +6,7 @@ import Button from "@/components/shared/Button";
 import CreditPackPicker from "@/components/shared/CreditPackPicker";
 import { TIER_DISPLAY_NAMES, TIER_PRICES_USD, nextResetDate } from "@/lib/quota";
 import type { Tier } from "@/lib/quota";
+import { useResetOnBfcache } from "@/hooks/useResetOnBfcache";
 
 interface BillingViewProps {
   tier: Tier;
@@ -29,6 +30,8 @@ export default function BillingView({
   const [invoiceError, setInvoiceError] = useState<string | null>(null);
   const [upgradePending, setUpgradePending] = useState(false);
   const [upgradeError, setUpgradeError] = useState<string | null>(null);
+
+  useResetOnBfcache(() => { setPortalPending(null); setUpgradePending(false); });
 
   // Mirror Sidebar.tsx:55–57 EXACTLY
   const total = monthly_limit + credits_remaining;

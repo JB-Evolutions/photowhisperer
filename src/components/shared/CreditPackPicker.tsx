@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Button from "@/components/shared/Button";
+import { useResetOnBfcache } from "@/hooks/useResetOnBfcache";
 
 export const PACK_PRICING = [
   { code: "s" as const, credits: 50,  price: 5  },
@@ -18,6 +19,8 @@ interface CreditPackPickerProps {
 export default function CreditPackPicker({ onCancel }: CreditPackPickerProps) {
   const [pending, setPending] = useState<PackCode | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  useResetOnBfcache(() => setPending(null));
 
   async function handleBuy(code: PackCode) {
     // No-op if another pack is already being checked out.
