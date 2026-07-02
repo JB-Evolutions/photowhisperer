@@ -29,7 +29,7 @@ export async function GET() {
       await Promise.all([
         supabase
           .from("subscriptions")
-          .select("tier")
+          .select("tier, status, end_date")
           .eq("user_id", user.id)
           .maybeSingle(),
         supabase
@@ -52,6 +52,15 @@ export async function GET() {
       ]);
 
     const tier = (sub?.tier ?? "snapshot") as Tier;
+    // sub is null for free users (no subscription row yet). Treat null as "no
+    // billing state" — the banner renders only when subscription_status is
+    // non-null and not "active", so null = free user = no banner.
+    const subscription_status = (sub?.status ?? null) as
+      | "active"
+      | "cancelled"
+      | "past_due"
+      | null;
+    const subscription_end_date = (sub?.end_date as string | null) ?? null;
 
     return NextResponse.json({
       tier,
@@ -60,6 +69,8 @@ export async function GET() {
       credits_remaining: credits?.credits_remaining ?? 0,
       total_purchased: credits?.total_purchased ?? 0,
       display_name: (profile?.display_name as string | null) ?? null,
+      subscription_status,
+      subscription_end_date,
     });
   } catch (err) {
     console.error("GET /api/account failure:", err);

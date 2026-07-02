@@ -11,6 +11,8 @@ export interface AccountData {
   monthly_limit: number;
   credits_remaining: number;
   total_purchased: number;
+  subscription_status: "active" | "cancelled" | "past_due" | null;
+  subscription_end_date: string | null;
 }
 
 export interface SessionRow {
@@ -99,9 +101,10 @@ export default function AppPage() {
       accountError={accountError}
       sessionsError={sessionsError}
       onUsageUpdate={({ monthly_count, credits_remaining }) =>
-        setAccount((prev) =>
-          prev ? { ...prev, monthly_used: monthly_count, credits_remaining } : prev
-        )
+        setAccount((prev) => {
+          if (!prev) return prev;
+          return { ...prev, monthly_used: monthly_count, credits_remaining };
+        })
       }
     />
   );
