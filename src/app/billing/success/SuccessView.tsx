@@ -23,40 +23,69 @@ export default function SuccessView({ type, pack }: SuccessViewProps) {
     isCredits ? "polling" : "confirmed"
   );
 
-  // Poll /api/credits until credits_remaining rises above the baseline captured
-  // on the first tick. 15 polls × 2s = 30s max. Graceful timeout — never an error.
   useEffect(() => {
     if (!isCredits) return;
-    let baseline: number | null = null;
-    let polls = 0;
-    const MAX_POLLS = 15;
 
-    const id = setInterval(async () => {
-      polls++;
+    // expectedGrant: credits the pack should add. Used as a secondary confirmation
+    // signal alongside the baseline comparison. null if pack is missing or
+    // unparseable — degrades to baseline-only check in that case.
+    const expectedGrant = creditAmount(pack);
+    const MAX_POLLS = 15;
+    let cancelled = false;
+    let intervalId: ReturnType<typeof setInterval> | null = null;
+
+    // Confirmed if balance rose above baseline (normal case), OR rose to at least
+    // baseline + expectedGrant (pack-aware stronger check). Degrades to
+    // baseline-only if expectedGrant is null.
+    function isGranted(current: number, baseline: number): boolean {
+      if (current > baseline) return true;
+      if (expectedGrant !== null && current >= baseline + expectedGrant) return true;
+      return false;
+    }
+
+    async function fetchBalance(): Promise<number | null> {
       try {
         const res = await fetch("/api/credits");
-        if (res.ok) {
-          const data = (await res.json()) as { credits_remaining?: number };
-          const current = data.credits_remaining ?? 0;
-          if (baseline === null) {
-            baseline = current;
-          } else if (current > baseline) {
-            clearInterval(id);
-            setPollState("confirmed");
-            return;
-          }
-        }
+        if (!res.ok) return null;
+        const data = (await res.json()) as { credits_remaining?: number };
+        return data.credits_remaining ?? 0;
       } catch {
-        // network blip — keep polling
+        return null; // network blip
       }
-      if (polls >= MAX_POLLS) {
-        clearInterval(id);
-        setPollState("timeout");
-      }
-    }, 2000);
+    }
 
-    return () => clearInterval(id);
-  }, [isCredits]);
+    async function run() {
+      // Phase 1: capture pre-grant baseline immediately on mount
+      const base = await fetchBalance();
+      if (cancelled) return;
+      const baseline = base ?? 0;
+
+      // Phase 2: poll every 2s, MAX_POLLS ticks max (30s cap)
+      if (cancelled) return;
+      let polls = 0;
+      intervalId = setInterval(async () => {
+        polls++;
+        const c = await fetchBalance();
+        if (cancelled) return;
+        if (c !== null && isGranted(c, baseline)) {
+          clearInterval(intervalId!);
+          setPollState("confirmed");
+          return;
+        }
+        if (polls >= MAX_POLLS) {
+          clearInterval(intervalId!);
+          setPollState("timeout");
+        }
+      }, 2000);
+    }
+
+    void run();
+
+    return () => {
+      cancelled = true;
+      if (intervalId !== null) clearInterval(intervalId);
+    };
+  }, [isCredits, pack]);
 
   const heading = isCredits ? "Credits added" : "Subscription active";
   const amount = isCredits ? creditAmount(pack) : null;
