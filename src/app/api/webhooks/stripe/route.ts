@@ -8,6 +8,11 @@ export const dynamic = "force-dynamic";
 
 type AdminClient = ReturnType<typeof createAdminClient>;
 
+const TERMINAL_STATUSES = new Set<Stripe.Subscription.Status>([
+  "canceled",
+  "incomplete_expired",
+]);
+
 function toId(value: string | { id: string } | null | undefined): string | null {
   if (!value) return null;
   return typeof value === "string" ? value : value.id;
@@ -134,6 +139,18 @@ async function handleCheckoutSessionCompleted(
 // has already stamped it, so tier is never touched in this handler: by the
 // time this query can match a row, that row's tier was already set in the
 // same UPDATE that stamped stripe_customer_id.
+//
+// end_date uses a two-branch strategy keyed on TERMINAL_STATUSES:
+//   Terminal path (ended_at non-null, or status is in TERMINAL_STATUSES):
+//   write end_date from ended_at — the authoritative timestamp Stripe sets
+//   when a subscription is definitively ended. items.data may be empty on
+//   terminal-state events so current_period_end is not reliable here.
+//   Renewal path (active, trialing, past_due, paused, incomplete, unpaid):
+//   write end_date from the first subscription item's current_period_end
+//   (API 2026-05-27.dahlia moved this field from top-level Subscription to
+//   SubscriptionItem). Mirrors invoice.payment_succeeded reading from
+//   invoice.lines.data[0].period.end — both handlers converge on the same
+//   value on renewal regardless of arrival order.
 async function handleSubscriptionUpdated(
   admin: AdminClient,
   subscription: Stripe.Subscription
@@ -141,13 +158,25 @@ async function handleSubscriptionUpdated(
   const customerId = toId(subscription.customer);
   if (!customerId) return;
 
+  const isTerminal =
+    subscription.ended_at !== null ||
+    TERMINAL_STATUSES.has(subscription.status);
+
+  let end_date: string | null;
+  if (isTerminal) {
+    end_date = subscription.ended_at
+      ? new Date(subscription.ended_at * 1000).toISOString()
+      : null;
+  } else {
+    const periodEnd = subscription.items.data[0]?.current_period_end;
+    end_date = periodEnd ? new Date(periodEnd * 1000).toISOString() : null;
+  }
+
   const { error } = await admin
     .from("subscriptions")
     .update({
       status: mapSubscriptionStatus(subscription.status),
-      end_date: subscription.ended_at
-        ? new Date(subscription.ended_at * 1000).toISOString()
-        : null,
+      end_date,
     })
     .eq("stripe_customer_id", customerId);
   if (error) throw error;
