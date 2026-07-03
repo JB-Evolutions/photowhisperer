@@ -11,6 +11,7 @@ import SessionView from "@/components/app/SessionView";
 import OutOfCreditsCard from "@/components/app/OutOfCreditsCard";
 import SoftWarningBanner from "@/components/app/SoftWarningBanner";
 import RateLimitBanner from "@/components/app/RateLimitBanner";
+import SubscriptionBanner from "@/components/app/SubscriptionBanner";
 import { SOFT_WARNING_THRESHOLD, RATE_LIMIT_COOLDOWN_SECONDS } from "@/lib/quota";
 import type { ChatComposerHandle } from "@/components/app/ChatComposer";
 import type { SessionViewHandle } from "@/components/app/SessionView";
@@ -100,6 +101,16 @@ export default function AppShell({
           {/* overflow-hidden so the thread div controls its own scroll */}
           <main className="flex min-h-0 flex-1 flex-col overflow-hidden bg-bg">
             <div className="mx-auto flex min-h-0 w-full max-w-[880px] flex-1 flex-col">
+
+              <div className="flex-shrink-0 pt-4">
+                {account && (
+                  <SubscriptionBanner
+                    tier={account.tier}
+                    subscription_status={account.subscription_status}
+                    subscription_end_date={account.subscription_end_date}
+                  />
+                )}
+              </div>
 
               {/* Thread — always mounted so sessionViewRef is live for the first send.
                   Tailwind `hidden` (display:none) until onThreadEmptyChange fires. */}
