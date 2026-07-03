@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient as createServerClient } from "@/lib/supabase/server";
 import { GRACE_PERIOD_DAYS } from "@/lib/account-deletion";
+import { parseDbTimestamp } from "@/lib/date";
 import AuthShell from "@/components/auth/AuthShell";
 import AuthCard from "@/components/auth/AuthCard";
 import RestoreButton from "./RestoreButton";
@@ -27,7 +28,7 @@ export default async function RestorePage() {
   if (!deletedAt) redirect("/app");
 
   const deletionDate = new Date(
-    new Date(deletedAt).getTime() + GRACE_PERIOD_DAYS * 24 * 60 * 60 * 1000
+    parseDbTimestamp(deletedAt).getTime() + GRACE_PERIOD_DAYS * 24 * 60 * 60 * 1000
   );
   const formattedDate = deletionDate.toLocaleDateString("en-US", {
     year: "numeric",

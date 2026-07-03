@@ -6,6 +6,7 @@ import Button from "@/components/shared/Button";
 import CreditPackPicker from "@/components/shared/CreditPackPicker";
 import { TIER_DISPLAY_NAMES, TIER_PRICES_USD, nextResetDate } from "@/lib/quota";
 import type { Tier } from "@/lib/quota";
+import { parseDbTimestamp } from "@/lib/date";
 import { useResetOnBfcache } from "@/hooks/useResetOnBfcache";
 
 interface BillingViewProps {
@@ -44,7 +45,7 @@ export default function BillingView({
   const resetDate = nextResetDate();
 
   const renewalDate = subscription_end_date
-    ? new Date(subscription_end_date).toLocaleDateString("en-US", {
+    ? parseDbTimestamp(subscription_end_date).toLocaleDateString("en-US", {
         month: "long",
         day: "numeric",
         year: "numeric",
