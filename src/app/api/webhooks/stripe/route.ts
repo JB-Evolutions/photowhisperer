@@ -168,7 +168,7 @@ async function handleSubscriptionUpdated(
       ? new Date(subscription.ended_at * 1000).toISOString()
       : null;
   } else {
-    const periodEnd = subscription.items.data[0]?.current_period_end;
+    const periodEnd = subscription.items?.data?.[0]?.current_period_end;
     end_date = periodEnd ? new Date(periodEnd * 1000).toISOString() : null;
   }
 
@@ -189,7 +189,7 @@ async function handleInvoicePaymentSucceeded(
   const customerId = toId(invoice.customer);
   if (!customerId) return;
 
-  const periodEnd = invoice.lines.data[0]?.period.end;
+  const periodEnd = invoice.lines?.data?.[0]?.period?.end;
 
   const { error } = await admin
     .from("subscriptions")
