@@ -10,10 +10,11 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Dev-only login route mints the session itself, so it can't require one
-  // to be reached. The route's own NODE_ENV/ALLOW_TEST_LOGIN guard is the
-  // real gate; this bypass is a no-op (404) whenever that guard is off.
-  if (pathname === "/api/test-login") {
+  if (
+    process.env.NODE_ENV !== "production" &&
+    process.env.ALLOW_TEST_LOGIN === "true" &&
+    pathname === "/api/test-login"
+  ) {
     return NextResponse.next();
   }
 
