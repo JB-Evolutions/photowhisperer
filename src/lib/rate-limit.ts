@@ -1,0 +1,53 @@
+import { Redis } from "@upstash/redis";
+import { Ratelimit } from "@upstash/ratelimit";
+
+const url = process.env.UPSTASH_REDIS_REST_URL;
+const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+
+if (!url || !token) {
+  throw new Error(
+    "UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN must be set — " +
+      "rate limiting has no in-memory or no-op fallback."
+  );
+}
+
+const redis = new Redis({
+  url,
+  token,
+  // A dead/slow Redis host must fail the request fast into the 503 path
+  // rather than hang it; a fresh AbortSignal.timeout() per call since a
+  // single AbortSignal instance can only fire once.
+  signal: () => AbortSignal.timeout(1000),
+  // No retries: a retry can burn most of the 1s per-call signal budget
+  // again, pushing fail-closed latency to multiple seconds.
+  retry: false,
+});
+
+export const settingsRatelimit = new Ratelimit({
+  redis,
+  limiter: Ratelimit.slidingWindow(10, "60 s"),
+  prefix: "ratelimit:settings",
+});
+
+type RatelimitResult = Awaited<ReturnType<typeof settingsRatelimit.limit>>;
+
+// The per-fetch signal above bounds a single HTTP call, not the total
+// wall-time of .limit() (which can issue more than one Redis command).
+// This is the hard outer bound; a timeout here rejects into the route's
+// catch → 503 fail-closed path.
+export function limitWithTimeout(key: string): Promise<RatelimitResult> {
+  let timer: ReturnType<typeof setTimeout>;
+  const limitCall = settingsRatelimit.limit(key);
+  // @upstash/ratelimit's LimitOptions has no abort/signal field, so a lost
+  // race can't cancel the in-flight call — it keeps running server-side and
+  // settles later, discarded. Attach a no-op catch so that late rejection
+  // (e.g. the per-fetch AbortSignal firing after we've already moved on)
+  // never surfaces as an unhandled rejection.
+  limitCall.catch(() => {});
+  const timeout = new Promise<RatelimitResult>((_, reject) => {
+    timer = setTimeout(() => {
+      reject(new Error("rate limit check timed out"));
+    }, 1200);
+  });
+  return Promise.race([limitCall, timeout]).finally(() => clearTimeout(timer));
+}

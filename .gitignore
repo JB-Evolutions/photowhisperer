@@ -46,3 +46,6 @@ next-env.d.ts
 
 # supabase CLI state
 supabase/.temp/
+
+# local test helper (tier-flip script), never commit
+set-tier-tmp.mjs

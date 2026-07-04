@@ -14,6 +14,7 @@ import {
   updateSessionTitle,
   generateTitleFromSummary,
 } from "@/lib/sessions";
+import { limitWithTimeout } from "@/lib/rate-limit";
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -125,15 +126,6 @@ function validateBody(body: unknown): ValidateBodyResult {
       prior_context: priorContextValue,
     },
   };
-}
-
-// Phase 10 wires this up to @upstash/ratelimit (10 req/min/user). Until the
-// env vars exist, this stays a no-op so local dev never depends on Upstash.
-async function isRateLimited(): Promise<boolean> {
-  if (!process.env.UPSTASH_REDIS_REST_URL || !process.env.UPSTASH_REDIS_REST_TOKEN) {
-    return false;
-  }
-  return false;
 }
 
 interface QuotaResult {
@@ -286,8 +278,22 @@ export async function POST(request: NextRequest) {
   const { conditions, session_id: requestedSessionId, prior_context } =
     validated.value;
 
-  if (await isRateLimited()) {
-    return NextResponse.json({ error: "rate_limited" }, { status: 429 });
+  let rl;
+  try {
+    rl = await limitWithTimeout(user.id); // user.id = authenticated Supabase user, NEVER IP
+  } catch (err) {
+    console.error("rate limit check failed (fail-closed):", err);
+    return NextResponse.json(
+      { error: "service_busy", message: "Service is busy. Please try again in a moment." },
+      { status: 503, headers: { "Retry-After": "10" } }
+    );
+  }
+  if (!rl.success) {
+    const retryAfter = Math.max(1, Math.ceil((rl.reset - Date.now()) / 1000));
+    return NextResponse.json(
+      { error: "rate_limited" },
+      { status: 429, headers: { "Retry-After": String(retryAfter) } }
+    );
   }
 
   // Any unexpected failure here (DB error etc.) must degrade to a client-facing
