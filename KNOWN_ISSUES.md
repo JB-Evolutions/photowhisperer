@@ -24,6 +24,29 @@ boundaries — plausible failure modes: quota resetting early/late, or a day's
 requests splitting across two month rows. Confirm what TZ the deployed
 runtime actually uses before assuming this is live; not fixed yet.
 
+## Sentry deployed but INERT in prod — 10.2 not functionally complete
+
+`NEXT_PUBLIC_SENTRY_DSN` is confirmed absent from the deployed Production
+client bundle (checked directly: the Sentry SDK code is bundled, but no
+literal DSN string is inlined anywhere in it — Next.js inlines
+`NEXT_PUBLIC_*` vars as build-time constants, so an unset var leaves no trace
+to find). `SENTRY_DSN` (server) can't be checked this way — the design
+silently no-ops on a missing DSN rather than crashing, so there's no
+observable-over-HTTP signal either way. Until both are confirmed present in
+Vercel's **Production** environment scope (not just Preview/Development) and
+a fresh deploy picks them up, Sentry captures nothing in prod: zero
+monitoring, but also zero PII risk from the unverified scrub in the meantime.
+
+**This is a deliberate deferral, not an oversight.** Sentry stays off in prod
+until closer to launch / the first non-developer user: (a) with a single
+developer-user, prod monitoring buys close to nothing right now, (b) turning
+it on early just fills Issues with already-known, already-tracked bugs, (c)
+#11/#12 below are already tracked and become mandatory the moment the DSN is
+added anyway — no benefit to rushing that gate before it's needed. Enable
+trigger: first non-developer user / beta. When ready: add `SENTRY_DSN` +
+`NEXT_PUBLIC_SENTRY_DSN` to Vercel Production, redeploy, then run #11
+(client) + #12 (server) immediately, before real traffic.
+
 ## Sentry launch-checklist items #11 and #12 — deferred, unverified
 
 Per `implementation-guide.md`'s launch sanity checks:
