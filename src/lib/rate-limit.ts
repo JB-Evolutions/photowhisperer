@@ -31,11 +31,38 @@ export const settingsRatelimit = new Ratelimit({
 
 type RatelimitResult = Awaited<ReturnType<typeof settingsRatelimit.limit>>;
 
+// LOCAL-DEV-ONLY bypass — see KNOWN_ISSUES.md. Auckland→us-east-1 latency to
+// the real Upstash regional DB is genuinely slow enough from this dev
+// machine (~27% of calls exceed the 1000ms timeout) to make local testing of
+// anything past the limiter (e.g. the §4.10 quota flow) impractical. This is
+// NOT a fix for that latency and NOT a fallback for missing creds or a
+// timed-out call — those still fail closed via the catch below. It is an
+// explicit, double-guarded opt-in: both DISABLE_RATE_LIMIT_LOCAL === "true"
+// AND NODE_ENV !== "production" must hold, so prod (which never sets the
+// flag, and always runs NODE_ENV=production) is structurally unaffected
+// regardless of what's in any single env source.
+const LOCAL_BYPASS_ENABLED =
+  process.env.NODE_ENV !== "production" && process.env.DISABLE_RATE_LIMIT_LOCAL === "true";
+
+function localBypassResult(): RatelimitResult {
+  return {
+    success: true,
+    limit: 10,
+    remaining: 10,
+    reset: Date.now() + 60_000,
+    pending: Promise.resolve(),
+  };
+}
+
 // The per-fetch signal above bounds a single HTTP call, not the total
 // wall-time of .limit() (which can issue more than one Redis command).
 // This is the hard outer bound; a timeout here rejects into the route's
 // catch → 503 fail-closed path.
 export function limitWithTimeout(key: string): Promise<RatelimitResult> {
+  if (LOCAL_BYPASS_ENABLED) {
+    return Promise.resolve(localBypassResult());
+  }
+
   let timer: ReturnType<typeof setTimeout>;
   const limitCall = settingsRatelimit.limit(key);
   // @upstash/ratelimit's LimitOptions has no abort/signal field, so a lost

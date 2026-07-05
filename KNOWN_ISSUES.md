@@ -54,6 +54,15 @@ onRouterTransitionStart = Sentry.captureRouterTransitionStart;` to
 `src/instrumentation-client.ts` when tracing is turned on, or sooner if the
 warning noise becomes annoying.
 
+## Local-dev rate-limiter bypass
+
+`src/lib/rate-limit.ts` short-circuits `limitWithTimeout` when
+`DISABLE_RATE_LIMIT_LOCAL=true` AND `NODE_ENV!==production`. Exists because
+Auckland→us-east Upstash latency 503s block local testing past the limiter.
+Prod-inert (never sets the flag + NODE_ENV guard). The flag lives only in
+gitignored `.env.local`, never committed. Timeout/error path still fails
+closed — this is opt-in short-circuit only.
+
 ## Test user password needs rotation
 
 `floppyfishfish2@gmail.com`'s password was typed directly into several `curl`
