@@ -45,10 +45,26 @@ export default function AppShell({
   const composerRef = useRef<ChatComposerHandle>(null);
   const sessionViewRef = useRef<SessionViewHandle>(null);
 
+  // Forces the §4.10 card on for a quota_exceeded response that arrived
+  // without monthly_count/credits_remaining (so the real numeric condition
+  // below can't be computed) — OR'd into it, never replacing it.
+  //
+  // Single clear path: onRequestSucceeded (a genuine status:"ok" response) —
+  // the unambiguous "they're not locked out anymore" signal. No reactive
+  // effect on account's numbers here — that raced the set (a stale-but-
+  // passing account value already in place when the no-numbers case fires
+  // could clear the flag before render). The purchase/upgrade-refresh path
+  // doesn't need a separate clear: /billing/success is a distinct top-level
+  // route from /app (both "use client" page.tsx files, not nested under a
+  // shared layout), so returning to /app fully remounts AppShell, resetting
+  // this state to its initial `false` for free.
+  const [forceOutOfCredits, setForceOutOfCredits] = useState(false);
+
   const outOfCredits =
-    account != null &&
-    account.monthly_used >= account.monthly_limit &&
-    account.credits_remaining <= 0;
+    forceOutOfCredits ||
+    (account != null &&
+      account.monthly_used >= account.monthly_limit &&
+      account.credits_remaining <= 0);
 
   const softWarning =
     account != null &&
@@ -121,6 +137,8 @@ export default function AppShell({
                   onThreadEmptyChange={(isEmpty) => setHasThread(!isEmpty)}
                   onUsageUpdate={onUsageUpdate}
                   onRateLimit={() => setCooldown(RATE_LIMIT_COOLDOWN_SECONDS)}
+                  onQuotaExceeded={() => setForceOutOfCredits(true)}
+                  onRequestSucceeded={() => setForceOutOfCredits(false)}
                   onPreFillComposer={(text) => {
                     setComposerValue(text);
                     composerRef.current?.focus();

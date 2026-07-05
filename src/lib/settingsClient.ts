@@ -46,15 +46,17 @@ export async function requestSettings(
     }
 
     if (res.status === 429 && errorField === "quota_exceeded") {
+      // Dedicated status, not "error" — §4.10 wants only the OutOfCreditsCard,
+      // not a chat bubble. Reusing "error" here previously caused a
+      // redundant, off-spec ErrorCard bubble to render alongside the correct
+      // card. Fields are passed through as-is (undefined if the body lacked
+      // them) — never fabricated, since a fake 0 would corrupt account state
+      // (see AppShell's forceOutOfCredits for how the card still shows
+      // without them).
       return {
-        status: "error",
-        // Fallback message: the rich OutOfCreditsCard is driven by account state
-        // (onUsageUpdate propagation). This generic error only surfaces if a
-        // quota_exceeded 429 lands before that state update.
-        message:
-          "You've hit your limit for now. Credits or an upgrade will let you keep going.",
-        ...(errorMonthlyCount !== undefined && { monthly_count: errorMonthlyCount }),
-        ...(errorCreditsRemaining !== undefined && { credits_remaining: errorCreditsRemaining }),
+        status: "quota_exceeded",
+        monthly_count: errorMonthlyCount,
+        credits_remaining: errorCreditsRemaining,
       };
     }
     if (res.status === 429 && errorField === "rate_limited") {

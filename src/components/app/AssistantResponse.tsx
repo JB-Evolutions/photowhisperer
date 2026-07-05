@@ -71,6 +71,11 @@ export default function AssistantResponse({
           onRetry={onRetry}
         />
       );
+    case "quota_exceeded":
+      // §4.10: no thread bubble — the OutOfCreditsCard replacing the
+      // composer (forced via onQuotaExceeded, see SessionView/AppShell) is
+      // the only UI for this case.
+      return null;
     default:
       return <ErrorCard message="Unexpected response." />;
   }

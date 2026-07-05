@@ -23,11 +23,18 @@ interface SessionViewProps {
   onThreadEmptyChange?: (isEmpty: boolean) => void;
   onUsageUpdate?: (update: { monthly_count: number; credits_remaining: number }) => void;
   onRateLimit?: () => void;
+  onQuotaExceeded?: () => void;
+  // Fired only for a genuine status:"ok" response — the sole signal AppShell
+  // uses to clear a forced out-of-credits state. Deliberately independent of
+  // onUsageUpdate (which also fires for quota_exceeded-with-numbers) so
+  // clearing never depends on setState batching order relative to
+  // onQuotaExceeded.
+  onRequestSucceeded?: () => void;
   onPreFillComposer?: (text: string) => void;
 }
 
 const SessionView = forwardRef<SessionViewHandle, SessionViewProps>(
-  function SessionView({ onRequestFocus, onThreadEmptyChange, onUsageUpdate, onRateLimit, onPreFillComposer }, ref) {
+  function SessionView({ onRequestFocus, onThreadEmptyChange, onUsageUpdate, onRateLimit, onQuotaExceeded, onRequestSucceeded, onPreFillComposer }, ref) {
     const [messages, setMessages] = useState<Message[]>([]);
     const [sessionId, setSessionId] = useState<string | null>(null);
     const [pending, setPending] = useState(false);
@@ -134,17 +141,25 @@ const SessionView = forwardRef<SessionViewHandle, SessionViewProps>(
       // Propagate fresh quota numbers to AppShell's account state.
       if (result.status === "ok") {
         onUsageUpdate?.({ monthly_count: result.monthly_count, credits_remaining: result.credits_remaining });
+        onRequestSucceeded?.();
         lastSceneSummary.current = result.scene_summary ?? null;
       } else if (
-        result.status === "error" &&
+        (result.status === "error" || result.status === "quota_exceeded") &&
         result.monthly_count !== undefined &&
         result.credits_remaining !== undefined
       ) {
         onUsageUpdate?.({ monthly_count: result.monthly_count, credits_remaining: result.credits_remaining });
       }
 
+      // §4.10: force the OutOfCreditsCard regardless of whether the numeric
+      // fields above arrived — the card's visibility must never depend on
+      // them (see settings.ts).
+      if (result.status === "quota_exceeded") {
+        onQuotaExceeded?.();
+      }
+
       // Terminal statuses end the clarification chain — clear origin anchor.
-      if (result.status === "ok" || result.status === "error") {
+      if (result.status === "ok" || result.status === "error" || result.status === "quota_exceeded") {
         clarificationOriginRef.current = null;
       }
 
@@ -162,6 +177,12 @@ const SessionView = forwardRef<SessionViewHandle, SessionViewProps>(
         clarificationCountRef.current = 0;
         setRetryCount((n) => n + 1);
         setInvalidCount(0);
+      } else if (result.status === "quota_exceeded") {
+        // No retry button ever shows for this status (AssistantResponse
+        // renders null), so no point incrementing retryCount.
+        clarificationCountRef.current = 0;
+        setInvalidCount(0);
+        setRetryCount(0);
       } else {
         // ok
         clarificationCountRef.current = 0;

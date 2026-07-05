@@ -35,7 +35,13 @@ export type SettingsResponse =
   | { status: "clarification_required"; question: string }
   | { status: "invalid_input"; message: string }
   | { status: "error"; message: string; monthly_count?: number; credits_remaining?: number }
-  | { status: "rate_limited" };
+  | { status: "rate_limited" }
+  // §4.10: renders nothing in the thread — the OutOfCreditsCard is the only
+  // UI for this case. Fields are optional (not fabricated when the body
+  // lacks them) — the card's visibility comes from a dedicated
+  // onQuotaExceeded signal, not from these numbers, so a missing count
+  // can never suppress it (see AppShell's forceOutOfCredits).
+  | { status: "quota_exceeded"; monthly_count?: number; credits_remaining?: number };
 
 export interface SettingsRequestBody {
   conditions: string;
