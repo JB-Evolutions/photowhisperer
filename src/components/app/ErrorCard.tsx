@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect } from "react";
+import * as Sentry from "@sentry/nextjs";
 import Button from "@/components/shared/Button";
 
 interface ErrorCardProps {
@@ -14,6 +16,19 @@ export default function ErrorCard({
   onRetry,
 }: ErrorCardProps) {
   const count = retryCount ?? 0;
+
+  // §4.8: breadcrumb only, no exception — this is a status:"error" surfacing
+  // to the user, not a caught error we're reporting. Fires once on mount,
+  // not per message change (avoids a storm on the retry path). `message`
+  // itself is never included — it can echo user input.
+  useEffect(() => {
+    Sentry.addBreadcrumb({
+      category: "ui",
+      level: "error",
+      message: "ErrorCard shown",
+      data: { route: window.location.pathname },
+    });
+  }, []);
 
   return (
     <div className="rounded-xl border border-warning bg-surface p-4">

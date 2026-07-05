@@ -15,6 +15,7 @@ import {
   generateTitleFromSummary,
 } from "@/lib/sessions";
 import { limitWithTimeout } from "@/lib/rate-limit";
+import * as Sentry from "@sentry/nextjs";
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -283,6 +284,14 @@ export async function POST(request: NextRequest) {
     rl = await limitWithTimeout(user.id); // user.id = authenticated Supabase user, NEVER IP
   } catch (err) {
     console.error("rate limit check failed (fail-closed):", err);
+    // A Redis blip isn't a crash — warning, not captureException. user_id
+    // only: `conditions`/`prior_context` are already in scope at this point
+    // in the handler, but must never be passed here.
+    Sentry.captureMessage("rate limiter failed closed", {
+      level: "warning",
+      tags: { rate_limit_faildown: "true", route: "/api/settings" },
+      extra: { user_id: user.id },
+    });
     return NextResponse.json(
       { error: "service_busy", message: "Service is busy. Please try again in a moment." },
       { status: 503, headers: { "Retry-After": "10" } }

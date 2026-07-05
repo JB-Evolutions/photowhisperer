@@ -1150,3 +1150,17 @@ This is rough — Pack 12 alone can take 2 weeks if you're being a perfectionist
 8. Test account deletion (the typed-confirm modal, the grace period).
 9. Test extreme inputs (empty, 5000 chars, non-English, emoji, code injection).
 10. Verify RLS by attempting cross-user reads from a second test account.
+11. Sentry client scrub (10.2): with NEXT_PUBLIC_SENTRY_DSN set, load /app in a
+    real browser and trigger a client error in an ErrorBoundary-caught render
+    OR a button onClick handler (NOT a bare top-level throw, which may bypass
+    Sentry's React error integration), carrying a fake scene string. Confirm
+    the resulting Sentry event shows message "[error message omitted —
+    scene-processing route]" with the fake scene string absent everywhere in
+    the event.
+12. Sentry server scene-detection (10.2): after deploy, trigger a real error
+    inside /api/settings in a staging/preview env (e.g. malformed payload
+    that reaches an uncaught path, or a deliberate temporary throw on a
+    preview branch only) and confirm the Sentry event message is "[error
+    message omitted — scene-processing route]" — proving captureRequestError's
+    real contexts.nextjs drives scene detection, not just the spoofed
+    self-test.
