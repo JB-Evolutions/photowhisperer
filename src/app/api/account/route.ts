@@ -2,7 +2,7 @@
 // Auth pattern mirrors src/app/api/credits/route.ts.
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient as createServerClient } from "@/lib/supabase/server";
-import { TIER_LIMITS } from "@/lib/quota";
+import { TIER_LIMITS, utcQuotaPeriod } from "@/lib/quota";
 import type { Tier } from "@/lib/quota";
 
 export async function GET() {
@@ -19,9 +19,7 @@ export async function GET() {
   }
 
   try {
-    const now = new Date();
-    const month = now.getMonth() + 1;
-    const year = now.getFullYear();
+    const { quotaMonth: month, quotaYear: year } = utcQuotaPeriod();
 
     // maybeSingle() returns { data: null } (not an error) when no row matches —
     // display_name falls back to null safely for any pre-trigger legacy user.

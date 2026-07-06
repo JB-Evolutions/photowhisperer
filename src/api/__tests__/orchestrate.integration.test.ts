@@ -63,6 +63,7 @@ maybeDescribe("getSettings (Pack 4 integration, real API)", () => {
     expect(result.status).toBe("invalid_input");
   }, 30000);
 
+  // T4 intermittently returns invalid_input instead — tracked in KNOWN_ISSUES.md as a known prompt-variance weakness.
   it("T4: '?' only → status='clarification_required'", async () => {
     const result = await getSettings("?", null, null);
 

@@ -4,7 +4,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient as createServerClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getTierLimit } from "@/lib/quota";
+import { getTierLimit, utcQuotaPeriod } from "@/lib/quota";
 import { getCameraProfile } from "@/lib/camera-profile";
 import { getSettings, type OrchestrateResult } from "@/api/orchestrate";
 import type { PriorContext } from "@/api/types";
@@ -144,20 +144,21 @@ type SupabaseServerClient = Awaited<ReturnType<typeof createServerClient>>;
 async function checkQuotaPreflight(
   supabase: SupabaseServerClient,
   userId: string,
-  tierLimit: number
+  tierLimit: number,
+  quotaMonth: number,
+  quotaYear: number
 ): Promise<
   { ok: true } | { ok: false; monthly_count: number; credits_remaining: number }
 > {
   if (tierLimit === -1) return { ok: true };
 
-  const now = new Date();
   const [{ data: usage }, { data: credits }] = await Promise.all([
     supabase
       .from("usage_tracking")
       .select("request_count")
       .eq("user_id", userId)
-      .eq("month", now.getMonth() + 1)
-      .eq("year", now.getFullYear())
+      .eq("month", quotaMonth)
+      .eq("year", quotaYear)
       .maybeSingle(),
     supabase
       .from("credit_balances")
@@ -318,7 +319,11 @@ export async function POST(request: NextRequest) {
     const tier = subscription?.tier ?? "snapshot";
     const tierLimit = getTierLimit(tier);
 
-    const preflight = await checkQuotaPreflight(supabase, user.id, tierLimit);
+    // Compute once — both preflight and the atomic RPC must use the same
+    // timestamp so they cannot straddle a UTC midnight boundary.
+    const { quotaMonth, quotaYear } = utcQuotaPeriod();
+
+    const preflight = await checkQuotaPreflight(supabase, user.id, tierLimit, quotaMonth, quotaYear);
     if (!preflight.ok) {
       return NextResponse.json(
         {
@@ -349,12 +354,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(result);
     }
 
-    const now = new Date();
     const { data: quotaData, error: quotaError } = await admin
       .rpc("check_and_increment_quota_with_credits", {
         p_user_id: user.id,
-        p_month: now.getMonth() + 1,
-        p_year: now.getFullYear(),
+        p_month: quotaMonth,
+        p_year: quotaYear,
         p_tier_limit: tierLimit,
       })
       .single();

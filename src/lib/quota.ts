@@ -36,8 +36,20 @@ export function getHistoryLimit(tier: string): number {
   return TIER_HISTORY_LIMITS[tier as Tier] ?? 3;
 }
 
+// Returns the UTC month (1-12) and year for quota keying. Computed from UTC to
+// ensure quota periods are timezone-invariant — a server or dev machine in
+// UTC+13 must not roll into the next quota month before UTC midnight.
+export function utcQuotaPeriod(now = new Date()): { quotaMonth: number; quotaYear: number } {
+  return { quotaMonth: now.getUTCMonth() + 1, quotaYear: now.getUTCFullYear() };
+}
+
 export function nextResetDate(now = new Date()): string {
-  const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1));
+  const { quotaMonth, quotaYear } = utcQuotaPeriod(now);
+  // quotaMonth is 1-based. Convert back to 0-based, then advance by one month
+  // so Date.UTC lands on the first day of the next quota period. Month=12
+  // (December) correctly overflows to January of quotaYear+1 via Date.UTC.
+  const zeroBasedMonth = quotaMonth - 1;
+  const d = new Date(Date.UTC(quotaYear, zeroBasedMonth + 1, 1));
   return d.toLocaleDateString("en-GB", { month: "long", day: "numeric", year: "numeric" });
 }
 
