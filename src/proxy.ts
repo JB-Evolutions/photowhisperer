@@ -8,10 +8,9 @@ import { isWithinGracePeriod } from "@/lib/account-deletion";
 // script body) if that string is ever edited.
 const FOUC_SCRIPT_HASH = "sha256-C+ErKw40+TeXwVFXHdQMcQ9MSPY91QRKo8heDY0mV1A=";
 
-// REPORT-ONLY: violations are logged to the browser console, nothing is
-// blocked. Flip the header name below to "Content-Security-Policy" once a
-// clean report-only pass is confirmed across landing, /app, /auth, /account.
-const CSP_HEADER_NAME = "Content-Security-Policy-Report-Only";
+// ENFORCING: report-only pass came back clean across landing, /app, /auth,
+// /account, and /account/billing — violations are now blocked, not just logged.
+const CSP_HEADER_NAME = "Content-Security-Policy";
 
 function buildCsp(nonce: string) {
   return [
