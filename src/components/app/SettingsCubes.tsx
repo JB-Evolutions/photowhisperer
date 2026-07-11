@@ -16,32 +16,32 @@ const labelClass = "text-[11px] font-body font-medium uppercase tracking-widest 
 const hintClass  = "text-[13px] font-body leading-[1.5] text-text-muted";
 
 function isoHint(iso: number): string {
-  if (iso <= 200)  return "Low ISO — clean files in bright light.";
+  if (iso <= 200)  return "Low ISO, clean files in bright light.";
   if (iso <= 800)  return "Moderate ISO for mixed or indoor light.";
-  if (iso <= 3200) return "Raised ISO for dim scenes — expect some grain.";
-  return "High ISO — usable, but noisiest.";
+  if (iso <= 3200) return "Raised ISO for dim scenes, expect some grain.";
+  return "High ISO, usable, but noisiest.";
 }
 
 function apertureHint(aperture: string): string {
   const f = parseFloat(aperture.replace("f/", ""));
-  if (f <= 2.0) return "Wide aperture — lots of light, shallow focus.";
-  if (f <= 4.0) return "Mid-wide aperture — soft background, more light.";
-  if (f <= 8.0) return "Mid aperture — deeper focus, less light.";
-  return "Narrow aperture — deep focus; diffraction softens past f/16.";
+  if (f <= 2.0) return "Wide aperture, lots of light, shallow focus.";
+  if (f <= 4.0) return "Mid-wide aperture, soft background, more light.";
+  if (f <= 8.0) return "Mid aperture, deeper focus, less light.";
+  return "Narrow aperture, deep focus; diffraction softens past f/16.";
 }
 
 function shutterHint(shutter_speed: string): string {
-  if (shutter_speed.endsWith('"')) return "Long exposure — needs a tripod.";
+  if (shutter_speed.endsWith('"')) return "Long exposure, needs a tripod.";
   const denom = parseInt(shutter_speed.split("/")[1], 10);
   if (isNaN(denom)) return "Shutter speed set for this scene.";
-  if (denom <= 100)  return "Slow shutter — steady hands or support help.";
+  if (denom <= 100)  return "Slow shutter, steady hands or support help.";
   if (denom < 1000)  return "Fast enough to freeze everyday motion.";
-  return "Very fast — freezes quick action.";
+  return "Very fast, freezes quick action.";
 }
 
 function wbHint(white_balance: string, wbLabel: string): string {
-  if (white_balance === "auto")  return "Mixed lighting — let the camera handle this one.";
-  if (white_balance === "flash") return "Flash-driven exposure — shutter set to sync speed.";
+  if (white_balance === "auto")  return "Mixed lighting, let the camera handle this one.";
+  if (white_balance === "flash") return "Flash-driven exposure, shutter set to sync speed.";
   return `Or set '${wbLabel}' preset on your camera.`;
 }
 

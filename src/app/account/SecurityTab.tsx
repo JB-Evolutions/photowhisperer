@@ -105,12 +105,12 @@ export default function SecurityTab() {
         // signOut() defaults to scope:'global' — a server error means other
         // sessions may not have been revoked. Surface it; don't falsely claim
         // success on a failed security operation.
-        setSignOutError("Couldn't sign out of all sessions — try again.");
+        setSignOutError("Couldn't sign out of all sessions. Try again.");
         setSignOutPending(false);
         return;
       }
     } catch {
-      setSignOutError("Couldn't reach the server — check your connection and try again.");
+      setSignOutError("Couldn't reach the server. Check your connection and try again.");
       setSignOutPending(false);
       return;
     }
@@ -147,14 +147,14 @@ export default function SecurityTab() {
           // them as { error } (AuthRetryableFetchError) rather than throwing —
           // our catch{} never runs for these. Covers true network failures (status 0)
           // and Cloudflare 5xx; cannot match real auth errors (those are AuthApiError).
-          setPwError("Couldn't reach the server — check your connection and try again.");
+          setPwError("Couldn't reach the server. Check your connection and try again.");
         } else {
-          setPwError(msg || "Couldn't update password — try again.");
+          setPwError(msg || "Couldn't update password. Try again.");
         }
         return;
       }
     } catch {
-      setPwError("Couldn't reach the server — check your connection and try again.");
+      setPwError("Couldn't reach the server. Check your connection and try again.");
       return;
     } finally {
       setPwPending(false);

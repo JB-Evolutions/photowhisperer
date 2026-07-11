@@ -5,13 +5,13 @@ import SigninForm from "@/components/auth/SigninForm";
 
 function getInitialBanner(error: string | undefined): string | null {
   if (!error) return null;
-  if (error === "link_expired") return "Link expired — try again.";
+  if (error === "link_expired") return "Link expired. Try again.";
   return "Something went wrong. Please try again.";
 }
 
 function getDeletedBanner(deleted: string | undefined): string | null {
   if (deleted !== "true") return null;
-  return "Your account has been scheduled for deletion — sign back in within 7 days to recover it.";
+  return "Your account has been scheduled for deletion. Sign back in within 7 days to recover it.";
 }
 
 export default async function SigninPage({

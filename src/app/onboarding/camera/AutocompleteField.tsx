@@ -144,7 +144,7 @@ export default function AutocompleteField({
 
             {options.length === 0 ? (
               <p className="px-4 py-6 text-center text-sm text-text-dim">
-                No more suggestions — type to add your own.
+                No more suggestions. Type to add your own.
               </p>
             ) : (
               <ul id={listboxId} role="listbox">

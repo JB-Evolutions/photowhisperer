@@ -76,7 +76,7 @@ export default function SubscriptionBanner({
       <div className="mx-4 mb-2 flex items-center overflow-hidden rounded-lg border border-border-accent bg-[var(--accent-glow)] text-sm text-text">
         <div className="w-1 flex-shrink-0 self-stretch bg-[var(--warning)]" aria-hidden="true" />
         <p className="px-3 py-2">
-          Payment issue — update your payment method to keep {tierName}.{" "}
+          Payment issue. Update your payment method to keep {tierName}.{" "}
           <button
             type="button"
             disabled={portalPending}
@@ -84,7 +84,7 @@ export default function SubscriptionBanner({
             onClick={() => void handlePortal()}
           >
             {portalError
-              ? "Couldn't open — try again"
+              ? "Couldn't open. Try again"
               : portalPending
               ? "Opening…"
               : "Update payment"}

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, forwardRef, useImperativeHandle } from "react";
 
-const PLACEHOLDER = "Describe your shot — light, subject, lens, mood…";
+const PLACEHOLDER = "Describe your shot: light, subject, lens, mood…";
 
 const sendButtonClass = [
   "flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl",

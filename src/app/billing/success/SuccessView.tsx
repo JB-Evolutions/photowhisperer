@@ -96,7 +96,7 @@ export default function SuccessView({ type, pack }: SuccessViewProps) {
       ? amount !== null
         ? `${amount} credits have been added to your account.`
         : "Credits have been added to your account."
-      : "Credits added — your balance is up to date."
+      : "Credits added. Your balance is up to date."
     : "Your plan is active. You’re all set.";
 
   return (

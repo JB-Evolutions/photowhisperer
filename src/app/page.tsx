@@ -10,7 +10,7 @@ import { TIER_LIMITS } from "@/lib/quota";
 const FEATURES = [
   {
     title: "Works for any camera",
-    body: "Mirrorless, DSLR, or a phone with manual controls — we speak in ISO, aperture, shutter speed, and white balance, not brand-specific menus.",
+    body: "Mirrorless, DSLR, or a phone with manual controls. We speak in ISO, aperture, shutter speed, and white balance, not brand-specific menus.",
     icon: <CameraIcon />,
   },
   {
@@ -20,7 +20,7 @@ const FEATURES = [
   },
   {
     title: "Built for the field",
-    body: "Describe a scene in seconds — from a trailhead, a sideline, or a dim reception hall — and get settings back before you've missed the shot.",
+    body: "Describe a scene in seconds, whether from a trailhead, a sideline, or a dim reception hall, and get settings back before you've missed the shot.",
     icon: <CompassIcon />,
   },
 ];
@@ -69,7 +69,7 @@ export default async function Home() {
                 Get the camera settings.
               </h1>
               <p className="mt-6 max-w-[560px] text-base text-text-muted sm:text-lg">
-                Tell us the light and the subject — we hand back ISO, aperture,
+                Tell us the light and the subject. We hand back ISO, aperture,
                 shutter speed, and white balance, with the reasoning behind each.
               </p>
               <div className="mt-9 w-full sm:w-auto">

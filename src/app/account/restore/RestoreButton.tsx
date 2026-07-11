@@ -14,19 +14,19 @@ export default function RestoreButton() {
       const res = await fetch("/api/account/restore", { method: "POST" });
       if (res.status === 403) {
         setError(
-          "The recovery window has passed — your account can no longer be restored."
+          "The recovery window has passed. Your account can no longer be restored."
         );
         return;
       }
       if (!res.ok) {
-        setError("Couldn't restore your account — try again.");
+        setError("Couldn't restore your account. Try again.");
         return;
       }
       // Hard-nav so proxy re-evaluates with deleted_at now null and allows through.
       window.location.href = "/app";
     } catch {
       setError(
-        "Couldn't reach the server — check your connection and try again."
+        "Couldn't reach the server. Check your connection and try again."
       );
     } finally {
       setPending(false);

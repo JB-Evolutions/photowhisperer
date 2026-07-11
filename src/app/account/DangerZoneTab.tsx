@@ -47,14 +47,14 @@ function DeleteModal({ onClose }: { onClose: () => void }) {
       const res = await fetch("/api/account/delete", { method: "POST" });
       if (!res.ok) {
         const body = await res.json().catch(() => ({})) as { message?: string };
-        setError(body.message ?? "Couldn't delete your account — try again.");
+        setError(body.message ?? "Couldn't delete your account. Try again.");
         return;
       }
       // Hard-nav: server-side signOut already happened in the route;
       // router.push would race with the /account proxy redirect.
       window.location.href = "/auth/signin?deleted=true";
     } catch {
-      setError("Couldn't reach the server — check your connection and try again.");
+      setError("Couldn't reach the server. Check your connection and try again.");
     } finally {
       setPending(false);
     }
@@ -77,7 +77,7 @@ function DeleteModal({ onClose }: { onClose: () => void }) {
           <p>
             Type{" "}
             <span className="font-mono font-semibold text-text">DELETE</span>{" "}
-            to confirm — this is permanent after a 7-day grace period.
+            to confirm. This is permanent after a 7-day grace period.
           </p>
           <p>
             Your account will be signed out immediately. Sign back in within 7 days
@@ -135,8 +135,8 @@ export default function DangerZoneTab() {
     setExportError(null);
     try {
       const res = await fetch("/api/account/export");
-      if (res.status === 401) { setExportError("Your session expired — refresh the page and try again."); return; }
-      if (!res.ok) { setExportError("Couldn't prepare your export — try again."); return; }
+      if (res.status === 401) { setExportError("Your session expired. Refresh the page and try again."); return; }
+      if (!res.ok) { setExportError("Couldn't prepare your export. Try again."); return; }
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -146,7 +146,7 @@ export default function DangerZoneTab() {
       setTimeout(() => URL.revokeObjectURL(url), 0);
       showToast("Export downloaded");
     } catch {
-      setExportError("Couldn't reach the server — check your connection and try again.");
+      setExportError("Couldn't reach the server. Check your connection and try again.");
     } finally {
       setExportPending(false);
     }

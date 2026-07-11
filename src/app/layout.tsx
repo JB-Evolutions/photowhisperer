@@ -29,7 +29,6 @@ const jetbrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "PhotoWhisperer",
   description: "Describe the scene. Get the camera settings.",
-  icons: { icon: "/logo.png" },
 };
 
 export const viewport: Viewport = {

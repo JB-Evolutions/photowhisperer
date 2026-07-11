@@ -52,7 +52,7 @@ export default function PrivacyPage() {
                 We collect the information you give us directly: your email
                 address when you create an account, the scene descriptions
                 you submit, your camera profile if you choose to add one
-                (camera body, lenses, flash), and basic usage data — like
+                (camera body, lenses, flash), and basic usage data, like
                 which subscription tier you&apos;re on and how many requests
                 you&apos;ve made this month.
               </p>
@@ -96,7 +96,7 @@ export default function PrivacyPage() {
                     Google Analytics
                   </span>{" "}
                   processes usage analytics, but only if you accept our
-                  cookie banner — see the Cookies section below for details.
+                  cookie banner. See the Cookies section below for details.
                 </li>
               </ul>
               <p>
@@ -137,14 +137,14 @@ export default function PrivacyPage() {
               <p>
                 We also use Google Analytics 4 to understand how the site is
                 used. Analytics is loaded with Google&apos;s Consent Mode,
-                which defaults to denied — no analytics cookies are set
+                which defaults to denied. No analytics cookies are set
                 until you accept via the cookie banner. Before you&apos;ve
                 made a choice, or if you decline, Google may still receive
                 basic, cookieless pings it uses to model aggregate usage,
                 but no analytics cookie is set on your device. If you
                 accept, Google Analytics sets cookies and collects usage
-                data — such as pages viewed, approximate location derived
-                from your IP address, and device/browser type — to help us
+                data, such as pages viewed, approximate location derived
+                from your IP address, and device/browser type, to help us
                 understand how PhotoWhisperer is used. We don&apos;t
                 deliberately send Google any personal information, like your
                 email address or scene descriptions.

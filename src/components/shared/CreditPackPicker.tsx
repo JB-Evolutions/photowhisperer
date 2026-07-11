@@ -34,13 +34,13 @@ export default function CreditPackPicker({ onCancel }: CreditPackPickerProps) {
         body: JSON.stringify({ pack: code }),
       });
       if (!res.ok) {
-        setError("Couldn't start checkout — try again.");
+        setError("Couldn't start checkout. Try again.");
         setPending(null);
         return;
       }
       const data = (await res.json()) as { url?: string };
       if (!data.url) {
-        setError("Couldn't start checkout — try again.");
+        setError("Couldn't start checkout. Try again.");
         setPending(null);
         return;
       }
@@ -48,7 +48,7 @@ export default function CreditPackPicker({ onCancel }: CreditPackPickerProps) {
       // in the loading state until the navigation completes.
       window.location.href = data.url;
     } catch {
-      setError("Couldn't reach the server — check your connection and try again.");
+      setError("Couldn't reach the server. Check your connection and try again.");
       setPending(null);
     }
   }

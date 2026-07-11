@@ -53,8 +53,8 @@ export default function TermsPage() {
                 PhotoWhisperer is a photography settings calculator. You
                 describe a shooting scene in natural language, optionally
                 with your camera and lens information, and the Service
-                returns recommended camera settings — ISO, aperture, shutter
-                speed, and white balance — along with the reasoning behind
+                returns recommended camera settings, ISO, aperture, shutter
+                speed, and white balance, along with the reasoning behind
                 them.
               </p>
               <p>

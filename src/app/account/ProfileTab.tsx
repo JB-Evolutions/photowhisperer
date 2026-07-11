@@ -86,20 +86,20 @@ function ChangeEmailModal({
       const { data, error } = await supabase.auth.updateUser({ email: newEmail });
       if (error) {
         if (error.name === "AuthRetryableFetchError") {
-          setSubmitError("Couldn't reach the server — check your connection and try again.");
+          setSubmitError("Couldn't reach the server. Check your connection and try again.");
         } else if (error.message === "A user with this email address has already been registered") {
           // Exact match — live-verified 2026-07-01, @supabase/supabase-js 2.108.2.
           // If field-routing stops working after a Supabase upgrade, this string is the
           // first thing to check. Degrades gracefully to the general area if it changes.
           setEmailError("That email is already in use.");
         } else {
-          setSubmitError(error.message ?? "Couldn't update email — try again.");
+          setSubmitError(error.message ?? "Couldn't update email. Try again.");
         }
         return;
       }
       onSuccess(data.user?.new_email ?? newEmail);
     } catch {
-      setSubmitError("Couldn't reach the server — check your connection and try again.");
+      setSubmitError("Couldn't reach the server. Check your connection and try again.");
     } finally {
       setPending(false);
     }
@@ -236,13 +236,13 @@ export default function ProfileTab({ email, newEmail, onDirtyChange, registerAct
         body: JSON.stringify({ display_name: displayName.trim() || null }),
       });
     } catch {
-      setSaveError("Couldn't reach the server — check your connection and try again.");
+      setSaveError("Couldn't reach the server. Check your connection and try again.");
       throw new Error("network failure");
     }
 
     if (!res.ok) {
       const err = await res.json().catch(() => ({})) as Record<string, unknown>;
-      const msg = typeof err.message === "string" ? err.message : "Couldn't save — try again?";
+      const msg = typeof err.message === "string" ? err.message : "Couldn't save. Try again?";
       setSaveError(msg);
       throw new Error(msg);
     }
@@ -275,7 +275,7 @@ export default function ProfileTab({ email, newEmail, onDirtyChange, registerAct
   function handleEmailChangeSuccess(returnedNewEmail: string) {
     setPendingNewEmail(returnedNewEmail);
     setShowEmailModal(false);
-    showToast("Confirmation sent — check your email.");
+    showToast("Confirmation sent. Check your email.");
   }
 
   // ─── Render ──────────────────────────────────────────────────────────────
@@ -330,7 +330,7 @@ export default function ProfileTab({ email, newEmail, onDirtyChange, registerAct
                   in <span className="font-medium">both</span> to complete the change.
                 </p>
                 <p className="text-text-muted">
-                  Didn&rsquo;t mean to? Just don&rsquo;t click the links — the request will
+                  Didn&rsquo;t mean to? Just don&rsquo;t click the links. The request will
                   expire on its own.
                 </p>
                 <button

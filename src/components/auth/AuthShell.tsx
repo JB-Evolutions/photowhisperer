@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 
 const QUOTES = [
   "Got the bird-in-flight shot on the first try",
-  "Saved me re-reading my exposure book — again",
+  "Saved me re-reading my exposure book, again",
 ];
 
 export default function AuthShell({ children }: { children: ReactNode }) {

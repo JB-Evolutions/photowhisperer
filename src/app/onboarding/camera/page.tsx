@@ -183,7 +183,7 @@ export default function CameraOnboardingPage() {
         {step === 1 && (
           <StepFrame
             heading="What do you shoot on?"
-            helper="Pick your camera, or type your own — any answer works."
+            helper="Pick your camera, or type your own. Any answer works."
             primaryLabel="Continue"
             onPrimary={() => setStep(2)}
           >
@@ -202,7 +202,7 @@ export default function CameraOnboardingPage() {
         {step === 2 && (
           <StepFrame
             heading="Which lenses?"
-            helper="Add as many as you like — totally optional."
+            helper="Add as many as you like, totally optional."
             onBack={() => setStep(1)}
             primaryLabel="Continue"
             onPrimary={handleLensesContinue}

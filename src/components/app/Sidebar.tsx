@@ -227,7 +227,7 @@ export default function Sidebar({
         {!loading && !sessionsError && tier === "snapshot" && hasMore && (
           <div className="mx-4 mt-2 rounded-xl border border-border-accent bg-surface-2 p-3">
             <p className="mb-2 text-xs text-text-muted">
-              Your earlier sessions are saved — Upgrade to access them all.
+              Your earlier sessions are saved. Upgrade to access them all.
             </p>
             <Button
               variant="outline"

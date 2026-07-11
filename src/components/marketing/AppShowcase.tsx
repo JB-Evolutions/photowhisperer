@@ -10,7 +10,7 @@ import type { ReactNode } from "react";
 const STEPS = [
   {
     title: "Describe the scene",
-    body: "Tell us the light, the subject, and how it's moving — in your own words.",
+    body: "Tell us the light, the subject, and how it's moving, in your own words.",
   },
   {
     title: "Read the settings",
@@ -18,7 +18,7 @@ const STEPS = [
   },
   {
     title: "Dial them in",
-    body: "Set your camera and shoot — no exposure math required.",
+    body: "Set your camera and shoot. No exposure math required.",
   },
 ];
 
@@ -192,7 +192,7 @@ export default function AppShowcase() {
                 Handheld, no tripod · 50mm focal length assumed
               </Panel>
               <Panel icon={<WarningIcon />} label="Warnings" tone="warning">
-                Wide aperture means a thin depth of field — focus carefully on the
+                Wide aperture means a thin depth of field, so focus carefully on the
                 eyes, especially with subject movement
               </Panel>
             </div>

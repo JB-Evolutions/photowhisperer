@@ -117,13 +117,13 @@ export default function PreferencesTab({ onDirtyChange, registerActions }: Prefe
         }),
       });
     } catch {
-      setSaveError("Couldn't reach the server — check your connection and try again.");
+      setSaveError("Couldn't reach the server. Check your connection and try again.");
       throw new Error("network failure");
     }
 
     if (!res.ok) {
       const err = await res.json().catch(() => ({})) as Record<string, unknown>;
-      const msg = typeof err.message === "string" ? err.message : "Couldn't save — try again?";
+      const msg = typeof err.message === "string" ? err.message : "Couldn't save. Try again?";
       setSaveError(msg);
       throw new Error(msg);
     }

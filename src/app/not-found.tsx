@@ -41,7 +41,7 @@ export default async function NotFound() {
               )}
             </div>
             <p className="mt-6 text-sm text-text-dim">
-              If you followed a link from us, sorry — let us know at{" "}
+              If you followed a link from us, sorry. Let us know at{" "}
               <a
                 href="mailto:support@photographywhisperer.com"
                 className="underline hover:text-text"

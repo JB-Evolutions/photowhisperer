@@ -65,19 +65,19 @@ export default function BillingView({
     try {
       const res = await fetch("/api/stripe/portal");
       if (!res.ok) {
-        setError("Couldn't open the billing portal — try again.");
+        setError("Couldn't open the billing portal. Try again.");
         setPortalPending(null);
         return;
       }
       const data = (await res.json()) as { url?: string };
       if (!data.url) {
-        setError("Couldn't open the billing portal — try again.");
+        setError("Couldn't open the billing portal. Try again.");
         setPortalPending(null);
         return;
       }
       window.location.href = data.url;
     } catch {
-      setError("Couldn't reach the server — check your connection and try again.");
+      setError("Couldn't reach the server. Check your connection and try again.");
       setPortalPending(null);
     }
   }
@@ -96,19 +96,19 @@ export default function BillingView({
       });
       if (!res.ok) {
         const body = (await res.json().catch(() => ({}))) as { message?: string };
-        setUpgradeError(body.message ?? "Couldn't start checkout — try again.");
+        setUpgradeError(body.message ?? "Couldn't start checkout. Try again.");
         setUpgradePending(false);
         return;
       }
       const data = (await res.json()) as { url?: string };
       if (!data.url) {
-        setUpgradeError("Couldn't start checkout — try again.");
+        setUpgradeError("Couldn't start checkout. Try again.");
         setUpgradePending(false);
         return;
       }
       window.location.href = data.url;
     } catch {
-      setUpgradeError("Couldn't reach the server — check your connection and try again.");
+      setUpgradeError("Couldn't reach the server. Check your connection and try again.");
       setUpgradePending(false);
     }
   }
@@ -157,12 +157,12 @@ export default function BillingView({
                 {renewalDate ? (
                   <>Renews <span className="font-medium text-text">{renewalDate}</span></>
                 ) : (
-                  "Renewal date unavailable — check the billing portal."
+                  "Renewal date unavailable. Check the billing portal."
                 )}
               </p>
             ) : (
               <p className="text-sm text-text-muted">
-                You&rsquo;re on Snapshot — free forever. Upgrade for more requests.
+                You&rsquo;re on Snapshot, free forever. Upgrade for more requests.
               </p>
             )}
 

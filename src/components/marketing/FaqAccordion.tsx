@@ -11,12 +11,12 @@ const DEFAULT_FAQ_ITEMS: FaqItem[] = [
   {
     question: "Does this work with my camera?",
     answer:
-      "Yes — PhotoWhisperer gives you settings in standard terms (ISO, aperture, shutter speed, white balance) that apply to any camera with manual controls, mirrorless, DSLR, or otherwise. We don't connect to your camera directly; you read the values and dial them in yourself.",
+      "Yes. PhotoWhisperer gives you settings in standard terms (ISO, aperture, shutter speed, white balance) that apply to any camera with manual controls, mirrorless, DSLR, or otherwise. We don't connect to your camera directly; you read the values and dial them in yourself.",
   },
   {
     question: "Do I need to know exposure math?",
     answer:
-      "No. Describe the scene in plain language and we handle the exposure math behind the scenes — you don't need to know stops, the exposure triangle, or any of the underlying calculations.",
+      "No. Describe the scene in plain language and we handle the exposure math behind the scenes. You don't need to know stops, the exposure triangle, or any of the underlying calculations.",
   },
   {
     question: "What counts as one setting?",
@@ -26,17 +26,17 @@ const DEFAULT_FAQ_ITEMS: FaqItem[] = [
   {
     question: "Can I cancel anytime?",
     answer:
-      "Yes. Cancel your subscription anytime from your billing page. You'll keep access through the end of your current billing period — no penalties, no retention calls.",
+      "Yes. Cancel your subscription anytime from your billing page. You'll keep access through the end of your current billing period, no penalties, no retention calls.",
   },
   {
     question: "Do you store my data?",
     answer:
-      "Your scene descriptions and the settings we return are stored so you can revisit your history — you control how much of that history you keep. Stripe handles payments, Supabase stores your account data, and Anthropic processes the scene description itself to generate your settings. We don't share any of it for model training.",
+      "Your scene descriptions and the settings we return are stored so you can revisit your history. You control how much of that history you keep. Stripe handles payments, Supabase stores your account data, and Anthropic processes the scene description itself to generate your settings. We don't share any of it for model training.",
   },
   {
     question: "Do my unused requests roll over?",
     answer:
-      "No — your monthly settings reset on the 1st of the month UTC and unused ones do not roll over. Extra credits you purchase work differently: they roll over and never expire.",
+      "No. Your monthly settings reset on the 1st of the month UTC and unused ones do not roll over. Extra credits you purchase work differently: they roll over and never expire.",
   },
 ];
 

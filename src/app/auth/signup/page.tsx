@@ -22,7 +22,7 @@ export default async function SignupPage({
       <AuthCard>
         {bannerTier && (
           <p className="rounded-[10px] border border-border-accent bg-surface-2 px-4 py-2.5 text-sm text-text-muted">
-            Starting with <span className="text-accent">{TIER_DISPLAY_NAMES[bannerTier]}</span> — payment after this step
+            Starting with <span className="text-accent">{TIER_DISPLAY_NAMES[bannerTier]}</span>, payment after this step
           </p>
         )}
         <h1 className="font-display text-2xl text-text">Create your account</h1>
