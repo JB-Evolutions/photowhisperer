@@ -183,6 +183,8 @@ function isValidOrchestrateResult(result: OrchestrateResult): boolean {
     case "invalid_input":
     case "error":
       return typeof result.message === "string";
+    case "service_busy":
+      return true;
     case "ok":
       return (
         typeof result.iso === "number" &&
@@ -348,6 +350,16 @@ export async function POST(request: NextRequest) {
         status: "error",
         message: "Unexpected response shape",
       });
+    }
+
+    if (result.status === "service_busy") {
+      // Same shape/status as the rate-limiter fail-closed 503 above — one
+      // client-side branch (settingsClient.ts's `res.status === 503 &&
+      // errorField === "service_busy"`) handles both sources.
+      return NextResponse.json(
+        { error: "service_busy", message: "Service is busy. Please try again in a moment." },
+        { status: 503, headers: { "Retry-After": "10" } }
+      );
     }
 
     if (result.status !== "ok") {

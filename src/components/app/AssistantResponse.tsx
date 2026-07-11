@@ -6,6 +6,7 @@ import ResponseActions from "@/components/app/ResponseActions";
 import ClarificationCard from "@/components/app/ClarificationCard";
 import InvalidInputCard from "@/components/app/InvalidInputCard";
 import ErrorCard from "@/components/app/ErrorCard";
+import ServiceBusyCard from "@/components/app/ServiceBusyCard";
 
 interface AssistantResponseProps {
   response: SettingsResponse;
@@ -76,6 +77,13 @@ export default function AssistantResponse({
       // composer (forced via onQuotaExceeded, see SessionView/AppShell) is
       // the only UI for this case.
       return null;
+    case "service_busy":
+      return (
+        <ServiceBusyCard
+          retryCount={retryCount}
+          onRetry={onRetry}
+        />
+      );
     default:
       return <ErrorCard message="Unexpected response." />;
   }

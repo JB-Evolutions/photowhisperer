@@ -159,7 +159,12 @@ const SessionView = forwardRef<SessionViewHandle, SessionViewProps>(
       }
 
       // Terminal statuses end the clarification chain — clear origin anchor.
-      if (result.status === "ok" || result.status === "error" || result.status === "quota_exceeded") {
+      if (
+        result.status === "ok" ||
+        result.status === "error" ||
+        result.status === "quota_exceeded" ||
+        result.status === "service_busy"
+      ) {
         clarificationOriginRef.current = null;
       }
 
@@ -174,6 +179,12 @@ const SessionView = forwardRef<SessionViewHandle, SessionViewProps>(
         setInvalidCount((n) => n + 1);
         setRetryCount(0);
       } else if (result.status === "error") {
+        clarificationCountRef.current = 0;
+        setRetryCount((n) => n + 1);
+        setInvalidCount(0);
+      } else if (result.status === "service_busy") {
+        // Same retry-counting as "error" — 3 consecutive retries degrades
+        // ServiceBusyCard to the "Still failing? Report a problem" link.
         clarificationCountRef.current = 0;
         setRetryCount((n) => n + 1);
         setInvalidCount(0);

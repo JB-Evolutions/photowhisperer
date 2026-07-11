@@ -62,6 +62,14 @@ export async function requestSettings(
     if (res.status === 429 && errorField === "rate_limited") {
       return { status: "rate_limited" };
     }
+    if (res.status === 503 && errorField === "service_busy") {
+      // Dedicated status, not "error" — carved out the same way quota_exceeded
+      // was, so ServiceBusyCard renders instead of the generic ErrorCard.
+      // Covers both 503 sources: the Upstash rate-limiter failing closed and
+      // an Anthropic classifier overload (429/503/529), both surfaced by
+      // route.ts with this identical { error: "service_busy" } shape.
+      return { status: "service_busy" };
+    }
     if (res.status === 401) {
       return {
         status: "error",

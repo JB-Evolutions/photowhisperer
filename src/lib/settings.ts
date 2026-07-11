@@ -41,7 +41,12 @@ export type SettingsResponse =
   // lacks them) — the card's visibility comes from a dedicated
   // onQuotaExceeded signal, not from these numbers, so a missing count
   // can never suppress it (see AppShell's forceOutOfCredits).
-  | { status: "quota_exceeded"; monthly_count?: number; credits_remaining?: number };
+  | { status: "quota_exceeded"; monthly_count?: number; credits_remaining?: number }
+  // Dedicated status for an upstream 503 (rate-limiter fail-closed, see
+  // route.ts) — carved out of "error" the same way quota_exceeded was, so
+  // ServiceBusyCard renders instead of the generic ErrorCard. No quota
+  // fields: this path returns before any preflight/RPC quota check runs.
+  | { status: "service_busy" };
 
 export interface SettingsRequestBody {
   conditions: string;

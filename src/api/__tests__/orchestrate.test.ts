@@ -2,12 +2,21 @@ import { vi, describe, it, expect, beforeEach } from "vitest";
 
 const { mockCreate } = vi.hoisted(() => ({ mockCreate: vi.fn() }));
 
-vi.mock("@anthropic-ai/sdk", () => ({
-  default: vi.fn(() => ({
-    messages: { create: mockCreate },
-  })),
-}));
+// Spread the real module so named exports (APIError and its subclasses) stay
+// the actual SDK classes — orchestrate.ts does `err instanceof APIError`, so
+// tests must throw real instances, not a stand-in. Only the default client
+// constructor is overridden, to route messages.create through mockCreate.
+vi.mock("@anthropic-ai/sdk", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@anthropic-ai/sdk")>();
+  return {
+    ...actual,
+    default: vi.fn(() => ({
+      messages: { create: mockCreate },
+    })),
+  };
+});
 
+import { APIError } from "@anthropic-ai/sdk";
 import { getSettings } from "../orchestrate";
 
 function apiResponse(text: string) {
@@ -112,5 +121,56 @@ describe("getSettings", () => {
     const result = await getSettings("sunny day portrait");
 
     expect(result.status).toBe("error");
+  });
+
+  // ─── service_busy gate — 429/503/529 only, nothing broader ─────────────────
+  describe("Anthropic overload/rate-limit → status=service_busy (429/503/529 only)", () => {
+    it("7: APIError status=529 (overloaded_error) → service_busy", async () => {
+      mockCreate.mockRejectedValue(
+        new APIError(529, { type: "overloaded_error" }, "Overloaded", new Headers())
+      );
+
+      const result = await getSettings("sunny day portrait");
+
+      expect(result.status).toBe("service_busy");
+    });
+
+    it("8: APIError status=429 (rate_limit_error) → service_busy", async () => {
+      mockCreate.mockRejectedValue(
+        new APIError(429, { type: "rate_limit_error" }, "Rate limited", new Headers())
+      );
+
+      const result = await getSettings("sunny day portrait");
+
+      expect(result.status).toBe("service_busy");
+    });
+
+    it("9: APIError status=503 → service_busy", async () => {
+      mockCreate.mockRejectedValue(
+        new APIError(503, { type: "api_error" }, "Service unavailable", new Headers())
+      );
+
+      const result = await getSettings("sunny day portrait");
+
+      expect(result.status).toBe("service_busy");
+    });
+
+    it("10: APIError status=500 (plain internal error) → stays status=error, NOT service_busy", async () => {
+      mockCreate.mockRejectedValue(
+        new APIError(500, { type: "api_error" }, "Internal error", new Headers())
+      );
+
+      const result = await getSettings("sunny day portrait");
+
+      expect(result.status).toBe("error");
+    });
+
+    it("11: non-APIError rejection (network error, existing test 4's shape) still stays status=error", async () => {
+      mockCreate.mockRejectedValue(new Error("fetch failed"));
+
+      const result = await getSettings("sunny day portrait");
+
+      expect(result.status).toBe("error");
+    });
   });
 });

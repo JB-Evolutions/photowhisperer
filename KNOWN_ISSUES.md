@@ -86,10 +86,21 @@ Prod-inert (never sets the flag + NODE_ENV guard). The flag lives only in
 gitignored `.env.local`, never committed. Timeout/error path still fails
 closed — this is opt-in short-circuit only.
 
-## Test user password needs rotation
+## tsc --noEmit fails on sentry-scrub.test.ts — neither build nor test catches it
 
-`floppyfishfish2@gmail.com`'s password was typed directly into several `curl`
-commands and Node scripts during this session's diagnostics (Upstash/rate-
-limiter testing, prod auth reproduction). It's in shell history on this
-machine. Rotate it before this test account is used for anything beyond
-throwaway local/dev testing.
+`pnpm exec tsc --noEmit` currently reports 4 errors, all in
+`src/lib/__tests__/sentry-scrub.test.ts`, pre-existing on `main` (confirmed via
+`git stash` — identical file/line/column with and without in-flight changes):
+
+- Line 13: `TS2352` — a test fixture object cast to `ErrorEvent` doesn't
+  sufficiently overlap the real type (missing `type` property).
+- Lines 137, 163, 195: `TS2694` — `TransactionEvent` no longer exported from
+  `@sentry/nextjs@10.63.0`'s types namespace (three call sites).
+
+Neither `pnpm build` (Next.js doesn't strict-typecheck test files) nor
+`pnpm test` / `vitest run` (no typecheck step) catches this — `tsc --noEmit`
+is the only gate that surfaces it, and it isn't part of the documented
+pre-commit checklist. Likely caused by a `@sentry/nextjs` version bump
+changing its exported types out from under the test's fixtures. Not fixed —
+needs someone to either update the fixture's shape/cast or find the
+replacement type for `TransactionEvent` in 10.63.0.

@@ -1,3 +1,4 @@
+import { APIError } from "@anthropic-ai/sdk";
 import { callClassifier } from "./classifier";
 import { calculateSettings } from "../calculator/calculate";
 import type {
@@ -23,7 +24,11 @@ export type OrchestrateResult =
     }
   | { status: "clarification_required"; question: string }
   | { status: "invalid_input"; message: string }
-  | { status: "error"; message: string };
+  | { status: "error"; message: string }
+  // Anthropic overload/rate-limit (429/503/529) — distinct from a generic
+  // classifier failure so route.ts can surface it as service_busy instead
+  // of the generic error state. No message: route.ts supplies fixed copy.
+  | { status: "service_busy" };
 
 const MOTION_TIERS: readonly MotionTier[] = [
   "stationary",
@@ -93,6 +98,15 @@ export async function getSettings(
     raw = await callClassifier(conditions, camera_profile, prior_context);
   } catch (err) {
     console.error("Classifier API error:", err);
+    // Only 429/503/529 (rate-limit/overloaded) count as "busy" — a plain 500,
+    // a network error, or anything else stays the generic error path.
+    if (
+      err instanceof APIError &&
+      err.status !== undefined &&
+      [429, 503, 529].includes(err.status)
+    ) {
+      return { status: "service_busy" };
+    }
     return { status: "error", message: "Failed to reach the classification service." };
   }
 
