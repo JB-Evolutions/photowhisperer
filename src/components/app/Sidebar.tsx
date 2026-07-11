@@ -94,6 +94,8 @@ interface SidebarProps {
   accountError: boolean;
   sessionsError: boolean;
   activeSessionId: string | null;
+  onNewScene: () => void;
+  onSessionSelect: (id: string) => void;
 }
 
 function formatRelativeTime(iso: string): string {
@@ -129,6 +131,8 @@ export default function Sidebar({
   accountError,
   sessionsError,
   activeSessionId,
+  onNewScene,
+  onSessionSelect,
 }: SidebarProps) {
   const router = useRouter();
   const tier = account?.tier ?? "snapshot";
@@ -160,7 +164,7 @@ export default function Sidebar({
         <Button
           variant="primary"
           fullWidth
-          onClick={() => { /* TODO(9.5): new session routing */ }}
+          onClick={onNewScene}
         >
           New scene
         </Button>
@@ -210,7 +214,7 @@ export default function Sidebar({
                         ? "border-accent bg-surface-2"
                         : "border-transparent hover:bg-surface-2"
                     }`}
-                    onClick={() => { /* TODO(9.5): session routing */ }}
+                    onClick={() => onSessionSelect(s.session_id)}
                   >
                     <p className="truncate text-sm text-text">
                       {s.title ?? "Untitled session"}

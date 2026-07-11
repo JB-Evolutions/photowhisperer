@@ -15,6 +15,8 @@ interface MobileDrawerProps {
   accountError: boolean;
   sessionsError: boolean;
   activeSessionId: string | null;
+  onNewScene: () => void;
+  onSessionSelect: (id: string) => void;
 }
 
 export default function MobileDrawer({
@@ -28,6 +30,8 @@ export default function MobileDrawer({
   accountError,
   sessionsError,
   activeSessionId,
+  onNewScene,
+  onSessionSelect,
 }: MobileDrawerProps) {
   const panelRef = useRef<HTMLDivElement>(null);
   // Captures the element that triggered open so focus returns to it on close.
@@ -197,6 +201,8 @@ export default function MobileDrawer({
           accountError={accountError}
           sessionsError={sessionsError}
           activeSessionId={activeSessionId}
+          onNewScene={onNewScene}
+          onSessionSelect={onSessionSelect}
         />
       </div>
     </div>

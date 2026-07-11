@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, forwardRef, useImperativeHandle } from "react";
 import type { SettingsResponse } from "@/lib/settings";
 import { requestSettings } from "@/lib/settingsClient";
+import { useToastContext } from "@/components/app/useToast";
 import UserMessage from "@/components/app/UserMessage";
 import AssistantResponse from "@/components/app/AssistantResponse";
 import LoadingSkeleton from "@/components/app/LoadingSkeleton";
@@ -11,9 +12,18 @@ export type Message =
   | { role: "user"; text: string }
   | { role: "assistant"; response: SettingsResponse };
 
+interface SessionMessageRow {
+  message_id: string;
+  role: "user" | "assistant";
+  content: Record<string, unknown>;
+  created_at: string;
+}
+
 export interface SessionViewHandle {
   send: (text: string) => void;
   clearPendingRefinement: () => void;
+  reset: () => void;
+  loadSession: (id: string) => Promise<void>;
 }
 
 const DEFAULT_HEADER = "PhotoWhisperer · thinking…";
@@ -31,10 +41,15 @@ interface SessionViewProps {
   // onQuotaExceeded.
   onRequestSucceeded?: () => void;
   onPreFillComposer?: (text: string) => void;
+  // Fired whenever the active session id changes — new session created by
+  // send(), a past session loaded via loadSession(), or cleared by reset().
+  // Single callback so AppShell tracks one thing instead of three.
+  onSessionIdChange?: (id: string | null) => void;
 }
 
 const SessionView = forwardRef<SessionViewHandle, SessionViewProps>(
-  function SessionView({ onRequestFocus, onThreadEmptyChange, onUsageUpdate, onRateLimit, onQuotaExceeded, onRequestSucceeded, onPreFillComposer }, ref) {
+  function SessionView({ onRequestFocus, onThreadEmptyChange, onUsageUpdate, onRateLimit, onQuotaExceeded, onRequestSucceeded, onPreFillComposer, onSessionIdChange }, ref) {
+    const showToast = useToastContext();
     const [messages, setMessages] = useState<Message[]>([]);
     const [sessionId, setSessionId] = useState<string | null>(null);
     const [pending, setPending] = useState(false);
@@ -136,6 +151,7 @@ const SessionView = forwardRef<SessionViewHandle, SessionViewProps>(
 
       if (result.status === "ok" && result.session_id) {
         setSessionId(result.session_id);
+        onSessionIdChange?.(result.session_id);
       }
 
       // Propagate fresh quota numbers to AppShell's account state.
@@ -218,9 +234,76 @@ const SessionView = forwardRef<SessionViewHandle, SessionViewProps>(
       }
     }
 
+    // Tears down any in-flight send() (abort + requestId bump so a late
+    // response can't land after the caller has already moved on) and clears
+    // every ref send() relies on. Shared by reset() and loadSession() since
+    // both replace "whatever the thread currently is" wholesale.
+    function invalidateInFlight() {
+      abortControllerRef.current?.abort();
+      requestIdRef.current += 1;
+      resetPendingState();
+      hasNotifiedRef.current = false;
+      clarificationCountRef.current = 0;
+      clarificationOriginRef.current = null;
+      pendingRefineContextRef.current = null;
+      pendingClarificationContextRef.current = null;
+      setInvalidCount(0);
+      setRetryCount(0);
+    }
+
+    function reset() {
+      invalidateInFlight();
+      lastSceneSummary.current = null;
+      lastConditions.current = "";
+      inFlightConditions.current = "";
+      setMessages([]);
+      setSessionId(null);
+      onSessionIdChange?.(null);
+      onThreadEmptyChange?.(true);
+    }
+
+    async function loadSession(id: string) {
+      invalidateInFlight();
+
+      let rows: SessionMessageRow[];
+      try {
+        const res = await fetch(`/api/sessions/${id}`);
+        if (!res.ok) throw new Error(String(res.status));
+        const data = (await res.json()) as { messages: SessionMessageRow[] };
+        rows = data.messages;
+      } catch {
+        showToast("Couldn't load that session — try again?");
+        return;
+      }
+
+      const loaded: Message[] = rows.map((row) =>
+        row.role === "user"
+          ? { role: "user", text: (row.content as { text: string }).text }
+          : { role: "assistant", response: row.content as unknown as SettingsResponse }
+      );
+
+      // Rehydrate refine context from the last turn so "Refine" keeps
+      // working on a reloaded thread, same as it does on a live one.
+      const lastUser = [...loaded].reverse().find((m) => m.role === "user");
+      const lastAssistantOk = [...loaded].reverse().find(
+        (m) => m.role === "assistant" && m.response.status === "ok"
+      ) as (Message & { role: "assistant" }) | undefined;
+      lastConditions.current = lastUser?.role === "user" ? lastUser.text : "";
+      lastSceneSummary.current =
+        lastAssistantOk?.response.status === "ok" ? lastAssistantOk.response.scene_summary ?? null : null;
+
+      setMessages(loaded);
+      setSessionId(id);
+      hasNotifiedRef.current = true;
+      onSessionIdChange?.(id);
+      onThreadEmptyChange?.(false);
+    }
+
     useImperativeHandle(ref, () => ({
       send,
       clearPendingRefinement: () => { pendingRefineContextRef.current = null; },
+      reset,
+      loadSession,
     }), [sessionId]);
 
     const lastIndex = messages.length - 1;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import AppShell from "@/components/app/AppShell";
@@ -31,6 +31,32 @@ export default function AppPage() {
   const [accountError, setAccountError] = useState(false);
   const [sessionsError, setSessionsError] = useState(false);
 
+  // Shared across the mount effect and any later standalone refetchSessions()
+  // call — component lifetime, not effect lifetime, so every 401 path (mount
+  // or post-mount) redirects at most once.
+  const redirectedRef = useRef(false);
+  function redirectOnAuthLoss() {
+    if (!redirectedRef.current) { redirectedRef.current = true; router.push("/auth/signin"); }
+  }
+
+  // Standalone re-fetch, callable after the initial mount effect (e.g. when
+  // a turn completes and the sidebar list may be stale).
+  function refetchSessions() {
+    return fetch("/api/sessions")
+      .then((r) => {
+        if (r.status === 401) { redirectOnAuthLoss(); return; }
+        if (!r.ok) { setSessionsError(true); return; }
+        return r.json() as Promise<{ sessions: SessionRow[]; has_more: boolean }>;
+      })
+      .then((data) => {
+        if (data) {
+          setSessions(data.sessions ?? []);
+          setHasMore(data.has_more);
+        }
+      })
+      .catch(() => setSessionsError(true));
+  }
+
   useEffect(() => {
     const supabase = createClient();
 
@@ -45,13 +71,6 @@ export default function AppPage() {
       }
     });
 
-    // Both fetches run in parallel and may both 401 on a dead session.
-    // Flag ensures only the first fires the redirect.
-    let redirected = false;
-    function redirectOnAuthLoss() {
-      if (!redirected) { redirected = true; router.push("/auth/signin"); }
-    }
-
     const fetchAccount = fetch("/api/account")
       .then((r) => {
         if (r.status === 401) { redirectOnAuthLoss(); return; }
@@ -61,21 +80,7 @@ export default function AppPage() {
       .then((data) => { if (data) setAccount(data); })
       .catch(() => setAccountError(true));
 
-    const fetchSessions = fetch("/api/sessions")
-      .then((r) => {
-        if (r.status === 401) { redirectOnAuthLoss(); return; }
-        if (!r.ok) { setSessionsError(true); return; }
-        return r.json() as Promise<{ sessions: SessionRow[]; has_more: boolean }>;
-      })
-      .then((data) => {
-        if (data) {
-          // ?? [] is belt-and-suspenders: sessions state is never undefined
-          // even if the server response omits the key.
-          setSessions(data.sessions ?? []);
-          setHasMore(data.has_more);
-        }
-      })
-      .catch(() => setSessionsError(true));
+    const fetchSessions = refetchSessions();
 
     // getSession() reads the local cookie — no network round trip.
     // Email is only used for avatar initials so session-level trust is fine.
@@ -100,6 +105,7 @@ export default function AppPage() {
       userEmail={userEmail}
       accountError={accountError}
       sessionsError={sessionsError}
+      onSessionActivity={refetchSessions}
       onUsageUpdate={({ monthly_count, credits_remaining }) =>
         setAccount((prev) => {
           if (!prev) return prev;

@@ -26,6 +26,7 @@ interface AppShellProps {
   accountError: boolean;
   sessionsError: boolean;
   onUsageUpdate?: (update: { monthly_count: number; credits_remaining: number }) => void;
+  onSessionActivity?: () => void;
 }
 
 export default function AppShell({
@@ -37,10 +38,12 @@ export default function AppShell({
   accountError,
   sessionsError,
   onUsageUpdate,
+  onSessionActivity,
 }: AppShellProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [composerValue, setComposerValue] = useState("");
   const [hasThread, setHasThread] = useState(false);
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
 
   const composerRef = useRef<ChatComposerHandle>(null);
   const sessionViewRef = useRef<SessionViewHandle>(null);
@@ -88,6 +91,17 @@ export default function AppShell({
     }
   }, [composerValue]);
 
+  function handleNewScene() {
+    sessionViewRef.current?.reset();
+    setComposerValue("");
+    setDrawerOpen(false);
+  }
+
+  function handleSessionSelect(id: string) {
+    sessionViewRef.current?.loadSession(id);
+    setDrawerOpen(false);
+  }
+
   const sidebarProps = {
     account,
     sessions,
@@ -96,7 +110,9 @@ export default function AppShell({
     userEmail,
     accountError,
     sessionsError,
-    activeSessionId: null as string | null,
+    activeSessionId,
+    onNewScene: handleNewScene,
+    onSessionSelect: handleSessionSelect,
   };
 
   return (
@@ -134,10 +150,14 @@ export default function AppShell({
                   ref={sessionViewRef}
                   onRequestFocus={() => composerRef.current?.focus()}
                   onThreadEmptyChange={(isEmpty) => setHasThread(!isEmpty)}
+                  onSessionIdChange={setActiveSessionId}
                   onUsageUpdate={onUsageUpdate}
                   onRateLimit={() => setCooldown(RATE_LIMIT_COOLDOWN_SECONDS)}
                   onQuotaExceeded={() => setForceOutOfCredits(true)}
-                  onRequestSucceeded={() => setForceOutOfCredits(false)}
+                  onRequestSucceeded={() => {
+                    setForceOutOfCredits(false);
+                    onSessionActivity?.();
+                  }}
                   onPreFillComposer={(text) => {
                     setComposerValue(text);
                     composerRef.current?.focus();

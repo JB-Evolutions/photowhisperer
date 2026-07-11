@@ -49,6 +49,16 @@ export async function appendMessages(
     { session_id: sessionId, role: "assistant", content: assistantContent },
   ]);
   if (error) throw error;
+
+  // Bump on every turn, not just the first — otherwise a re-messaged session
+  // never reorders to the top of the sidebar (updated_at DESC). Best-effort:
+  // the messages above are already saved, so a failure here shouldn't fail
+  // the turn — just log it.
+  const { error: touchError } = await admin
+    .from("sessions")
+    .update({ updated_at: new Date().toISOString() })
+    .eq("session_id", sessionId);
+  if (touchError) console.error("appendMessages: updated_at bump failed:", touchError);
 }
 
 export async function updateSessionTitle(
