@@ -28,10 +28,7 @@ export default function MobileTopBar({ onMenuClick }: MobileTopBarProps) {
           <line x1="3" y1="18" x2="21" y2="18" />
         </svg>
       </button>
-      <span
-        className="font-display text-[15px] font-medium text-text-muted"
-        style={{ letterSpacing: "-0.01em" }}
-      >
+      <span className="font-display text-[15px] font-medium text-text-muted pw-tracking-tight-1">
         Untitled session
       </span>
     </div>

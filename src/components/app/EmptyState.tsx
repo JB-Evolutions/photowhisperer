@@ -33,10 +33,7 @@ export default function EmptyState({
 }: EmptyStateProps) {
   return (
     <div className="flex flex-col items-center gap-8 px-6 py-12 text-center">
-      <h1
-        className="font-display text-3xl font-medium text-text"
-        style={{ letterSpacing: "-0.02em" }}
-      >
+      <h1 className="font-display text-3xl font-medium text-text pw-tracking-tight-2">
         What are you shooting?
       </h1>
 

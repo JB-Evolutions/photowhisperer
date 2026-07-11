@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Fraunces, Geist, JetBrains_Mono } from "next/font/google";
+import { headers } from "next/headers";
 import "./globals.css";
 
 const fraunces = Fraunces({
@@ -46,11 +47,13 @@ const foucScript = `(function() {
   } catch (e) {}
 })();`;
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
+
   return (
     <html
       lang="en"
@@ -60,7 +63,7 @@ export default function RootLayout({
       className={`${fraunces.variable} ${geist.variable} ${jetbrainsMono.variable}`}
     >
       <body suppressHydrationWarning>
-        <script dangerouslySetInnerHTML={{ __html: foucScript }} />
+        <script nonce={nonce} dangerouslySetInnerHTML={{ __html: foucScript }} />
         {children}
       </body>
     </html>

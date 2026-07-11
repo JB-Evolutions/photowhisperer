@@ -1,31 +1,8 @@
 export default function Logo() {
   return (
-    <div
-      style={{
-        width: 36,
-        height: 36,
-        borderRadius: 10,
-        background: "linear-gradient(135deg, var(--accent) 0%, var(--accent-3) 100%)",
-        boxShadow: "0 4px 14px var(--accent-glow)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        position: "relative",
-        flexShrink: 0,
-      }}
-    >
+    <div className="pw-logo-badge">
       {/* Inset highlight overlay */}
-      <span
-        aria-hidden="true"
-        style={{
-          position: "absolute",
-          inset: -1,
-          borderRadius: 11,
-          background:
-            "linear-gradient(135deg, rgba(255,255,255,0.4), transparent 40%)",
-          pointerEvents: "none",
-        }}
-      />
+      <span aria-hidden="true" className="pw-logo-badge-highlight" />
       <svg
         viewBox="0 0 24 24"
         fill="none"
@@ -33,12 +10,7 @@ export default function Logo() {
         strokeWidth="1.6"
         strokeLinecap="round"
         strokeLinejoin="round"
-        style={{
-          width: 20,
-          height: 20,
-          color: "var(--tile-text-on-accent)",
-          position: "relative",
-        }}
+        className="pw-logo-badge-icon"
       >
         <circle cx="12" cy="12" r="9" />
         <path d="M12 3l4 9-9 1" />

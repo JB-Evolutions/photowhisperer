@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import Button from "@/components/shared/Button";
 import CreditPackPicker from "@/components/shared/CreditPackPicker";
+import FillBar from "@/components/shared/FillBar";
 import { TIER_DISPLAY_NAMES, TIER_PRICES_USD, nextResetDate } from "@/lib/quota";
 import type { Tier } from "@/lib/quota";
 import { parseDbTimestamp } from "@/lib/date";
@@ -231,12 +232,7 @@ export default function BillingView({
                 </p>
               </div>
               {/* Track/fill match Sidebar.tsx:214-216; h-2 instead of h-1 per billing page spec */}
-              <div className="h-2 w-full overflow-hidden rounded-full bg-surface-3">
-                <div
-                  className="h-full rounded-full bg-accent transition-[width]"
-                  style={{ width: `${Math.max(pct, 3)}%` }}
-                />
-              </div>
+              <FillBar pct={pct} trackClassName="h-2 w-full overflow-hidden rounded-full bg-surface-3" />
               <p className="text-xs text-text-dim">Quota resets {resetDate}</p>
             </div>
           </section>

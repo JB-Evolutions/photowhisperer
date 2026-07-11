@@ -2,12 +2,61 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { isWithinGracePeriod } from "@/lib/account-deletion";
 
+// Exact byte hash of the FOUC script in layout.tsx (src/app/layout.tsx).
+// Kept as an extra script-src source alongside the nonce so a nonce-plumbing
+// bug can't silently break theme init. Regenerate (base64-sha256 of the exact
+// script body) if that string is ever edited.
+const FOUC_SCRIPT_HASH = "sha256-C+ErKw40+TeXwVFXHdQMcQ9MSPY91QRKo8heDY0mV1A=";
+
+// REPORT-ONLY: violations are logged to the browser console, nothing is
+// blocked. Flip the header name below to "Content-Security-Policy" once a
+// clean report-only pass is confirmed across landing, /app, /auth, /account.
+const CSP_HEADER_NAME = "Content-Security-Policy-Report-Only";
+
+function buildCsp(nonce: string) {
+  return [
+    "default-src 'self'",
+    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic' '${FOUC_SCRIPT_HASH}'`,
+    "style-src 'self'",
+    "img-src 'self' data: https:",
+    "font-src 'self'",
+    "connect-src 'self' https://*.supabase.co",
+    "frame-ancestors 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+  ].join("; ");
+}
+
 export async function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
 
+  const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
+  const csp = buildCsp(nonce);
+
+  // Every request headers object built below carries x-nonce (for layout.tsx
+  // to read) and the CSP itself (for Next's internal renderer to auto-nonce
+  // its own bootstrap/RSC scripts) — reused on every NextResponse.next() call
+  // so a future edit to one branch can't silently drop the nonce.
+  //
+  // Next's auto-nonce detection only looks for the enforcing header name on
+  // the REQUEST, regardless of what the browser is actually sent — so this
+  // always uses "Content-Security-Policy" here even while CSP_HEADER_NAME
+  // (below, response-side only) is still the Report-Only variant.
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-nonce", nonce);
+  requestHeaders.set("Content-Security-Policy", csp);
+
+  // Every return path funnels through here so the response-side CSP header
+  // (the one the browser actually enforces/reports) can never be skipped on
+  // a branch.
+  function finish(response: NextResponse) {
+    response.headers.set(CSP_HEADER_NAME, csp);
+    return response;
+  }
+
   // Stripe webhooks use signature-based auth — bypass JWT check entirely.
   if (pathname.startsWith("/api/webhooks/")) {
-    return NextResponse.next();
+    return finish(NextResponse.next({ request: { headers: requestHeaders } }));
   }
 
   if (
@@ -15,11 +64,24 @@ export async function proxy(request: NextRequest) {
     process.env.ALLOW_TEST_LOGIN === "true" &&
     pathname === "/api/test-login"
   ) {
-    return NextResponse.next();
+    return finish(NextResponse.next({ request: { headers: requestHeaders } }));
+  }
+
+  // Unchanged gating from the original matcher: marketing pages, /auth/*,
+  // /billing/success|cancel etc. never touch Supabase here — same as before,
+  // just now reached via a widened matcher instead of being unmatched.
+  const isAuthGated =
+    pathname.startsWith("/api/") ||
+    pathname.startsWith("/onboarding") ||
+    pathname.startsWith("/app") ||
+    pathname.startsWith("/account");
+
+  if (!isAuthGated) {
+    return finish(NextResponse.next({ request: { headers: requestHeaders } }));
   }
 
   // Build a mutable response so refreshed auth cookies can be forwarded.
-  let supabaseResponse = NextResponse.next({ request });
+  let supabaseResponse = NextResponse.next({ request: { headers: requestHeaders } });
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -35,7 +97,7 @@ export async function proxy(request: NextRequest) {
             request.cookies.set({ name, value, ...options })
           );
           // Rebuild the response so the cookie mutations are included.
-          supabaseResponse = NextResponse.next({ request });
+          supabaseResponse = NextResponse.next({ request: { headers: requestHeaders } });
           cookiesToSet.forEach(({ name, value, options }) =>
             supabaseResponse.cookies.set(name, value, options)
           );
@@ -59,9 +121,9 @@ export async function proxy(request: NextRequest) {
       supabaseResponse.cookies.getAll().forEach(({ name, value, ...options }) =>
         unauthorized.cookies.set(name, value, options)
       );
-      return unauthorized;
+      return finish(unauthorized);
     }
-    return NextResponse.redirect(new URL("/auth/signin", request.url));
+    return finish(NextResponse.redirect(new URL("/auth/signin", request.url)));
   }
 
   // Soft-delete gate — /app/* and /account/* only. API routes return 401 via
@@ -83,18 +145,20 @@ export async function proxy(request: NextRequest) {
         // Redirecting here unconditionally would loop: restore → proxy →
         // within grace → redirect restore → proxy → ... indefinitely.
         if (pathname !== "/account/restore") {
-          return redirectTo("/account/restore", request, supabaseResponse);
+          return finish(redirectTo("/account/restore", request, supabaseResponse));
         }
       } else {
         // Past 7-day grace: revoke session + permanent block.
         await supabase.auth.signOut();
-        return redirectTo("/auth/signin?account=expired", request, supabaseResponse);
+        return finish(
+          redirectTo("/auth/signin?account=expired", request, supabaseResponse)
+        );
       }
     }
   }
 
   // Return the supabase-mutated response so refreshed cookies reach the client.
-  return supabaseResponse;
+  return finish(supabaseResponse);
 }
 
 // Copies refreshed/cleared auth cookies from supabaseResponse into the redirect
@@ -115,6 +179,8 @@ function redirectTo(
   return res;
 }
 
+// Skip the Next.js static-asset pipeline and public/ files — CSP/nonce
+// overhead on those is pure waste, they're not HTML documents.
 export const config = {
-  matcher: ["/api/:path*", "/onboarding/:path*", "/app/:path*", "/account/:path*"],
+  matcher: ["/((?!_next/static|_next/image|favicon\\.ico|.*\\.(?:svg|png)$).*)"],
 };

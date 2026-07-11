@@ -187,3 +187,71 @@ body {
   }
   .pw-dot-pulse { animation: pw-dot-pulse 1.2s ease-in-out infinite; }
 }
+
+/* Logo: moved off inline style={{}} — CSP style-src has no unsafe-inline */
+.pw-logo-badge {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-3) 100%);
+  box-shadow: 0 4px 14px var(--accent-glow);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  flex-shrink: 0;
+}
+.pw-logo-badge-highlight {
+  position: absolute;
+  inset: -1px;
+  border-radius: 11px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.4), transparent 40%);
+  pointer-events: none;
+}
+.pw-logo-badge-icon {
+  width: 20px;
+  height: 20px;
+  color: var(--tile-text-on-accent);
+  position: relative;
+}
+
+/* Shared letter-spacing utility — moved off inline style={{}} for CSP */
+.pw-tracking-tight-1 { letter-spacing: -0.01em; }
+.pw-tracking-tight-2 { letter-spacing: -0.02em; }
+
+/* Quota / credit progress bar fill — width driven by a custom property so no
+   inline style="" attribute is ever served (CSP style-src has no unsafe-inline).
+   Floor of 3% is applied in FillBar.tsx before the property is set, not here. */
+.pw-fill-bar {
+  width: var(--fill-pct, 0%);
+}
+
+/* ThemeToggle — moved out of an inline <style> block (used in Nav, Sidebar,
+   PreferencesTab, so global here rather than marketing.css) for CSP style-src */
+.theme-toggle-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.25s ease;
+  padding: 0;
+  flex-shrink: 0;
+}
+.theme-toggle-btn:hover {
+  color: var(--text);
+  border-color: var(--text-muted);
+  transform: translateY(-1px);
+}
+.theme-toggle-btn svg {
+  width: 16px;
+  height: 16px;
+}
+.theme-toggle-btn .icon-sun { display: none; }
+:root[data-theme="light"] .theme-toggle-btn .icon-sun { display: block; }
+:root[data-theme="light"] .theme-toggle-btn .icon-moon { display: none; }

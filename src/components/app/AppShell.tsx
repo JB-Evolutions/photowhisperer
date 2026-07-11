@@ -102,8 +102,7 @@ export default function AppShell({
   return (
     <ToastProvider>
       <div
-        className="flex h-screen flex-col overflow-hidden md:grid"
-        style={{ gridTemplateColumns: "260px 1fr" }}
+        className="flex h-screen flex-col overflow-hidden md:grid md:grid-cols-[260px_1fr]"
       >
         {/* Desktop sidebar — hidden on mobile */}
         <aside className="hidden h-screen overflow-hidden border-r border-border md:block">

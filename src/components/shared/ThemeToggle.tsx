@@ -12,35 +12,6 @@ export default function ThemeToggle() {
 
   return (
     <>
-      <style>{`
-        .theme-toggle-btn {
-          width: 38px;
-          height: 38px;
-          border-radius: 10px;
-          border: 1px solid var(--border-strong);
-          background: var(--surface);
-          color: var(--text-muted);
-          cursor: pointer;
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          transition: all 0.25s ease;
-          padding: 0;
-          flex-shrink: 0;
-        }
-        .theme-toggle-btn:hover {
-          color: var(--text);
-          border-color: var(--text-muted);
-          transform: translateY(-1px);
-        }
-        .theme-toggle-btn svg {
-          width: 16px;
-          height: 16px;
-        }
-        .theme-toggle-btn .icon-sun { display: none; }
-        :root[data-theme="light"] .theme-toggle-btn .icon-sun { display: block; }
-        :root[data-theme="light"] .theme-toggle-btn .icon-moon { display: none; }
-      `}</style>
       <button
         className="theme-toggle-btn"
         onClick={handleToggle}

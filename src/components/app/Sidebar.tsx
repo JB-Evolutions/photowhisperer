@@ -5,6 +5,7 @@ import Logo from "@/components/shared/Logo";
 import Button from "@/components/shared/Button";
 import ThemeToggle from "@/components/shared/ThemeToggle";
 import CreditPackPicker from "@/components/shared/CreditPackPicker";
+import FillBar from "@/components/shared/FillBar";
 import { TIER_DISPLAY_NAMES } from "@/lib/quota";
 import type { AccountData, SessionRow } from "@/app/app/page";
 
@@ -150,10 +151,7 @@ export default function Sidebar({
       <div className="flex-shrink-0 space-y-3 border-b border-border px-4 py-4">
         <div className="flex items-center gap-2.5">
           <Logo />
-          <span
-            className="font-display text-[15px] font-medium text-text"
-            style={{ letterSpacing: "-0.01em" }}
-          >
+          <span className="font-display text-[15px] font-medium text-text pw-tracking-tight-1">
             PhotoWhisperer
           </span>
         </div>
@@ -299,12 +297,7 @@ export default function Sidebar({
                   </svg>
                 </button>
               </div>
-              <div className="h-1 w-full overflow-hidden rounded-full bg-surface-3">
-                <div
-                  className="h-full rounded-full bg-accent transition-[width]"
-                  style={{ width: `${Math.max(pct, 3)}%` }}
-                />
-              </div>
+              <FillBar pct={pct} trackClassName="h-1 w-full overflow-hidden rounded-full bg-surface-3" />
             </>
           )}
 
