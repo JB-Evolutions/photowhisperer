@@ -38,6 +38,12 @@ nav.pw-top {
   letter-spacing: -0.01em;
 }
 
+@media (max-width: 639px) {
+  .pw-nav-inner {
+    padding: 12px 16px;
+  }
+}
+
 .marketing-shell .pw-spotlight {
   position: fixed;
   top: -250px;

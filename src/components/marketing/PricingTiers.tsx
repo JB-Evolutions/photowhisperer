@@ -56,7 +56,7 @@ export default async function PricingTiers() {
   return (
     <section id="pricing" data-section="pricing" className="py-24">
       <div className="mx-auto max-w-[1280px] px-8">
-        <PricingScrollTrack featuredTier="portrait">
+        <PricingScrollTrack>
           {TIERS.map((card) => {
             const isCurrentPlan = isLoggedIn && activeTier === card.tier;
 
@@ -64,7 +64,7 @@ export default async function PricingTiers() {
               <div
                 key={card.tier}
                 data-tier={card.tier}
-                className={`relative flex w-[85vw] shrink-0 snap-center flex-col rounded-[20px] border border-border bg-surface p-8 md:w-auto md:shrink md:snap-none ${
+                className={`relative flex w-full flex-col rounded-[20px] border border-border bg-surface p-8 md:w-auto ${
                   card.featured ? "pw-tier-featured" : ""
                 }`}
               >

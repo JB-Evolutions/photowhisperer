@@ -49,26 +49,35 @@ export default async function Nav() {
             </li>
           </ul>
 
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2 sm:gap-2.5">
             {isLoggedIn ? (
               <>
                 <span className="hidden sm:inline font-mono text-xs uppercase tracking-[0.08em] text-text-dim">
                   {TIER_DISPLAY_NAMES[tier ?? "snapshot"]}
                 </span>
-                <Button href="/app" variant="outline">
-                  Open app
-                </Button>
+                <span className="hidden sm:inline-flex">
+                  <Button href="/app" variant="outline">
+                    Open app
+                  </Button>
+                </span>
                 <Button href="/app" variant="primary">
                   New scene
                 </Button>
               </>
             ) : (
               <>
-                <Button href="/auth/signin" variant="ghost">
-                  Sign in
-                </Button>
-                <Button href="/auth/signup" variant="primary">
-                  Get my settings
+                <span className="hidden sm:inline-flex">
+                  <Button href="/auth/signin" variant="ghost">
+                    Sign in
+                  </Button>
+                </span>
+                <Button
+                  href="/auth/signup"
+                  variant="primary"
+                  className="max-sm:!px-3 max-sm:!py-2"
+                >
+                  <span className="sm:hidden">Get settings</span>
+                  <span className="hidden sm:inline">Get my settings</span>
                 </Button>
               </>
             )}
