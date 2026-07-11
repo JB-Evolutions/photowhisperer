@@ -7,8 +7,9 @@ of these outstanding.
 
 - **`src/app/api/settings/route.ts` — `?fake=` stub block**: Remove the entire
   `isFakeEnabled()` block and all `fake === "*"` branches (ok, clarification, invalid,
-  error, rate_limited, slow, hang). Also remove `ALLOW_FAKE_SETTINGS` from `.env.local`
-  and Vercel env vars. Added in Phase 9.6; rate_limited branch added in Phase 9.7.
+  error, rate_limited, service_busy, slow, hang). Also remove `ALLOW_FAKE_SETTINGS` from
+  `.env.local` and Vercel env vars. Added in Phase 9.6; rate_limited branch added in
+  Phase 9.7; service_busy branch added alongside the service_busy state.
 
 ## Vercel env vars
 

@@ -254,6 +254,14 @@ export async function POST(request: NextRequest) {
     if (fake === "rate_limited") {
       return NextResponse.json({ error: "rate_limited" }, { status: 429 });
     }
+    if (fake === "service_busy") {
+      // Same shape as both real 503 sources (rate-limiter fail-closed and
+      // classifier overload) — exercises the client's one 503 branch.
+      return NextResponse.json(
+        { error: "service_busy", message: "Service is busy. Please try again in a moment." },
+        { status: 503, headers: { "Retry-After": "10" } }
+      );
+    }
     if (fake === "slow") {
       await new Promise((r) => setTimeout(r, 12000));
       return NextResponse.json(OK_FIXTURE);
