@@ -1,4 +1,5 @@
 import Link from "next/link";
+import CookieSettingsLink from "@/components/marketing/CookieSettingsLink";
 
 const PRODUCT_LINKS = [
   { href: "/#features", label: "Features" },
@@ -65,6 +66,9 @@ export default function MarketingFooter() {
                   </Link>
                 </li>
               ))}
+              <li>
+                <CookieSettingsLink />
+              </li>
             </ul>
           </div>
 

@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Fraunces, Geist, JetBrains_Mono } from "next/font/google";
 import { headers } from "next/headers";
+import GoogleAnalytics from "@/components/analytics/GoogleAnalytics";
+import CookieConsentBanner from "@/components/analytics/CookieConsentBanner";
 import "./globals.css";
 
 const fraunces = Fraunces({
@@ -64,7 +66,9 @@ export default async function RootLayout({
     >
       <body suppressHydrationWarning>
         <script nonce={nonce} dangerouslySetInnerHTML={{ __html: foucScript }} />
+        <GoogleAnalytics nonce={nonce} />
         {children}
+        <CookieConsentBanner />
       </body>
     </html>
   );

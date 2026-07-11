@@ -91,6 +91,13 @@ export default function PrivacyPage() {
                   your data with Anthropic, or anyone else, for the purpose
                   of training AI models.
                 </li>
+                <li>
+                  <span className="font-semibold text-text">
+                    Google Analytics
+                  </span>{" "}
+                  processes usage analytics, but only if you accept our
+                  cookie banner — see the Cookies section below for details.
+                </li>
               </ul>
               <p>
                 None of these providers use your data for purposes beyond
@@ -124,8 +131,37 @@ export default function PrivacyPage() {
             <Section heading="6. Cookies">
               <p>
                 We use a minimal set of cookies needed to keep you signed in
-                and remember your session. We don&apos;t currently use
-                third-party advertising or tracking cookies.
+                and remember your session. These are strictly necessary and
+                aren&apos;t affected by the cookie choice described below.
+              </p>
+              <p>
+                We also use Google Analytics 4 to understand how the site is
+                used. Analytics is loaded with Google&apos;s Consent Mode,
+                which defaults to denied — no analytics cookies are set
+                until you accept via the cookie banner. Before you&apos;ve
+                made a choice, or if you decline, Google may still receive
+                basic, cookieless pings it uses to model aggregate usage,
+                but no analytics cookie is set on your device. If you
+                accept, Google Analytics sets cookies and collects usage
+                data — such as pages viewed, approximate location derived
+                from your IP address, and device/browser type — to help us
+                understand how PhotoWhisperer is used. We don&apos;t
+                deliberately send Google any personal information, like your
+                email address or scene descriptions.
+              </p>
+              <p>
+                You can change your choice at any time using the &quot;Cookie
+                settings&quot; link in the footer. For more on how Google
+                handles this data, see{" "}
+                <a
+                  href="https://policies.google.com/privacy"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-text underline hover:text-accent"
+                >
+                  Google&apos;s Privacy Policy
+                </a>
+                .
               </p>
             </Section>
 

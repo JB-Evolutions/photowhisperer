@@ -15,11 +15,11 @@ const CSP_HEADER_NAME = "Content-Security-Policy";
 function buildCsp(nonce: string) {
   return [
     "default-src 'self'",
-    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic' '${FOUC_SCRIPT_HASH}'`,
+    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic' '${FOUC_SCRIPT_HASH}' https://www.googletagmanager.com`,
     "style-src 'self'",
     "img-src 'self' data: https:",
     "font-src 'self'",
-    "connect-src 'self' https://*.supabase.co",
+    "connect-src 'self' https://*.supabase.co https://*.google-analytics.com https://*.googletagmanager.com https://*.analytics.google.com",
     "frame-ancestors 'none'",
     "base-uri 'self'",
     "form-action 'self'",
