@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Logo from "@/components/shared/Logo";
 import Button from "@/components/shared/Button";
 import ThemeToggle from "@/components/shared/ThemeToggle";
@@ -129,6 +130,7 @@ export default function Sidebar({
   sessionsError,
   activeSessionId,
 }: SidebarProps) {
+  const router = useRouter();
   const tier = account?.tier ?? "snapshot";
   const tierLabel = TIER_DISPLAY_NAMES[tier];
 
@@ -325,7 +327,7 @@ export default function Sidebar({
           <button
             type="button"
             className="flex h-[38px] w-[38px] flex-shrink-0 items-center justify-center rounded-[10px] border border-border-strong bg-surface text-text-muted transition-all hover:-translate-y-px hover:border-text-muted hover:text-text"
-            onClick={() => { /* TODO(9.9): settings page */ }}
+            onClick={() => router.push("/account")}
             aria-label="Settings"
             title="Settings"
           >
