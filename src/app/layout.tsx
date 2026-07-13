@@ -3,6 +3,8 @@ import { Fraunces, Geist, JetBrains_Mono } from "next/font/google";
 import { headers } from "next/headers";
 import GoogleAnalytics from "@/components/analytics/GoogleAnalytics";
 import CookieConsentBanner from "@/components/analytics/CookieConsentBanner";
+import JsonLd from "@/components/seo/JsonLd";
+import { SITE_URL, SITE_NAME } from "@/lib/seo";
 import "./globals.css";
 
 const fraunces = Fraunces({
@@ -27,6 +29,7 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
   title: "PhotoWhisperer",
   description: "Describe the scene. Get the camera settings.",
   appleWebApp: {
@@ -80,6 +83,14 @@ const pwaInstallScript = `(function() {
   });
 })();`;
 
+const organizationSchema = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  name: SITE_NAME,
+  url: SITE_URL,
+  logo: `${SITE_URL}/logo.png`,
+};
+
 export default async function RootLayout({
   children,
 }: Readonly<{
@@ -99,6 +110,7 @@ export default async function RootLayout({
         <script nonce={nonce} dangerouslySetInnerHTML={{ __html: foucScript }} />
         <script nonce={nonce} dangerouslySetInnerHTML={{ __html: pwaInstallScript }} />
         <GoogleAnalytics nonce={nonce} />
+        <JsonLd data={organizationSchema} nonce={nonce} />
         {children}
         <CookieConsentBanner />
       </body>

@@ -1,11 +1,25 @@
+import type { Metadata } from "next";
+import { headers } from "next/headers";
 import Nav from "@/components/shared/Nav";
 import Button from "@/components/shared/Button";
 import MarketingShell from "@/components/marketing/MarketingShell";
 import AppShowcase from "@/components/marketing/AppShowcase";
 import PricingTiers from "@/components/marketing/PricingTiers";
 import FaqAccordion from "@/components/marketing/FaqAccordion";
+import JsonLd from "@/components/seo/JsonLd";
 import { getMarketingAuthState } from "@/lib/auth-state";
-import { TIER_LIMITS } from "@/lib/quota";
+import { TIER_LIMITS, TIER_DISPLAY_NAMES, TIER_PRICES_USD, type Tier } from "@/lib/quota";
+import { marketingSocial, SITE_URL, SITE_NAME } from "@/lib/seo";
+
+const TITLE = "What Camera Settings Should I Use? | PhotoWhisperer";
+const DESCRIPTION =
+  "Tell us the light and the subject. Get ISO, aperture, shutter speed, and white balance instantly, with the reasoning behind every camera setting.";
+
+export const metadata: Metadata = {
+  title: TITLE,
+  description: DESCRIPTION,
+  ...marketingSocial({ title: TITLE, description: DESCRIPTION, path: "/" }),
+};
 
 const FEATURES = [
   {
@@ -53,11 +67,28 @@ function CompassIcon() {
   );
 }
 
+const softwareApplicationSchema = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  name: SITE_NAME,
+  url: SITE_URL,
+  applicationCategory: "PhotoApplication",
+  operatingSystem: "Web",
+  offers: (Object.keys(TIER_LIMITS) as Tier[]).map((tier) => ({
+    "@type": "Offer",
+    name: TIER_DISPLAY_NAMES[tier],
+    price: TIER_PRICES_USD[tier],
+    priceCurrency: "USD",
+  })),
+};
+
 export default async function Home() {
   const { isLoggedIn } = await getMarketingAuthState();
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
 
   return (
     <>
+      <JsonLd data={softwareApplicationSchema} nonce={nonce} />
       <Nav />
       <MarketingShell>
         <main>

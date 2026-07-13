@@ -1,5 +1,20 @@
+import type { Metadata } from "next";
 import Nav from "@/components/shared/Nav";
 import MarketingShell from "@/components/marketing/MarketingShell";
+import { marketingSocial } from "@/lib/seo";
+
+const TITLE = "Privacy Policy | PhotoWhisperer";
+const DESCRIPTION = "How PhotoWhisperer collects, uses, and protects your data.";
+
+export const metadata: Metadata = {
+  title: TITLE,
+  description: DESCRIPTION,
+  ...marketingSocial({
+    title: TITLE,
+    description: DESCRIPTION,
+    path: "/privacy",
+  }),
+};
 
 // LEGAL COPY BELOW IS PLACEHOLDER. It must be reviewed by qualified counsel
 // before launch — it is not legal advice and has not been reviewed by a lawyer.

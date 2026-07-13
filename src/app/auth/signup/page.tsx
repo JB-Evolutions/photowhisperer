@@ -1,8 +1,14 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import AuthShell from "@/components/auth/AuthShell";
 import AuthCard from "@/components/auth/AuthCard";
 import SignupForm from "@/components/auth/SignupForm";
 import { TIER_DISPLAY_NAMES, type Tier } from "@/lib/quota";
+import { NOINDEX } from "@/lib/seo";
+
+export const metadata: Metadata = {
+  robots: NOINDEX,
+};
 
 function getBannerTier(value: string | string[] | undefined): Tier | null {
   const tier = Array.isArray(value) ? value[0] : value;

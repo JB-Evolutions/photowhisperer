@@ -1,7 +1,13 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import AuthShell from "@/components/auth/AuthShell";
 import AuthCard from "@/components/auth/AuthCard";
 import SigninForm from "@/components/auth/SigninForm";
+import { NOINDEX } from "@/lib/seo";
+
+export const metadata: Metadata = {
+  robots: NOINDEX,
+};
 
 function getInitialBanner(error: string | undefined): string | null {
   if (!error) return null;

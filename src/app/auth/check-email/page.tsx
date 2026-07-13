@@ -1,6 +1,12 @@
+import type { Metadata } from "next";
 import AuthShell from "@/components/auth/AuthShell";
 import AuthCard from "@/components/auth/AuthCard";
 import EmailSentCard from "@/components/auth/EmailSentCard";
+import { NOINDEX } from "@/lib/seo";
+
+export const metadata: Metadata = {
+  robots: NOINDEX,
+};
 
 export default async function CheckEmailPage({
   searchParams,

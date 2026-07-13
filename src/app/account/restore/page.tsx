@@ -5,8 +5,12 @@ import { parseDbTimestamp } from "@/lib/date";
 import AuthShell from "@/components/auth/AuthShell";
 import AuthCard from "@/components/auth/AuthCard";
 import RestoreButton from "./RestoreButton";
+import { NOINDEX } from "@/lib/seo";
 
-export const metadata = { title: "Recover account · PhotoWhisperer" };
+export const metadata = {
+  title: "Recover account · PhotoWhisperer",
+  robots: NOINDEX,
+};
 
 export default async function RestorePage() {
   const supabase = await createServerClient();

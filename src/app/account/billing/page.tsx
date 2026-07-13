@@ -3,8 +3,9 @@ import { createClient as createServerClient } from "@/lib/supabase/server";
 import { TIER_LIMITS } from "@/lib/quota";
 import type { Tier } from "@/lib/quota";
 import BillingView from "./BillingView";
+import { NOINDEX } from "@/lib/seo";
 
-export const metadata = { title: "Billing · PhotoWhisperer" };
+export const metadata = { title: "Billing · PhotoWhisperer", robots: NOINDEX };
 
 export default async function BillingPage() {
   const supabase = await createServerClient();

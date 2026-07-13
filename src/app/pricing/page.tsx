@@ -1,8 +1,26 @@
+import type { Metadata } from "next";
+import { headers } from "next/headers";
 import Nav from "@/components/shared/Nav";
 import MarketingShell from "@/components/marketing/MarketingShell";
 import PricingTiers from "@/components/marketing/PricingTiers";
 import FaqAccordion, { type FaqItem } from "@/components/marketing/FaqAccordion";
+import JsonLd from "@/components/seo/JsonLd";
 import { TIER_DISPLAY_NAMES, TIER_HISTORY_LIMITS, TIER_LIMITS, type Tier } from "@/lib/quota";
+import { marketingSocial } from "@/lib/seo";
+
+const TITLE = "Camera Settings Pricing Plans | PhotoWhisperer";
+const DESCRIPTION =
+  "Compare PhotoWhisperer plans. From 5 free camera setting requests a month to 2,000, pick the tier that matches how often you shoot.";
+
+export const metadata: Metadata = {
+  title: TITLE,
+  description: DESCRIPTION,
+  ...marketingSocial({
+    title: TITLE,
+    description: DESCRIPTION,
+    path: "/pricing",
+  }),
+};
 
 type Cell = "check" | "dash" | string;
 
@@ -89,9 +107,25 @@ function MatrixCell({ value }: { value: Cell }) {
   return <span className="font-mono text-text">{value}</span>;
 }
 
-export default function PricingPage() {
+const faqPageSchema = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: PRICING_FAQ_ITEMS.map((item) => ({
+    "@type": "Question",
+    name: item.question,
+    acceptedAnswer: {
+      "@type": "Answer",
+      text: item.answer,
+    },
+  })),
+};
+
+export default async function PricingPage() {
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
+
   return (
     <>
+      <JsonLd data={faqPageSchema} nonce={nonce} />
       <Nav />
       <MarketingShell>
         <main>

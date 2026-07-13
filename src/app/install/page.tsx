@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import Logo from "@/components/shared/Logo";
+import { NOINDEX } from "@/lib/seo";
 
 export const metadata: Metadata = {
   title: "Add to Home Screen · PhotoWhisperer",
-  robots: { index: false, follow: false },
+  robots: NOINDEX,
 };
 
 const STEPS = [

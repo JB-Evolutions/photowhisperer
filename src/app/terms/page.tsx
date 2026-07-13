@@ -1,5 +1,16 @@
+import type { Metadata } from "next";
 import Nav from "@/components/shared/Nav";
 import MarketingShell from "@/components/marketing/MarketingShell";
+import { marketingSocial } from "@/lib/seo";
+
+const TITLE = "Terms of Service | PhotoWhisperer";
+const DESCRIPTION = "The terms that govern your use of PhotoWhisperer.";
+
+export const metadata: Metadata = {
+  title: TITLE,
+  description: DESCRIPTION,
+  ...marketingSocial({ title: TITLE, description: DESCRIPTION, path: "/terms" }),
+};
 
 // LEGAL COPY BELOW IS PLACEHOLDER. It must be reviewed by qualified counsel
 // before launch — it is not legal advice and has not been reviewed by a lawyer.
