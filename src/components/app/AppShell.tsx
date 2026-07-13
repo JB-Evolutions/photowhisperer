@@ -12,6 +12,8 @@ import OutOfCreditsCard from "@/components/app/OutOfCreditsCard";
 import SoftWarningBanner from "@/components/app/SoftWarningBanner";
 import RateLimitBanner from "@/components/app/RateLimitBanner";
 import SubscriptionBanner from "@/components/app/SubscriptionBanner";
+import InstallBanner from "@/components/app/InstallBanner";
+import { useInstallPrompt } from "@/hooks/useInstallPrompt";
 import { SOFT_WARNING_THRESHOLD, RATE_LIMIT_COOLDOWN_SECONDS } from "@/lib/quota";
 import type { ChatComposerHandle } from "@/components/app/ChatComposer";
 import type { SessionViewHandle } from "@/components/app/SessionView";
@@ -47,6 +49,8 @@ export default function AppShell({
 
   const composerRef = useRef<ChatComposerHandle>(null);
   const sessionViewRef = useRef<SessionViewHandle>(null);
+
+  const install = useInstallPrompt();
 
   // Forces the §4.10 card on for a quota_exceeded response that arrived
   // without monthly_count/credits_remaining (so the real numeric condition
@@ -113,6 +117,8 @@ export default function AppShell({
     activeSessionId,
     onNewScene: handleNewScene,
     onSessionSelect: handleSessionSelect,
+    installSidebarVisible: install.sidebarVisible,
+    onInstallClick: install.triggerInstall,
   };
 
   return (
@@ -134,6 +140,13 @@ export default function AppShell({
             <div className="mx-auto flex min-h-0 w-full max-w-[880px] flex-1 flex-col">
 
               <div className="flex-shrink-0 pt-4">
+                <InstallBanner
+                  visible={install.bannerVisible}
+                  platform={install.platform}
+                  onInstall={() => void install.triggerInstall()}
+                  onDismissSession={install.dismissSession}
+                  onDismissForever={install.dismissForever}
+                />
                 {account && (
                   <SubscriptionBanner
                     tier={account.tier}
@@ -157,6 +170,7 @@ export default function AppShell({
                   onRequestSucceeded={() => {
                     setForceOutOfCredits(false);
                     onSessionActivity?.();
+                    install.markSceneCompleted();
                   }}
                   onPreFillComposer={(text) => {
                     setComposerValue(text);

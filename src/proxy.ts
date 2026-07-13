@@ -20,6 +20,7 @@ function buildCsp(nonce: string) {
     "img-src 'self' data: https:",
     "font-src 'self'",
     "connect-src 'self' https://*.supabase.co https://*.google-analytics.com https://*.googletagmanager.com https://*.analytics.google.com",
+    "manifest-src 'self'",
     "frame-ancestors 'none'",
     "base-uri 'self'",
     "form-action 'self'",

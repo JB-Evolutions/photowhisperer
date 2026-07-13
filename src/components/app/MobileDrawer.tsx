@@ -17,6 +17,8 @@ interface MobileDrawerProps {
   activeSessionId: string | null;
   onNewScene: () => void;
   onSessionSelect: (id: string) => void;
+  installSidebarVisible: boolean;
+  onInstallClick: () => void;
 }
 
 export default function MobileDrawer({
@@ -32,6 +34,8 @@ export default function MobileDrawer({
   activeSessionId,
   onNewScene,
   onSessionSelect,
+  installSidebarVisible,
+  onInstallClick,
 }: MobileDrawerProps) {
   const panelRef = useRef<HTMLDivElement>(null);
   // Captures the element that triggered open so focus returns to it on close.
@@ -203,6 +207,8 @@ export default function MobileDrawer({
           activeSessionId={activeSessionId}
           onNewScene={onNewScene}
           onSessionSelect={onSessionSelect}
+          installSidebarVisible={installSidebarVisible}
+          onInstallClick={onInstallClick}
         />
       </div>
     </div>

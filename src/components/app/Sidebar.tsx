@@ -96,6 +96,8 @@ interface SidebarProps {
   activeSessionId: string | null;
   onNewScene: () => void;
   onSessionSelect: (id: string) => void;
+  installSidebarVisible: boolean;
+  onInstallClick: () => void;
 }
 
 function formatRelativeTime(iso: string): string {
@@ -133,6 +135,8 @@ export default function Sidebar({
   activeSessionId,
   onNewScene,
   onSessionSelect,
+  installSidebarVisible,
+  onInstallClick,
 }: SidebarProps) {
   const router = useRouter();
   const tier = account?.tier ?? "snapshot";
@@ -318,6 +322,34 @@ export default function Sidebar({
             </Button>
           )}
         </div>
+
+        {/* Add to home screen — always available regardless of banner dismissal */}
+        {installSidebarVisible && (
+          <div className="border-t border-border px-4 py-3">
+            <button
+              type="button"
+              onClick={onInstallClick}
+              className="flex w-full items-center gap-2.5 rounded-[10px] border border-border-strong bg-surface px-3 py-2.5 text-sm text-text-muted transition-all hover:-translate-y-px hover:border-text-muted hover:text-text"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                width="16"
+                height="16"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.7"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M12 3v12" />
+                <path d="M7 10l5 5 5-5" />
+                <path d="M5 21h14" />
+              </svg>
+              Add to home screen
+            </button>
+          </div>
+        )}
 
         {/* Account row */}
         <div className="flex items-center gap-2 border-t border-border px-3 py-3">
