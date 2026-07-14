@@ -22,3 +22,5 @@ if (dsn) {
     beforeSendTransaction: (event) => scrubTransaction(event),
   });
 }
+
+export const onRouterTransitionStart = Sentry.captureRouterTransitionStart;

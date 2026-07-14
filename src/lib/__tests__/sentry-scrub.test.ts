@@ -4,6 +4,7 @@ import {
   scrubTransaction,
   SCENE_MESSAGE_PLACEHOLDER,
   SPAN_DESCRIPTION_PLACEHOLDER,
+  type TransactionEvent,
 } from "@/lib/sentry-scrub";
 import type * as Sentry from "@sentry/nextjs";
 
@@ -35,7 +36,7 @@ function buildSceneRouteEventWithCanary(): Sentry.ErrorEvent {
         unexpected_field: CANARY,
       },
     },
-  } as Sentry.ErrorEvent;
+  } as unknown as Sentry.ErrorEvent;
 }
 
 describe("scrubEvent", () => {
@@ -134,7 +135,7 @@ describe("scrubEvent", () => {
 });
 
 describe("scrubTransaction", () => {
-  function buildTransactionEventWithCanary(): Sentry.TransactionEvent {
+  function buildTransactionEventWithCanary(): TransactionEvent {
     return {
       type: "transaction",
       spans: [
@@ -160,7 +161,7 @@ describe("scrubTransaction", () => {
       extra: {
         some_unlisted_debug_field: CANARY,
       },
-    } as unknown as Sentry.TransactionEvent;
+    } as unknown as TransactionEvent;
   }
 
   it("drops the canary from every transaction-specific surface", () => {
@@ -192,7 +193,7 @@ describe("scrubTransaction", () => {
         trace: { trace_id: "def", span_id: "abc" },
         some_unlisted_context: { anything: CANARY },
       },
-    } as unknown as Sentry.TransactionEvent;
+    } as unknown as TransactionEvent;
 
     const scrubbed = scrubTransaction(event);
 

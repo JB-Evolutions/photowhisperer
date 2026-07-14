@@ -5,7 +5,7 @@ import type * as Sentry from "@sentry/nextjs";
 // dep — resolves in node_modules today only as a transitive dep of
 // @sentry/nextjs, not safe to import from directly). Derived structurally
 // from Sentry.init's own beforeSendTransaction parameter instead.
-type TransactionEvent = NonNullable<
+export type TransactionEvent = NonNullable<
   Parameters<NonNullable<Parameters<typeof Sentry.init>[0]["beforeSendTransaction"]>>[0]
 >;
 
