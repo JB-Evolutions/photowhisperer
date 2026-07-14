@@ -27,55 +27,42 @@ runtime actually uses before assuming this is live; not fixed yet.
 ## Sentry deployed but INERT in prod — 10.2 not functionally complete
 
 `NEXT_PUBLIC_SENTRY_DSN` is confirmed absent from the deployed Production
-client bundle (checked directly: the Sentry SDK code is bundled, but no
-literal DSN string is inlined anywhere in it — Next.js inlines
-`NEXT_PUBLIC_*` vars as build-time constants, so an unset var leaves no trace
-to find). `SENTRY_DSN` (server) can't be checked this way — the design
-silently no-ops on a missing DSN rather than crashing, so there's no
-observable-over-HTTP signal either way. Until both are confirmed present in
+client bundle. `SENTRY_DSN` (server) can't be checked over HTTP — the design
+silently no-ops on a missing DSN. Until both are confirmed present in
 Vercel's **Production** environment scope (not just Preview/Development) and
 a fresh deploy picks them up, Sentry captures nothing in prod: zero
 monitoring, but also zero PII risk from the unverified scrub in the meantime.
 
-**This is a deliberate deferral, not an oversight.** Sentry stays off in prod
-until closer to launch / the first non-developer user: (a) with a single
-developer-user, prod monitoring buys close to nothing right now, (b) turning
-it on early just fills Issues with already-known, already-tracked bugs, (c)
-#11/#12 below are already tracked and become mandatory the moment the DSN is
-added anyway — no benefit to rushing that gate before it's needed. Enable
-trigger: first non-developer user / beta. When ready: add `SENTRY_DSN` +
-`NEXT_PUBLIC_SENTRY_DSN` to Vercel Production, redeploy, then run #11
-(client) + #12 (server) immediately, before real traffic.
+**ORDERING CORRECTION:** the original plan said "add DSN → redeploy → then run
+#11/#12." That is backwards. The moment the DSN is live, Sentry starts
+capturing — and #11 is the thing that has never been verified. That would mean
+turning on PII capture and *then* checking whether the PII filter works.
+Invert it: verify the scrub locally against real SDK-constructed events first,
+then enable in prod.
 
 ## Sentry launch-checklist items #11 and #12 — deferred, unverified
 
-Per `implementation-guide.md`'s launch sanity checks:
 - **#11**: client-side `beforeSend` scrub firing on a real browser error has
   only been proven at the `scrubEvent`/`window`-stub level (no jsdom in this
   project) — not a full real-browser Sentry.init dry run.
 - **#12**: real `captureRequestError`-driven scene detection (contexts.nextjs
   set by Sentry itself, not spoofed) for a genuine uncaught `/api/settings`
   error has not been exercised — the self-test route used a spoofed context
-  via direct `captureException` instead, deliberately, since manufacturing a
-  real uncaught-throw path in the live settings route was judged not worth
-  the risk.
+  via direct `captureException` instead.
+
+**CONTRADICTION TO RESOLVE:** `src/instrumentation-client.ts` opens with a
+comment claiming the *server* path is already proven end-to-end ("real
+captureRequestError + fake-DSN transport capture"). That directly contradicts
+the #12 entry above. There is a `scripts/e2e.ts` in the repo that may be what
+proved it. One of these is wrong. Resolve before doing any #12 work — if #12
+is already done, half the remaining Sentry task evaporates.
 
 ## Prod dumps a raw AuthApiError to console on invalid refresh token
 
-Observed during this session's local verification attempt: an expired/invalid
-Supabase refresh token surfaced as a raw `AuthApiError` in the console rather
-than a clean redirect to sign-in. Needs investigation — likely a missing
-error-boundary or refresh-failure handler somewhere in the auth flow.
-
-## onRouterTransitionStart no-op export — still pending
-
-`@sentry/nextjs`'s build emits: `ACTION REQUIRED: ... export
-onRouterTransitionStart ... from instrumentation-client.(js|ts)`. Harmless
-given `tracesSampleRate: 0` (no navigation spans to instrument yet), but the
-build warning itself hasn't been silenced. Add `export const
-onRouterTransitionStart = Sentry.captureRouterTransitionStart;` to
-`src/instrumentation-client.ts` when tracing is turned on, or sooner if the
-warning noise becomes annoying.
+An expired/invalid Supabase refresh token surfaces as a raw `AuthApiError` in
+the console rather than a clean redirect to sign-in. Needs investigation —
+likely a missing error-boundary or refresh-failure handler somewhere in the
+auth flow.
 
 ## Local-dev rate-limiter bypass
 
@@ -86,21 +73,49 @@ Prod-inert (never sets the flag + NODE_ENV guard). The flag lives only in
 gitignored `.env.local`, never committed. Timeout/error path still fails
 closed — this is opt-in short-circuit only.
 
-## tsc --noEmit fails on sentry-scrub.test.ts — neither build nor test catches it
+## No post-deploy smoke test
 
-`pnpm exec tsc --noEmit` currently reports 4 errors, all in
-`src/lib/__tests__/sentry-scrub.test.ts`, pre-existing on `main` (confirmed via
-`git stash` — identical file/line/column with and without in-flight changes):
+The missing-`ANTHROPIC_API_KEY`-in-Vercel-prod incident (which broke the live
+classifier) would have been caught by a single curl after deploy. There is no
+such check. Process gap, not a code bug.
 
-- Line 13: `TS2352` — a test fixture object cast to `ErrorEvent` doesn't
-  sufficiently overlap the real type (missing `type` property).
-- Lines 137, 163, 195: `TS2694` — `TransactionEvent` no longer exported from
-  `@sentry/nextjs@10.63.0`'s types namespace (three call sites).
+## DMARC record is a null
 
-Neither `pnpm build` (Next.js doesn't strict-typecheck test files) nor
-`pnpm test` / `vitest run` (no typecheck step) catches this — `tsc --noEmit`
-is the only gate that surfaces it, and it isn't part of the documented
-pre-commit checklist. Likely caused by a `@sentry/nextjs` version bump
-changing its exported types out from under the test's fixtures. Not fixed —
-needs someone to either update the fixture's shape/cast or find the
-replacement type for `TransactionEvent` in 10.63.0.
+`_dmarc.mail.photographywhisperer.com` is `v=DMARC1; p=none;` with no `rua=`.
+`p=none` means monitor-only (correct for now), but with no reporting address
+it collects nothing — the record is a no-op. Fix at Spaceship: set value to
+`v=DMARC1; p=none; rua=mailto:<an address actually read>;`. Name field is
+`_dmarc.mail` (Spaceship auto-appends the domain). Keep `p=none` until the
+aggregate reports come back clean; only then tighten to `quarantine`.
+
+## Resend sending domain is on Opportunistic TLS
+
+`mail.photographywhisperer.com` in Resend is set to Opportunistic TLS, which
+sends unencrypted if the receiving server won't negotiate TLS. Auth emails
+carry password-reset and magic-link tokens. Should be Enforced TLS. One
+toggle in the Resend domain settings.
+
+## Logged-in nav at 375px never visually checked
+
+Only the logged-out state has been eyeballed at mobile width.
+
+## OG image is a placeholder
+
+`public/og-image.png`. Swap anytime, no code change needed.
+
+---
+
+## RESOLVED — delete this section after next session
+
+- ~~`tsc --noEmit` fails on `sentry-scrub.test.ts` (4 errors)~~ — **FIXED in
+  201f314.** Test referenced `Sentry.TransactionEvent`, which `@sentry/nextjs`
+  stopped exporting in 10.63.0; `sentry-scrub.ts` already defined it locally
+  and just needed `export`. **More importantly:** `pnpm test` now runs
+  `tsc --noEmit` first. A `typecheck` script already existed in package.json
+  and nobody ever ran it — that gap is why 4 errors sat on `main` unnoticed.
+- ~~`onRouterTransitionStart` no-op export pending~~ — **FIXED in 201f314.**
+  Build warning gone.
+- ~~`pnpm add` is broken (stale foreign pnpm store)~~ — **FIXED.**
+  `node_modules/.modules.yaml` was stamped with `/Users/blakebyrne/...`, a
+  store that doesn't exist on this machine. `rm -rf node_modules` +
+  `pnpm install --frozen-lockfile`. Verified with an add/remove round-trip.
