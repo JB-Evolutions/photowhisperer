@@ -23,7 +23,7 @@ export const metadata: Metadata = {
 
 const FEATURES = [
   {
-    title: "Works for any camera",
+    title: "Works with any camera in manual mode",
     body: "Mirrorless, DSLR, or a phone with manual controls. We speak in ISO, aperture, shutter speed, and white balance, not brand-specific menus.",
     icon: <CameraIcon />,
   },
@@ -34,7 +34,7 @@ const FEATURES = [
   },
   {
     title: "Built for the field",
-    body: "Describe a scene in seconds, whether from a trailhead, a sideline, or a dim reception hall, and get settings back before you've missed the shot.",
+    body: "Describe a scene in seconds, whether from a trailhead, a sideline, or a low-light reception hall, and get settings back before you've missed the shot.",
     icon: <CompassIcon />,
   },
 ];

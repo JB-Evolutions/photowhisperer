@@ -11,12 +11,17 @@ const DEFAULT_FAQ_ITEMS: FaqItem[] = [
   {
     question: "Does this work with my camera?",
     answer:
-      "Yes. PhotoWhisperer gives you settings in standard terms (ISO, aperture, shutter speed, white balance) that apply to any camera with manual controls, mirrorless, DSLR, or otherwise. We don't connect to your camera directly; you read the values and dial them in yourself.",
+      "Yes. PhotoWhisperer gives you settings in standard terms (ISO, aperture, shutter speed, white balance) that apply to any camera that shoots in manual mode, mirrorless, DSLR, or otherwise. We don't connect to your camera directly; you read the values and dial them in yourself.",
   },
   {
-    question: "Do I need to know exposure math?",
+    question: "What ISO should I use at night or in low light?",
     answer:
-      "No. Describe the scene in plain language and we handle the exposure math behind the scenes. You don't need to know stops, the exposure triangle, or any of the underlying calculations.",
+      "There's no fixed number, it depends on how dark the scene is and how much motion you can tolerate. Describe what you're shooting, a dim reception hall, a city street, a candlelit table, and we calculate the ISO alongside aperture and shutter speed for that specific light instead of handing you a generic low-light preset.",
+  },
+  {
+    question: "Is this good for beginners who don't know manual mode yet?",
+    answer:
+      "Yes. Describe the scene in plain language and we handle the exposure math behind the scenes. You don't need to know stops, the exposure triangle, or any of the underlying calculations to start shooting in manual mode.",
   },
   {
     question: "What counts as one setting?",
