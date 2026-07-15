@@ -19,7 +19,7 @@ function buildCsp(nonce: string) {
     "style-src 'self'",
     "img-src 'self' data: https:",
     "font-src 'self'",
-    "connect-src 'self' https://*.supabase.co https://*.google-analytics.com https://*.googletagmanager.com https://*.analytics.google.com",
+    "connect-src 'self' https://*.supabase.co https://*.google-analytics.com https://*.googletagmanager.com https://*.analytics.google.com https://*.ingest.us.sentry.io",
     "manifest-src 'self'",
     "frame-ancestors 'none'",
     "base-uri 'self'",
