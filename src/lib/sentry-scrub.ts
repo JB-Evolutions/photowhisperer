@@ -59,6 +59,16 @@ function redactAndTruncate(value: string): string {
 const SAFE_EXTRA_KEYS = new Set(["user_id", "route", "status", "error_type", "tags"]);
 const SAFE_CONTEXT_KEYS = new Set(["nextjs"]); // set by Sentry's own captureRequestError — framework-controlled, not user input
 
+// event.user isn't populated by any code in this app today (grep of src/
+// confirms zero Sentry.setUser/scope.setUser calls), but nothing scrubbed it
+// either — confirmed live via scripts/sentry-client-probe.ts, which showed a
+// real SDK-constructed event carrying email/ip_address straight through to
+// the transport in cleartext. Explicit allowlist (not a denylist) so a
+// future SDK-added user field fails closed by default rather than shipping
+// unscrubbed. id is the only field kept: a synthetic identifier needed for
+// Sentry's own issue grouping, not PII by itself.
+const SAFE_USER_KEYS = new Set(["id"]);
+
 // contexts.nextjs is itself an object (request_path/router_kind/router_path/
 // route_type per captureRequestError.js). Recursing into it via the plain
 // blocklist scrub let an unexpected nested field slip through unscrubbed —
@@ -94,6 +104,40 @@ function scrubAllowlisted(
 
 function scrubNextjsContext(value: unknown): unknown {
   return scrubAllowlisted(value, SAFE_NEXTJS_CONTEXT_FIELDS);
+}
+
+// Strict pick, not a mask: only SAFE_USER_KEYS survive in the returned
+// object at all — email/ip_address/username/geo/anything else are dropped
+// outright rather than replaced with a placeholder like scrubAllowlisted
+// does for extra/contexts. Returns an empty object if none of the safe keys
+// were present; the caller collapses that to `undefined` so a user object
+// never ships as `{}`.
+function scrubUser(user: Record<string, unknown>): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const key of SAFE_USER_KEYS) {
+    if (key in user) {
+      out[key] = user[key];
+    }
+  }
+  return out;
+}
+
+// tags is a flat string-keyed bag of short labels (Sentry.Primitive values).
+// grep of src/ confirms zero Sentry.setTag calls and exactly one `tags:`
+// call site (src/app/api/settings/route.ts:303, both values hardcoded
+// literals, never PII) — tags are not a real PII surface in this app today.
+// String values still run through the same redactAndTruncate free-text
+// routine used elsewhere in this module (secret-token-shape catch only,
+// reusing SECRET_VALUE_RE rather than adding a second detection path) as a
+// defensive backstop if a future setTag call ever passes one through; this
+// does not catch arbitrary non-secret-shaped strings (e.g. a plain email),
+// since no email/IP pattern exists anywhere in this file.
+function scrubTagValues(tags: Record<string, unknown>): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(tags)) {
+    out[key] = typeof value === "string" ? redactAndTruncate(value) : value;
+  }
+  return out;
 }
 
 // Routes that handle raw scene text: /api/settings server-side (no
@@ -220,6 +264,12 @@ export function scrubEvent(event: Sentry.ErrorEvent): Sentry.ErrorEvent {
       message: crumb.message ? scrubFreeText(crumb.message) : crumb.message,
     }));
   }
+  if (event.user) {
+    const scrubbedUser = scrubUser(event.user as Record<string, unknown>);
+    // Collapse to undefined rather than shipping `{}` — an empty user object
+    // is noise, not signal, once email/ip_address/etc. are stripped.
+    event.user = Object.keys(scrubbedUser).length > 0 ? (scrubbedUser as typeof event.user) : undefined;
+  }
   if (event.message) {
     event.message = scrubFreeText(event.message);
   }
@@ -289,6 +339,10 @@ export function scrubTransaction(event: TransactionEvent): TransactionEvent {
       data: crumb.data ? (scrubValue(crumb.data) as typeof crumb.data) : crumb.data,
       message: crumb.message ? redactAndTruncate(crumb.message) : crumb.message,
     }));
+  }
+  if (event.user) {
+    const scrubbedUser = scrubUser(event.user as Record<string, unknown>);
+    event.user = Object.keys(scrubbedUser).length > 0 ? (scrubbedUser as typeof event.user) : undefined;
   }
   if (event.spans) {
     event.spans = event.spans.map((span) => ({

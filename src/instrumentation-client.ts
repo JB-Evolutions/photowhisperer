@@ -1,7 +1,11 @@
-// Coverage note: beforeSend's scrub logic is proven end-to-end for the
-// server path (real captureRequestError + fake-DSN transport capture); the
-// client path is proven at the scrubEvent/window.location-stub level only,
-// not a full real-browser Sentry.init dry run — jsdom isn't in this project.
+// Coverage note: the client-side beforeSend scrub path is locally verified
+// via scripts/sentry-client-probe.ts — real Sentry.init, real SDK event
+// construction, fake-DSN local transport capture — confirmed
+// user.email/ip_address and a cookie header are stripped before the
+// envelope leaves the process. The server-side captureRequestError path
+// (#12 in KNOWN_ISSUES.md) remains deferred per commit aaebd4e and is NOT
+// proven — the self-test route used a spoofed context via direct
+// captureException, not a genuine uncaught error.
 import * as Sentry from "@sentry/nextjs";
 import { scrubEvent, scrubTransaction } from "@/lib/sentry-scrub";
 

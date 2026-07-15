@@ -57,6 +57,52 @@ the #12 entry above. There is a `scripts/e2e.ts` in the repo that may be what
 proved it. One of these is wrong. Resolve before doing any #12 work — if #12
 is already done, half the remaining Sentry task evaporates.
 
+## scrubEvent does not cover event.user / event.tags — latent PII leak
+
+The canary probe confirmed scrubEvent (src/lib/sentry-scrub.ts) does NOT scrub
+event.user or event.tags. An SDK-constructed event with PII in those fields
+passes through uncaught.
+
+Not firing in prod today: grep of src/ shows zero Sentry.setUser/setTag/
+scope.setUser/scope.setTag calls, so nothing currently populates those
+fields.
+
+The moment anyone adds a setUser/setTag call, this leaks PII to Sentry. It is
+a real coverage hole, not a hypothetical.
+
+Fix: extend scrubEvent to strip/redact event.user (keep id if needed, drop
+email/ip_address/username) and scan event.tags values against the same PII
+patterns used elsewhere in the scrub. Add a unit fixture covering both
+fields.
+
+Do NOT weaken existing scrub behavior. Do NOT add setUser/setTag anywhere to
+"fix" this — the scrub is the fix.
+
+## sessions routes handle scene content but are outside the scrub's scene-route allowlist
+
+`src/app/api/sessions/route.ts` and `src/app/api/sessions/[id]/route.ts` read
+and return `session_messages.content` (raw scene text) — the same content
+class the scene-route redaction in `sentry-scrub.ts` exists to protect. But
+`isSceneRoutePathname` only matches `/api/settings` and `/app*`; these two
+routes aren't in the allowlist.
+
+Not a live bug today: audited every `throw`/re-throw and `console.error`/
+`console.log` on these routes — all of them surface only opaque Postgrest
+error metadata (`message`/`details`/`hint`/`code`) or `user_id`, never row
+content. Nothing currently echoes `session_messages.content` into an error
+message or breadcrumb.
+
+The gap: if a future error path on either route ever logs or throws with row
+content included, it falls through to `redactAndTruncate`'s secret-token
+regex only (catches `sk_live_`/`sb_secret_`/etc. shapes) — not the wholesale
+scene-route redaction that `/api/settings` and `/app` get. A generic scene
+description matches no secret pattern and would ship close to verbatim
+(truncated at 200 chars).
+
+Fix-when-touched: add `/api/sessions` and `/api/sessions/[id]` to
+`isSceneRoutePathname` before either route grows an error path that surfaces
+row content.
+
 ## Prod dumps a raw AuthApiError to console on invalid refresh token
 
 An expired/invalid Supabase refresh token surfaces as a raw `AuthApiError` in
