@@ -40,22 +40,43 @@ turning on PII capture and *then* checking whether the PII filter works.
 Invert it: verify the scrub locally against real SDK-constructed events first,
 then enable in prod.
 
-## Sentry launch-checklist items #11 and #12 — deferred, unverified
+## Sentry launch-checklist items #11 and #12
 
-- **#11**: client-side `beforeSend` scrub firing on a real browser error has
-  only been proven at the `scrubEvent`/`window`-stub level (no jsdom in this
-  project) — not a full real-browser Sentry.init dry run.
-- **#12**: real `captureRequestError`-driven scene detection (contexts.nextjs
-  set by Sentry itself, not spoofed) for a genuine uncaught `/api/settings`
-  error has not been exercised — the self-test route used a spoofed context
-  via direct `captureException` instead.
+- **#11 — VERIFIED IN PROD.** A real uncaught error on `/app` was delivered
+  to sentry.io; the stored event was inspected directly and confirmed absent:
+  error message (scene-route-omitted), breadcrumbs, breadcrumb arguments,
+  request headers, cookie, authorization, email, and ip_address.
+  `infer_ip=never` confirmed on the stored event — raw IP is not stored.
+  Client-side `beforeSend` scrub is now proven end-to-end against a genuine
+  browser error, not just the local `scrubEvent`/probe level.
+- **#12**: remains deferred/unverified per commit `aaebd4e` — not touched
+  this session. Real `captureRequestError`-driven scene detection
+  (contexts.nextjs set by Sentry itself, not spoofed) for a genuine uncaught
+  `/api/settings` error has not been exercised.
 
-**CONTRADICTION TO RESOLVE:** `src/instrumentation-client.ts` opens with a
-comment claiming the *server* path is already proven end-to-end ("real
-captureRequestError + fake-DSN transport capture"). That directly contradicts
-the #12 entry above. There is a `scripts/e2e.ts` in the repo that may be what
-proved it. One of these is wrong. Resolve before doing any #12 work — if #12
-is already done, half the remaining Sentry task evaporates.
+## Sentry stamps IP-derived city-level geo at ingest
+
+`event.user.geo` (`country_code`/`city`/`subdivision`/`region`, e.g.
+Auckland NZ) is added server-side by Sentry AFTER the client's `beforeSend`
+scrub runs — the client scrub cannot reach it by construction: nothing in
+this app populates or sees geo pre-ingest, it's stamped from the ingesting
+connection's IP on Sentry's side.
+
+Attempted and FAILED to remove it:
+- (a) project's "Prevent Storing of IP Addresses" toggle
+- (b) project-scope Advanced Data Scrubbing rule: `$user.geo` Remove
+- (c) org-scope Advanced Data Scrubbing rule + `$user.geo.**` wildcard
+
+Geo persisted through all three — enrichment on this plan appears not
+governed by the scrubbing-rules UI.
+
+Risk: LOW. City-level only, no identity attached (no user id/email/name on
+these events), raw IP not stored (`infer_ip=never` confirmed) — same
+granularity as standard analytics/CDN logs.
+
+Not blocking; accepted for v1. If tightening is ever required (e.g. EU users
++ compliance review): open a Sentry support ticket for Relay-level geo
+suppression.
 
 ## scrubEvent does not cover event.user / event.tags — latent PII leak
 

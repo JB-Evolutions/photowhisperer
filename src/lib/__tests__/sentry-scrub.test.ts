@@ -132,6 +132,21 @@ describe("scrubEvent", () => {
     expect(headers.authorization).toBe("[redacted]");
     expect(headers.cookie).toBe("[redacted]");
   });
+
+  it("strips user.geo and other non-allowlisted user fields while keeping id", () => {
+    const event = {
+      user: {
+        id: "probe-123",
+        email: "leak@example.com",
+        geo: { country_code: "NZ", city: "Auckland", subdivision: "Auckland", region: "Oceania" },
+      },
+    } as unknown as Sentry.ErrorEvent;
+
+    const scrubbed = scrubEvent(event);
+
+    expect(scrubbed.user).toEqual({ id: "probe-123" });
+    expect(JSON.stringify(scrubbed.user)).not.toContain("Auckland");
+  });
 });
 
 describe("scrubTransaction", () => {
