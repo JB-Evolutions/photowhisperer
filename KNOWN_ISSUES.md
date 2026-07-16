@@ -13,17 +13,6 @@ auth refresh-token error interrupted the eyeball mid-session. Re-verify next
 session using the local runbook (steps 2-4: happy path, quota_exceeded with
 real numbers, quota_exceeded without numbers) before treating this as done.
 
-## Quota month keying uses local time, not UTC
-
-`src/app/api/settings/route.ts` computes the quota month/year key with
-unqualified `new Date().getMonth() + 1` / `new Date().getFullYear()` (quota
-preflight check and the `check_and_increment_quota_with_credits` RPC call).
-Neither uses `getUTCMonth()`/`getUTCFullYear()`. On a server whose process TZ
-isn't UTC, this can key `usage_tracking` to the wrong month near month
-boundaries — plausible failure modes: quota resetting early/late, or a day's
-requests splitting across two month rows. Confirm what TZ the deployed
-runtime actually uses before assuming this is live; not fixed yet.
-
 ## Sentry deployed but INERT in prod — 10.2 not functionally complete
 
 `NEXT_PUBLIC_SENTRY_DSN` is confirmed absent from the deployed Production
