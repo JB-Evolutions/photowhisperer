@@ -6,10 +6,10 @@
 // only a page-route redirect proves it.
 //
 // Usage: tsx scripts/smoke.ts [baseUrl]
+// baseUrl defaults to the canonical www origin; pass a bare-apex arg only
+// if you specifically want to exercise the apex→www redirect.
 
-export {}; // top-level await requires this file to be a module
-
-const baseUrl = process.argv[2] ?? "https://photographywhisperer.com";
+const baseUrl = process.argv[2] ?? "https://www.photographywhisperer.com";
 
 function fail(message: string): never {
   console.error(`FAIL: ${message}`);
@@ -17,8 +17,9 @@ function fail(message: string): never {
 }
 
 async function checkHealth() {
+  // follow: apex redirects to canonical www before hitting the app; the real user path goes through it
   const res = await fetch(new URL("/api/health", baseUrl), {
-    redirect: "manual",
+    redirect: "follow",
   });
   if (res.status !== 200) {
     fail(`/api/health returned ${res.status}, expected 200`);
@@ -30,6 +31,7 @@ async function checkHealth() {
 }
 
 async function checkAuthGate() {
+  // manual: the assertion is on the 307 itself, so it must not be auto-followed
   const res = await fetch(new URL("/app", baseUrl), {
     redirect: "manual",
   });
@@ -42,11 +44,15 @@ async function checkAuthGate() {
   }
 }
 
-try {
-  await checkHealth();
-  await checkAuthGate();
-  console.log(`PASS: ${baseUrl} is healthy and proxy.ts is registered`);
-  process.exit(0);
-} catch (err) {
-  fail(`unexpected error: ${err instanceof Error ? err.message : String(err)}`);
+async function main() {
+  try {
+    await checkHealth();
+    await checkAuthGate();
+    console.log(`PASS: ${baseUrl} is healthy and proxy.ts is registered`);
+    process.exit(0);
+  } catch (err) {
+    fail(`unexpected error: ${err instanceof Error ? err.message : String(err)}`);
+  }
 }
+
+main();
