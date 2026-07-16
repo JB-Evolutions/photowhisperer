@@ -59,6 +59,12 @@ export async function proxy(request: NextRequest) {
     return finish(NextResponse.next({ request: { headers: requestHeaders } }));
   }
 
+  // Health check reports env presence only, no user data — no auth needed,
+  // and it must stay reachable even when auth infra itself is unhealthy.
+  if (pathname === "/api/health") {
+    return finish(NextResponse.next({ request: { headers: requestHeaders } }));
+  }
+
   if (
     process.env.NODE_ENV !== "production" &&
     process.env.ALLOW_TEST_LOGIN === "true" &&
