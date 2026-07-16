@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import * as Sentry from "@sentry/nextjs";
 import { createClient } from "@/lib/supabase/client";
 import AppShell from "@/components/app/AppShell";
 
@@ -84,9 +85,19 @@ export default function AppPage() {
 
     // getSession() reads the local cookie — no network round trip.
     // Email is only used for avatar initials so session-level trust is fine.
+    // A non-null error here means a background refresh failed (dead/rotated
+    // refresh token) — capture it for visibility. The SIGNED_OUT listener
+    // above already owns the redirect for this case; this call only reports.
     const fetchEmail = supabase.auth
       .getSession()
-      .then(({ data: { session } }) => setUserEmail(session?.user?.email ?? ""))
+      .then(({ data: { session }, error }) => {
+        setUserEmail(session?.user?.email ?? "");
+        if (error) {
+          Sentry.captureException(error, {
+            extra: { error_type: error.name, status: error.status, route: "/app" },
+          });
+        }
+      })
       .catch(() => {});
 
     Promise.all([fetchAccount, fetchSessions, fetchEmail]).finally(() =>

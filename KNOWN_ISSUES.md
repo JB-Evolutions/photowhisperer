@@ -127,9 +127,57 @@ row content.
 ## Prod dumps a raw AuthApiError to console on invalid refresh token
 
 An expired/invalid Supabase refresh token surfaces as a raw `AuthApiError` in
-the console rather than a clean redirect to sign-in. Needs investigation —
-likely a missing error-boundary or refresh-failure handler somewhere in the
-auth flow.
+the console rather than a clean redirect to sign-in.
+
+Root-caused via a Node harness driving the real installed
+`@supabase/auth-js@2.108.2`: `_emitInitialSession()`
+(`GoTrueClient.js:3559-3578`), which runs once per `onAuthStateChange()`
+registration, re-throws the error that every other internal consumer
+(`_recoverAndRefresh`, `_autoRefreshTokenTick`) swallows silently, then
+unconditionally `console.error`s it. Unsuppressable from app code — it's
+inside an internal IIFE with no `.catch()`.
+
+**FIXED.** The raw console dump itself is still unsuppressable (library-internal,
+harmless — it's a `console.error`, not a thrown/unhandled exception), but the
+app now has visibility: `src/app/app/page.tsx`'s existing `getSession()` call
+captures a non-null `error` via `Sentry.captureException`, with
+`extra: { error_type, status, route: "/app" }` (passes scrub — see prior
+analysis on `/app` scene-route message redaction; `extra` fields survive via
+`SAFE_EXTRA_KEYS`). Redirect for this case was already handled by the
+existing `SIGNED_OUT` listener — no redirect logic added, no second path, no
+`reason=expired`, no `sentry-scrub.ts` change.
+
+Related but separate: see "Path B — proactive-preserve stale session" below,
+which this fix does NOT cover.
+
+## Path B — proactive-preserve stale session (bounded ~90s, accepted for v1)
+
+When an access token is still nominally valid (inside the 90s auto-refresh
+margin but not yet actually expired) and the refresh token backing it is
+already dead (revoked elsewhere, already rotated by another tab), GoTrue's
+`_callRefreshToken` deliberately preserves the stale session rather than
+signing the user out — a real upstream design choice to avoid punishing users
+for a benign transient refresh hiccup. Confirmed via harness: no `SIGNED_OUT`
+fires, and — more importantly — the app's own `getSession()` call (the same
+one the Path A fix reads) also returns `error: null` in this branch, because
+`__loadSession`'s proactive-preserve check applies identically to every
+caller, not just the internal recovery path. There is no field on the public
+`getSession()`/`getUser()` result that distinguishes this from a genuinely
+healthy session.
+
+Practical impact: for up to ~90 seconds, the client believes it has a valid
+session when the refresh token is actually dead. `/app`'s server-gated data
+fetches are unaffected (`proxy.ts` re-validates via `getUser()` server-side
+on every request regardless of client-side cache state), so this is cosmetic
+staleness (e.g. the displayed email), not an authorization bypass. It
+self-heals the moment the access token's real `expires_at` arrives and the
+next refresh attempt takes the non-preserve branch, which — being inside the
+90s margin — is bounded to that window.
+
+Decision: accepted as-is for v1. Do not build a private-API detection
+mechanism (e.g. diffing session before/after a `getSession()` call, or
+patching the vendored library) to close a self-correcting ~90s window — not
+worth the fragility against a condition that resolves on its own.
 
 ## Local-dev rate-limiter bypass
 
