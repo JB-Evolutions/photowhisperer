@@ -2,9 +2,16 @@ import Link from "next/link";
 import Logo from "./Logo";
 import ThemeToggle from "./ThemeToggle";
 import Button from "./Button";
+import MobileNavMenu from "./MobileNavMenu";
 import { getMarketingAuthState } from "@/lib/auth-state";
 import { TIER_DISPLAY_NAMES } from "@/lib/quota";
 import "@/components/marketing/marketing.css";
+
+const NAV_LINKS = [
+  { label: "Features", href: "/#features" },
+  { label: "Pricing", href: "/#pricing" },
+  { label: "FAQ", href: "/#faq" },
+];
 
 export default async function Nav() {
   const { isLoggedIn, tier } = await getMarketingAuthState();
@@ -49,7 +56,7 @@ export default async function Nav() {
             </li>
           </ul>
 
-          <div className="flex items-center gap-2 sm:gap-2.5">
+          <div className="hidden md:flex items-center gap-2 sm:gap-2.5">
             {isLoggedIn ? (
               <>
                 <span className="hidden sm:inline font-mono text-xs uppercase tracking-[0.08em] text-text-dim">
@@ -83,6 +90,8 @@ export default async function Nav() {
             )}
             <ThemeToggle />
           </div>
+
+          <MobileNavMenu links={NAV_LINKS} isLoggedIn={isLoggedIn} tier={tier} />
         </div>
       </nav>
     </>
