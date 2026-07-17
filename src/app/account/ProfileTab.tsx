@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef, useCallback, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import TextField from "@/components/shared/TextField";
 import { useToastContext } from "@/components/app/useToast";
 import { createClient } from "@/lib/supabase/client";
@@ -176,6 +177,7 @@ interface ProfileTabProps {
 
 export default function ProfileTab({ email, newEmail, onDirtyChange, registerActions }: ProfileTabProps) {
   const showToast = useToastContext();
+  const router = useRouter();
 
   const [fetchState, setFetchState] = useState<FetchState>({ status: "loading" });
   const [displayName, setDisplayName] = useState("");
@@ -183,6 +185,9 @@ export default function ProfileTab({ email, newEmail, onDirtyChange, registerAct
 
   const [pendingNewEmail, setPendingNewEmail] = useState<string | null>(newEmail);
   const [showEmailModal, setShowEmailModal] = useState(false);
+
+  const [portalPending, setPortalPending] = useState(false);
+  const [billingError, setBillingError] = useState<string | null>(null);
 
   const savedRef = useRef<ProfileSnapshot | null>(null);
   const saveRef = useRef<() => Promise<void>>(async () => {});
@@ -276,6 +281,39 @@ export default function ProfileTab({ email, newEmail, onDirtyChange, registerAct
     setPendingNewEmail(returnedNewEmail);
     setShowEmailModal(false);
     showToast("Confirmation sent. Check your email.");
+  }
+
+  // ─── Manage billing ────────────────────────────────────────────────────────
+  // Mirrors BillingView.tsx handlePortal. Snapshot users have no Stripe
+  // customer yet, so route them to /pricing instead of calling the portal.
+
+  async function handleManageBilling(tier: string) {
+    if (tier === "snapshot") {
+      router.push("/pricing");
+      return;
+    }
+    if (portalPending) return;
+    setPortalPending(true);
+    setBillingError(null);
+    try {
+      const res = await fetch("/api/stripe/portal");
+      if (!res.ok) {
+        const body = (await res.json().catch(() => ({}))) as { error?: string; message?: string };
+        setBillingError(body.message ?? "Couldn't open the billing portal. Try again.");
+        setPortalPending(false);
+        return;
+      }
+      const data = (await res.json()) as { url?: string };
+      if (!data.url) {
+        setBillingError("Couldn't open the billing portal. Try again.");
+        setPortalPending(false);
+        return;
+      }
+      window.location.href = data.url;
+    } catch {
+      setBillingError("Couldn't reach the server. Check your connection and try again.");
+      setPortalPending(false);
+    }
   }
 
   // ─── Render ──────────────────────────────────────────────────────────────
@@ -375,28 +413,24 @@ export default function ProfileTab({ email, newEmail, onDirtyChange, registerAct
           )}
 
           {fetchState.status === "ok" && (
-            <div className="flex items-center gap-3">
-              <span className="inline-flex items-center rounded-full border border-border-accent bg-surface-2 px-3 py-1 text-sm font-medium text-text">
-                {TIER_LABELS[fetchState.data.tier] ?? fetchState.data.tier}
-              </span>
-              {/* Stripe portal is a POST — /billing page not yet built (Phase 9.11) */}
-              <div className="group relative">
-                <button
-                  type="button"
-                  disabled
-                  aria-describedby="billing-tooltip"
-                  className="cursor-not-allowed text-sm text-accent opacity-40"
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center gap-3">
+                <span className="inline-flex items-center rounded-full border border-border-accent bg-surface-2 px-3 py-1 text-sm font-medium text-text">
+                  {TIER_LABELS[fetchState.data.tier] ?? fetchState.data.tier}
+                </span>
+                <Button
+                  variant="ghost"
+                  onClick={() => void handleManageBilling(fetchState.data.tier)}
+                  pending={portalPending}
+                  pendingLabel="Opening…"
+                  disabled={portalPending}
                 >
                   Manage billing
-                </button>
-                <div
-                  id="billing-tooltip"
-                  role="tooltip"
-                  className="pointer-events-none absolute left-0 top-full z-10 mt-1.5 hidden whitespace-nowrap rounded-lg border border-border bg-surface-2 px-3 py-1.5 text-xs text-text-muted shadow-sm group-focus-within:block group-hover:block"
-                >
-                  Billing coming soon
-                </div>
+                </Button>
               </div>
+              {billingError && (
+                <p role="alert" className="mt-2 text-xs text-danger">{billingError}</p>
+              )}
             </div>
           )}
         </section>

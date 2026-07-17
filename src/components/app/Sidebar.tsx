@@ -81,6 +81,46 @@ export default function Sidebar({
     plusButtonRef.current?.focus();
   }
 
+  // Mirrors BillingView.tsx handleUpgrade, parameterized by target tier and a
+  // buttonId so the teaser and bottom-widget upgrade buttons (which can both
+  // be visible at once for a snapshot user) track pending state independently.
+  const [upgradePending, setUpgradePending] = useState<string | null>(null);
+  const [teaserUpgradeError, setTeaserUpgradeError] = useState<string | null>(null);
+  const [upgradeError, setUpgradeError] = useState<string | null>(null);
+
+  async function handleUpgrade(
+    targetTier: "portrait" | "studio",
+    buttonId: string,
+    setError: (msg: string | null) => void
+  ) {
+    if (upgradePending) return;
+    setUpgradePending(buttonId);
+    setError(null);
+    try {
+      const res = await fetch("/api/stripe/checkout/subscription", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tier: targetTier }),
+      });
+      if (!res.ok) {
+        const body = (await res.json().catch(() => ({}))) as { message?: string };
+        setError(body.message ?? "Couldn't start checkout. Try again.");
+        setUpgradePending(null);
+        return;
+      }
+      const data = (await res.json()) as { url?: string };
+      if (!data.url) {
+        setError("Couldn't start checkout. Try again.");
+        setUpgradePending(null);
+        return;
+      }
+      window.location.href = data.url;
+    } catch {
+      setError("Couldn't reach the server. Check your connection and try again.");
+      setUpgradePending(null);
+    }
+  }
+
   return (
     <div className="flex h-full flex-col bg-surface">
 
@@ -168,10 +208,16 @@ export default function Sidebar({
             </p>
             <Button
               variant="outline"
-              onClick={() => { /* TODO(9.10): billing modal */ }}
+              onClick={() => void handleUpgrade("portrait", "teaser", setTeaserUpgradeError)}
+              pending={upgradePending === "teaser"}
+              pendingLabel="Starting…"
+              disabled={upgradePending !== null}
             >
               Upgrade
             </Button>
+            {teaserUpgradeError && (
+              <p role="alert" className="mt-2 text-xs text-danger">{teaserUpgradeError}</p>
+            )}
           </div>
         )}
       </div>
@@ -239,14 +285,28 @@ export default function Sidebar({
           )}
 
           {!loading && !accountError && tier !== "studio" && (
-            <Button
-              variant="outline"
-              fullWidth
-              className="mt-3"
-              onClick={() => { /* TODO(9.10): billing modal */ }}
-            >
-              {tier === "snapshot" ? "Upgrade to Portrait" : "Upgrade to Studio"}
-            </Button>
+            <>
+              <Button
+                variant="outline"
+                fullWidth
+                className="mt-3"
+                onClick={() =>
+                  void handleUpgrade(
+                    tier === "snapshot" ? "portrait" : "studio",
+                    "widget",
+                    setUpgradeError
+                  )
+                }
+                pending={upgradePending === "widget"}
+                pendingLabel="Starting…"
+                disabled={upgradePending !== null}
+              >
+                {tier === "snapshot" ? "Upgrade to Portrait" : "Upgrade to Studio"}
+              </Button>
+              {upgradeError && (
+                <p role="alert" className="mt-2 text-xs text-danger">{upgradeError}</p>
+              )}
+            </>
           )}
         </div>
 
