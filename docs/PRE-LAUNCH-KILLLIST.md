@@ -3,15 +3,12 @@
 Items that MUST be removed or resolved before production launch. Do not ship with any
 of these outstanding.
 
-## Code removals
-
-- **`src/app/api/settings/route.ts` — `?fake=` stub block**: Remove the entire
-  `isFakeEnabled()` block and all `fake === "*"` branches (ok, clarification, invalid,
-  error, rate_limited, service_busy, slow, hang). Also remove `ALLOW_FAKE_SETTINGS` from
-  `.env.local` and Vercel env vars. Added in Phase 9.6; rate_limited branch added in
-  Phase 9.7; service_busy branch added alongside the service_busy state.
-
 ## Vercel env vars
+
+- **`ALLOW_FAKE_SETTINGS`** — `?fake=` stub block and `isFakeEnabled()` removed from
+  `src/app/api/settings/route.ts`. Still needs manual removal of `ALLOW_FAKE_SETTINGS`
+  from `.env.local` and Vercel env vars (outside the repo, not something Claude Code
+  can do).
 
 - **`ALLOW_TEST_LOGIN=true`** — turn OFF in Vercel production environment before launch.
   Currently `true` for dev/testing convenience; must be `false` or unset in prod.

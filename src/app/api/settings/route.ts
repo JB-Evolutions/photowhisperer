@@ -23,13 +23,6 @@ const UUID_RE =
 const INVALID_INPUT_MESSAGE =
   "Please describe your shooting conditions: lighting, subject, and movement.";
 
-function isFakeEnabled(): boolean {
-  return (
-    process.env.NODE_ENV !== "production" &&
-    process.env.ALLOW_FAKE_SETTINGS === "true"
-  );
-}
-
 interface SettingsRequestBody {
   conditions: string;
   session_id?: string;
@@ -209,68 +202,6 @@ export async function POST(request: NextRequest) {
 
   if (!user) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  }
-
-  // TODO(pre-launch): remove ?fake= stub + ALLOW_FAKE_SETTINGS before prod.
-  // Listed in the deploy kill-list alongside ALLOW_TEST_LOGIN.
-  if (isFakeEnabled()) {
-    const fake = request.nextUrl.searchParams.get("fake");
-    const OK_FIXTURE = {
-      status: "ok",
-      iso: 200,
-      aperture: "f/1.8",
-      shutter_speed: "1/500",
-      white_balance: "daylight",
-      color_temperature: "5500K",
-      assumptions: ["Focal length assumed: 85mm"],
-      warnings: ["High contrast — expose for highlights; shadows may clip"],
-      scene_summary: "Golden hour backlit portrait.",
-      credits_used: false,
-      monthly_count: 1,
-      credits_remaining: 4,
-      session_id: "fake-session-1",
-    };
-    if (fake === "ok") {
-      return NextResponse.json(OK_FIXTURE);
-    }
-    if (fake === "clarification") {
-      return NextResponse.json({
-        status: "clarification_required",
-        question: "Is this indoors or outdoors, and is the subject moving?",
-      });
-    }
-    if (fake === "invalid") {
-      return NextResponse.json({
-        status: "invalid_input",
-        message: "Please describe your shooting conditions: lighting, subject, and movement.",
-      });
-    }
-    if (fake === "error") {
-      return NextResponse.json({
-        status: "error",
-        message: "Couldn't reach the photography service. Try again?",
-      });
-    }
-    if (fake === "rate_limited") {
-      return NextResponse.json({ error: "rate_limited" }, { status: 429 });
-    }
-    if (fake === "service_busy") {
-      // Same shape as both real 503 sources (rate-limiter fail-closed and
-      // classifier overload) — exercises the client's one 503 branch.
-      return NextResponse.json(
-        { error: "service_busy", message: "Service is busy. Please try again in a moment." },
-        { status: 503, headers: { "Retry-After": "10" } }
-      );
-    }
-    if (fake === "slow") {
-      await new Promise((r) => setTimeout(r, 12000));
-      return NextResponse.json(OK_FIXTURE);
-    }
-    if (fake === "hang") {
-      await new Promise((r) => setTimeout(r, 35000));
-      return NextResponse.json(OK_FIXTURE);
-    }
-    // absent or unknown fake param — fall through to live handling
   }
 
   let rawBody: unknown;
