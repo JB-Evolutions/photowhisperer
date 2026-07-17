@@ -21,7 +21,8 @@ function normalize(raw: {
   lenses: string[] | null;
   flash: string | null;
   notes: string | null;
-}): ProfileSnapshot {
+} | null): ProfileSnapshot {
+  if (!raw) return { body: "", lenses: [], flash: "", notes: "" };
   return {
     body: raw.body ?? "",
     lenses: raw.lenses ?? [],
@@ -38,7 +39,7 @@ interface CameraTabProps {
 export default function CameraTab({ onDirtyChange, registerActions }: CameraTabProps) {
   const showToast = useToastContext();
 
-  const [loadState, setLoadState] = useState<"loading" | "ok" | "error">("loading");
+  const [loadState, setLoadState] = useState<"loading" | "ok" | "empty" | "error">("loading");
   const [body, setBody] = useState("");
   const [lenses, setLenses] = useState<string[]>([]);
   const [lensQuery, setLensQuery] = useState("");
@@ -57,19 +58,21 @@ export default function CameraTab({ onDirtyChange, registerActions }: CameraTabP
     try {
       const res = await fetch("/api/camera-profile");
       if (!res.ok) { setLoadState("error"); return; }
-      const raw = await res.json() as {
-        body: string | null;
-        lenses: string[] | null;
-        flash: string | null;
-        notes: string | null;
+      const { profile } = await res.json() as {
+        profile: {
+          body: string | null;
+          lenses: string[] | null;
+          flash: string | null;
+          notes: string | null;
+        } | null;
       };
-      const snap = normalize(raw);
+      const snap = normalize(profile);
       savedRef.current = snap;
       setBody(snap.body);
       setLenses(snap.lenses);
       setFlash(snap.flash);
       setNotes(snap.notes);
-      setLoadState("ok");
+      setLoadState(profile ? "ok" : "empty");
     } catch {
       setLoadState("error");
     }
@@ -219,6 +222,12 @@ export default function CameraTab({ onDirtyChange, registerActions }: CameraTabP
   return (
     <div className="flex max-w-lg flex-col gap-6 px-6 py-8">
       <h2 className="font-display text-base text-text">Camera</h2>
+
+      {loadState === "empty" && (
+        <p className="text-sm text-text-dim">
+          Add your camera and lenses so recommendations match your kit.
+        </p>
+      )}
 
       {/* Body */}
       <div className="flex flex-col gap-1.5">

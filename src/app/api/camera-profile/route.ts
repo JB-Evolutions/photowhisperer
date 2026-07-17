@@ -107,7 +107,7 @@ export async function GET() {
 
   try {
     const profile = await getCameraProfile(user.id);
-    return NextResponse.json(profile);
+    return NextResponse.json({ profile });
   } catch (err) {
     console.error("GET /api/camera-profile failure:", err);
     return NextResponse.json(

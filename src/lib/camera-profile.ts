@@ -10,12 +10,13 @@ export async function getCameraProfile(
 ): Promise<CameraProfile | null> {
   const supabase = await createServerClient();
 
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("camera_profiles")
     .select("body, lenses, flash, notes")
     .eq("user_id", user_id)
     .maybeSingle();
 
+  if (error) throw error;
   if (!data) return null;
 
   return {

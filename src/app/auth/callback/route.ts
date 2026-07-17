@@ -42,7 +42,13 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(expiredRedirect);
   }
 
-  const cameraProfile = await getCameraProfile(user.id);
+  let cameraProfile: Awaited<ReturnType<typeof getCameraProfile>>;
+  try {
+    cameraProfile = await getCameraProfile(user.id);
+  } catch (err) {
+    console.error("auth/callback getCameraProfile failure:", err);
+    return NextResponse.redirect(new URL("/app", request.url));
+  }
   return NextResponse.redirect(
     new URL(cameraProfile ? "/app" : "/onboarding/camera", request.url)
   );
