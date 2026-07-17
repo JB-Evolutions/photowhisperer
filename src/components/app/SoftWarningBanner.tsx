@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { CreditsModal } from "@/components/shared/CreditsModal";
 
 interface SoftWarningBannerProps {
   monthlyUsed: number;
@@ -16,6 +17,7 @@ function dismissKey(): string {
 export default function SoftWarningBanner({ monthlyUsed, monthlyLimit }: SoftWarningBannerProps) {
   const [hydrated, setHydrated] = useState(false);
   const [dismissed, setDismissed] = useState(false);
+  const [showCreditsModal, setShowCreditsModal] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -49,7 +51,7 @@ export default function SoftWarningBanner({ monthlyUsed, monthlyLimit }: SoftWar
         <button
           type="button"
           className="underline-offset-2 hover:text-text hover:underline"
-          onClick={() => { /* TODO(9.10): billing modal */ }}
+          onClick={() => setShowCreditsModal(true)}
         >
           Buy credits
         </button>
@@ -63,6 +65,9 @@ export default function SoftWarningBanner({ monthlyUsed, monthlyLimit }: SoftWar
       >
         ×
       </button>
+      {showCreditsModal && (
+        <CreditsModal onClose={() => setShowCreditsModal(false)} />
+      )}
     </div>
   );
 }

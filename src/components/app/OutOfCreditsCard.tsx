@@ -1,8 +1,10 @@
 "use client";
 
+import { useState } from "react";
 import { TIER_DISPLAY_NAMES, nextResetDate } from "@/lib/quota";
 import type { Tier } from "@/lib/quota";
 import Button from "@/components/shared/Button";
+import { CreditsModal } from "@/components/shared/CreditsModal";
 
 interface OutOfCreditsCardProps {
   tier: Tier;
@@ -10,6 +12,7 @@ interface OutOfCreditsCardProps {
 }
 
 export default function OutOfCreditsCard({ tier, monthlyLimit }: OutOfCreditsCardProps) {
+  const [showCreditsModal, setShowCreditsModal] = useState(false);
   const isSnapshot = tier === "snapshot";
 
   const heading = isSnapshot
@@ -46,7 +49,7 @@ export default function OutOfCreditsCard({ tier, monthlyLimit }: OutOfCreditsCar
         <Button
           variant="primary"
           className="w-full justify-center md:w-auto"
-          onClick={() => { /* TODO(9.10): billing modal */ }}
+          onClick={() => setShowCreditsModal(true)}
         >
           Buy extra credits
         </Button>
@@ -58,6 +61,9 @@ export default function OutOfCreditsCard({ tier, monthlyLimit }: OutOfCreditsCar
           Upgrade plan
         </Button>
       </div>
+      {showCreditsModal && (
+        <CreditsModal onClose={() => setShowCreditsModal(false)} />
+      )}
     </div>
   );
 }
