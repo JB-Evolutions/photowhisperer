@@ -162,24 +162,32 @@ async function handleSubscriptionUpdated(
     subscription.ended_at !== null ||
     TERMINAL_STATUSES.has(subscription.status);
 
+  const periodEnd = subscription.items?.data?.[0]?.current_period_end;
+  const current_period_end = periodEnd ? new Date(periodEnd * 1000).toISOString() : null;
+
   let end_date: string | null;
   if (isTerminal) {
     end_date = subscription.ended_at
       ? new Date(subscription.ended_at * 1000).toISOString()
       : null;
   } else {
-    const periodEnd = subscription.items?.data?.[0]?.current_period_end;
-    end_date = periodEnd ? new Date(periodEnd * 1000).toISOString() : null;
+    end_date = current_period_end;
   }
 
-  const { error } = await admin
+  const { data, error } = await admin
     .from("subscriptions")
     .update({
       status: mapSubscriptionStatus(subscription.status),
       end_date,
+      cancel_at_period_end: subscription.cancel_at_period_end,
+      current_period_end,
     })
-    .eq("stripe_customer_id", customerId);
+    .eq("stripe_customer_id", customerId)
+    .select();
   if (error) throw error;
+  if (!data || data.length === 0) {
+    throw new Error(`No subscription row matched stripe_customer_id ${customerId}`);
+  }
 }
 
 async function handleInvoicePaymentSucceeded(
@@ -222,7 +230,7 @@ async function handleSubscriptionDeleted(
   const customerId = toId(subscription.customer);
   if (!customerId) return;
 
-  const { error } = await admin
+  const { data, error } = await admin
     .from("subscriptions")
     .update({
       status: "cancelled",
@@ -230,8 +238,12 @@ async function handleSubscriptionDeleted(
         ? new Date(subscription.ended_at * 1000).toISOString()
         : new Date().toISOString(),
     })
-    .eq("stripe_customer_id", customerId);
+    .eq("stripe_customer_id", customerId)
+    .select();
   if (error) throw error;
+  if (!data || data.length === 0) {
+    console.error(`[webhook] subscription.deleted matched no row for stripe_customer_id ${customerId}`);
+  }
 }
 
 function mapSubscriptionStatus(status: Stripe.Subscription.Status): string {
