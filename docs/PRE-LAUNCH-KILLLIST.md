@@ -50,6 +50,18 @@ of these outstanding.
   on soft-deleted accounts. Low frequency, but a billing-leak risk if Stripe hiccups during
   the delete request.
 
+- **GDPR manual erasure procedure (interim, until the hard-delete cron above ships)** —
+  erasure requests are handled manually: delete the row in Supabase dashboard →
+  Authentication → Users. `ON DELETE CASCADE` (rooted at `auth.users`, see
+  `001_initial_schema.sql`) then removes `public.users`, `subscriptions`,
+  `usage_tracking`, `camera_profiles`, `sessions`, `session_messages`,
+  `credit_balances`, and `user_preferences` automatically — no manual per-table
+  cleanup needed. Before purging: verify in the Stripe dashboard that the
+  subscription was actually cancelled — per the best-effort caveat above, the
+  delete route's cancel call can fail silently, leaving a soft-deleted account
+  with a still-live, billing subscription. Automated purge remains deferred to
+  a post-launch update.
+
 ## Infrastructure
 
 - **Custom SMTP required before launch** — Supabase built-in email service hit rate limit

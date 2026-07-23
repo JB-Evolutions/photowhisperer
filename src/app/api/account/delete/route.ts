@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient as createServerClient } from "@/lib/supabase/server";
 import { getStripe } from "@/lib/stripe";
+import * as Sentry from "@sentry/nextjs";
 
 export async function POST() {
   const supabase = await createServerClient();
@@ -50,6 +51,17 @@ export async function POST() {
         `POST /api/account/delete — Stripe cancel failed (user ${user.id}, sub ${stripeSubId}):`,
         err
       );
+      // stripe_subscription_id isn't in sentry-scrub.ts's SAFE_EXTRA_KEYS
+      // allowlist, so a literal `stripe_subscription_id` key would scrub to
+      // "[omitted]" and silently lose the one value needed to act on this.
+      // Folded into error_type (which is allowlisted) instead.
+      Sentry.captureException(err, {
+        extra: {
+          user_id: user.id,
+          route: "/api/account/delete",
+          error_type: `stripe_subscription_cancel_failed:${stripeSubId}`,
+        },
+      });
     }
   }
 
