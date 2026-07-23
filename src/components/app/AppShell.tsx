@@ -78,6 +78,13 @@ export default function AppShell({
     account.monthly_used >= SOFT_WARNING_THRESHOLD * account.monthly_limit &&
     !outOfCredits;
 
+  // account == null is the single gate the composer's `disabled` prop uses
+  // below, so a settings request — and therefore a quota_exceeded response —
+  // can never arrive while account is still null. accountPending refines
+  // that same condition (excluding the error case) purely to pick which
+  // placeholder message to show; it must never be used as its own gate.
+  const accountPending = account == null && !accountError;
+
   const [cooldown, setCooldown] = useState(0);
   const rateLimited = cooldown > 0;
 
@@ -202,22 +209,47 @@ export default function AppShell({
 
               {/* Composer — always pinned at bottom */}
               <div className="flex-shrink-0 border-t border-border p-4">
+                {/* account is guaranteed non-null here: send is gated on
+                    account == null below, so a quota_exceeded response (and
+                    therefore outOfCredits) can only ever arrive after
+                    account has loaded. */}
                 {outOfCredits && account ? (
                   <OutOfCreditsCard
                     tier={account.tier}
                     monthlyLimit={account.monthly_limit}
                   />
                 ) : (
-                  <ChatComposer
-                    ref={composerRef}
-                    value={composerValue}
-                    onChange={setComposerValue}
-                    onSend={(text) => {
-                      sessionViewRef.current?.send(text);
-                      setComposerValue("");
-                    }}
-                    disabled={outOfCredits || rateLimited}
-                  />
+                  <>
+                    {accountError && account == null && (
+                      <p className="mb-2 text-xs text-text-muted">
+                        Couldn&apos;t load your account.{" "}
+                        <button
+                          type="button"
+                          className="underline hover:text-text"
+                          onClick={() => window.location.reload()}
+                        >
+                          Retry
+                        </button>
+                      </p>
+                    )}
+                    <ChatComposer
+                      ref={composerRef}
+                      value={composerValue}
+                      onChange={setComposerValue}
+                      onSend={(text) => {
+                        sessionViewRef.current?.send(text);
+                        setComposerValue("");
+                      }}
+                      placeholder={
+                        accountPending
+                          ? "Loading your account…"
+                          : account == null
+                            ? "Couldn't load your account — retry above to continue"
+                            : undefined
+                      }
+                      disabled={outOfCredits || rateLimited || account == null}
+                    />
+                  </>
                 )}
               </div>
 

@@ -3,15 +3,37 @@
 Tracked items not yet resolved, captured here so they aren't lost to session
 scrollback.
 
-## §4.10 quota_exceeded render — NOT visually confirmed
+## §4.10 quota_exceeded render — RESOLVED
 
-The fix (dedicated `quota_exceeded` status, `forceOutOfCredits` in
-`AppShell.tsx`) is type-checked, build-clean, and server-side verified (the
-`?fake=quota_exceeded_no_numbers` fixture returned the exact expected body
-before being stripped). The in-browser visual check was never completed — an
-auth refresh-token error interrupted the eyeball mid-session. Re-verify next
-session using the local runbook (steps 2-4: happy path, quota_exceeded with
-real numbers, quota_exceeded without numbers) before treating this as done.
+Visually confirmed in-browser (local dev, Snapshot user at 5/5):
+`OutOfCreditsCard` renders with the correct Snapshot copy, sidebar shows 5/5
+used.
+
+A render race was found and fixed in the process: AppShell's
+`outOfCredits && account` gate would silently swallow the card if a
+`quota_exceeded` response arrived before `/api/account` resolved. Fixed
+structurally by gating send on account being loaded
+(`disabled={... || account == null}`), so `quota_exceeded` can no longer
+arrive while `account` is null. Verified under Slow 3G throttling + hard
+reload: send is blocked until account loads.
+
+The `?fake=quota_exceeded_no_numbers` fixture referenced in earlier notes no
+longer exists — the entire `?fake=` backdoor (`isFakeEnabled()` and all
+fixture branches) was removed in commit `e33e0b3`. The "no numbers" variant
+is not producible by the current server at all: `route.ts` types
+`monthly_count`/`credits_remaining` as non-optional numbers on both
+`quota_exceeded` branches, so that shape can only arise from a malformed
+body, not normal control flow. The optional typing on the client
+(`src/lib/settings.ts`) is defensive parsing only, not a real server-side
+branch.
+
+## Cosmetic, unreviewed — OutOfCreditsCard / sidebar usage widget
+
+- On tall viewports there is a large vertical gap between the last response
+  and the pinned `OutOfCreditsCard`; the card is pinned to the composer
+  position rather than following content. Cosmetic, unreviewed.
+- The `+` control beside "5 / 5 used" in the sidebar has unverified behavior
+  at zero remaining credits.
 
 ## Sentry deployed but INERT in prod — 10.2 not functionally complete
 
