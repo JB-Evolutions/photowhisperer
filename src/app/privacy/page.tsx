@@ -135,9 +135,11 @@ export default function PrivacyPage() {
 
             <Section heading="5. Your Rights">
               <p>
-                You can access, export, or delete your data at any time from
-                your account settings, or by emailing us. If you&apos;re in
-                a jurisdiction with specific data-protection rights (like the
+                You can access and export your data at any time from your
+                account settings. Deleting your account immediately revokes
+                your access, and full erasure of your stored data is
+                available on request by emailing us. If you&apos;re in a
+                jurisdiction with specific data-protection rights (like the
                 GDPR or CCPA), we&apos;ll honor requests consistent with
                 those rights.
               </p>
@@ -185,10 +187,10 @@ export default function PrivacyPage() {
                 Questions about this Privacy Policy or your data? Email us
                 at{" "}
                 <a
-                  href="mailto:support@photographywhisperer.com"
+                  href="mailto:jbevolutionsltd@gmail.com"
                   className="text-text underline hover:text-accent"
                 >
-                  support@photographywhisperer.com
+                  jbevolutionsltd@gmail.com
                 </a>
                 .
               </p>
