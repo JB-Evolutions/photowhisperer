@@ -67,3 +67,30 @@ describe("nextResetDate", () => {
     expect(nextResetDate()).toBe("1 January 2027");
   });
 });
+
+describe("nextResetDate — always requests UTC rendering", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+  });
+
+  // Mutating process.env.TZ mid-test does not reliably affect
+  // Intl/toLocaleDateString inside vitest's worker pool (verified: the
+  // resolved timezone stays pinned to the host's zone regardless of
+  // reassignment). So instead of asserting on rendered output across
+  // simulated zones, assert on the call contract itself: nextResetDate
+  // must ask toLocaleDateString for UTC explicitly. This is
+  // environment-independent and fails the moment that option is dropped,
+  // regardless of what machine or CI runner executes it.
+  it("passes timeZone: 'UTC' to toLocaleDateString", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-10-15T12:00:00Z"));
+
+    const spy = vi.spyOn(Date.prototype, "toLocaleDateString");
+    nextResetDate();
+
+    expect(spy).toHaveBeenCalledTimes(1);
+    const options = spy.mock.calls[0][1];
+    expect(options).toMatchObject({ timeZone: "UTC" });
+  });
+});

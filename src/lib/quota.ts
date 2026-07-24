@@ -50,7 +50,7 @@ export function nextResetDate(now = new Date()): string {
   // (December) correctly overflows to January of quotaYear+1 via Date.UTC.
   const zeroBasedMonth = quotaMonth - 1;
   const d = new Date(Date.UTC(quotaYear, zeroBasedMonth + 1, 1));
-  return d.toLocaleDateString("en-GB", { month: "long", day: "numeric", year: "numeric" });
+  return d.toLocaleDateString("en-GB", { month: "long", day: "numeric", year: "numeric", timeZone: "UTC" });
 }
 
 // TODO(Phase 10): replace with real retry_after from Upstash 429.
