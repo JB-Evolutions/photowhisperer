@@ -35,10 +35,10 @@ export default function BillingView({
 
   useResetOnBfcache(() => { setPortalPending(null); setUpgradePending(false); });
 
-  // Mirror Sidebar.tsx:55–57 EXACTLY
-  const total = monthly_limit + credits_remaining;
+  // Mirror Sidebar.tsx:72-76 EXACTLY
   const used = monthly_used;
-  const pct = total > 0 ? Math.min(100, (used / total) * 100) : 0;
+  const pct = monthly_limit > 0 ? Math.min(100, (used / monthly_limit) * 100) : 0;
+  const isBlocked = used >= monthly_limit && credits_remaining <= 0;
 
   const isPaying = tier !== "snapshot";
   const tierLabel = TIER_DISPLAY_NAMES[tier];
@@ -228,11 +228,17 @@ export default function BillingView({
                   )}
                 </p>
                 <p className="whitespace-nowrap font-mono text-sm text-text-muted">
-                  {Math.max(0, total - used)} remaining
+                  {Math.max(0, monthly_limit - used)} monthly remaining
+                  {credits_remaining > 0 &&
+                    `, ${credits_remaining} credit${credits_remaining === 1 ? "" : "s"} available`}
                 </p>
               </div>
               {/* Track/fill match Sidebar.tsx:214-216; h-2 instead of h-1 per billing page spec */}
-              <FillBar pct={pct} trackClassName="h-2 w-full overflow-hidden rounded-full bg-surface-3" />
+              <FillBar
+                pct={pct}
+                trackClassName="h-2 w-full overflow-hidden rounded-full bg-surface-3"
+                variant={isBlocked ? "warning" : "accent"}
+              />
               <p className="text-xs text-text-dim">Quota resets {resetDate}</p>
             </div>
           </section>

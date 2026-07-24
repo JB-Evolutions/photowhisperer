@@ -76,6 +76,7 @@ export default function AppShell({
   const softWarning =
     account != null &&
     account.monthly_used >= SOFT_WARNING_THRESHOLD * account.monthly_limit &&
+    account.credits_remaining <= 0 &&
     !outOfCredits;
 
   // account == null is the single gate the composer's `disabled` prop uses

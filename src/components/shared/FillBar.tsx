@@ -10,9 +10,11 @@ import { useLayoutEffect, useRef } from "react";
 export default function FillBar({
   pct,
   trackClassName,
+  variant = "accent",
 }: {
   pct: number;
   trackClassName: string;
+  variant?: "accent" | "warning";
 }) {
   const ref = useRef<HTMLDivElement>(null);
 
@@ -22,7 +24,10 @@ export default function FillBar({
 
   return (
     <div className={trackClassName}>
-      <div ref={ref} className="pw-fill-bar h-full rounded-full bg-accent transition-[width]" />
+      <div
+        ref={ref}
+        className={`pw-fill-bar h-full rounded-full transition-[width] ${variant === "warning" ? "bg-warning" : "bg-accent"}`}
+      />
     </div>
   );
 }

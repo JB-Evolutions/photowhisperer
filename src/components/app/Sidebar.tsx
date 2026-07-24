@@ -69,9 +69,11 @@ export default function Sidebar({
   const tier = account?.tier ?? "snapshot";
   const tierLabel = TIER_DISPLAY_NAMES[tier];
 
-  const total = (account?.monthly_limit ?? 0) + (account?.credits_remaining ?? 0);
-  const used = account?.monthly_used ?? 0;
-  const pct = total > 0 ? Math.min(100, (used / total) * 100) : 0;
+  const monthlyUsed = account?.monthly_used ?? 0;
+  const monthlyLimit = account?.monthly_limit ?? 0;
+  const creditsRemaining = account?.credits_remaining ?? 0;
+  const pct = monthlyLimit > 0 ? Math.min(100, (monthlyUsed / monthlyLimit) * 100) : 0;
+  const isBlocked = monthlyUsed >= monthlyLimit && creditsRemaining <= 0;
 
   const [showCreditsModal, setShowCreditsModal] = useState(false);
   const plusButtonRef = useRef<HTMLButtonElement>(null);
@@ -265,7 +267,9 @@ export default function Sidebar({
             <>
               <div className="mb-1.5 flex items-center justify-between">
                 <span className="font-mono text-[11px] text-text-muted">
-                  {used} / {total} used
+                  {monthlyUsed} / {monthlyLimit} used
+                  {creditsRemaining > 0 &&
+                    ` · ${creditsRemaining} credit${creditsRemaining === 1 ? "" : "s"}`}
                 </span>
                 <button
                   ref={plusButtonRef}
@@ -280,7 +284,11 @@ export default function Sidebar({
                   </svg>
                 </button>
               </div>
-              <FillBar pct={pct} trackClassName="h-1 w-full overflow-hidden rounded-full bg-surface-3" />
+              <FillBar
+                pct={pct}
+                trackClassName="h-1 w-full overflow-hidden rounded-full bg-surface-3"
+                variant={isBlocked ? "warning" : "accent"}
+              />
             </>
           )}
 
