@@ -89,7 +89,7 @@ function Cube({
 }) {
   return (
     <div className="flex flex-col rounded-[14px] border border-border-accent p-4">
-      <span className="font-body text-[11px] uppercase tracking-[0.08em] text-text-dim">
+      <span className="font-body text-[11px] uppercase tracking-[0.08em] text-text-muted">
         {label}
       </span>
       <span className="mt-2 font-mono text-3xl text-text">{value}</span>
@@ -115,7 +115,7 @@ function Panel({
         tone === "warning" ? "border-warning/40" : "border-border"
       }`}
     >
-      <div className="flex items-center gap-2 text-xs uppercase tracking-[0.08em] text-text-dim">
+      <div className="flex items-center gap-2 text-xs uppercase tracking-[0.08em] text-text-muted">
         {icon}
         {label}
       </div>
@@ -172,7 +172,7 @@ export default function AppShowcase() {
               value={
                 <>
                   5500K
-                  <span className="mt-0.5 block font-body text-xs text-text-dim">
+                  <span className="mt-0.5 block font-body text-xs text-text-muted">
                     Cloudy
                   </span>
                 </>

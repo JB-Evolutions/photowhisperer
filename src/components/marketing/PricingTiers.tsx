@@ -43,7 +43,7 @@ function CurrentPlanBadge() {
   return (
     <span
       aria-disabled="true"
-      className="inline-flex w-full cursor-not-allowed items-center justify-center gap-2 rounded-[10px] border border-border-strong bg-transparent px-5 py-2.5 text-sm font-medium tracking-[0.01em] text-text-dim"
+      className="inline-flex w-full cursor-not-allowed items-center justify-center gap-2 rounded-[10px] border border-border-strong bg-transparent px-5 py-2.5 text-sm font-medium tracking-[0.01em] text-text-muted"
     >
       Current plan
     </span>
@@ -80,7 +80,7 @@ export default async function PricingTiers() {
                   <span className="font-mono text-4xl text-text">
                     ${TIER_PRICES_USD[card.tier]}
                   </span>
-                  <span className="font-mono text-sm text-text-dim">/mo</span>
+                  <span className="font-mono text-sm text-text-muted">/mo</span>
                 </div>
 
                 <p className="mt-2 text-sm text-text-muted">{card.headline}</p>
@@ -109,7 +109,7 @@ export default async function PricingTiers() {
           })}
         </PricingScrollTrack>
 
-        <p className="mt-8 text-center text-sm text-text-dim">
+        <p className="mt-8 text-center text-sm text-text-muted">
           Need more? Buy extra credits anytime from your billing page.
         </p>
       </div>

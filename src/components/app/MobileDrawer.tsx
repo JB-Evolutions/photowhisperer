@@ -174,6 +174,7 @@ export default function MobileDrawer({
     // Always mounted — visibility controlled via transform/opacity so slide-out animates.
     <div
       aria-hidden={open ? undefined : "true"}
+      inert={!open}
       className={`fixed inset-0 z-50 md:hidden ${open ? "pointer-events-auto" : "pointer-events-none"}`}
     >
       {/* Backdrop — fades in/out */}

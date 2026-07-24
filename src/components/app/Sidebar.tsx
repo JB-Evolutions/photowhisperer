@@ -240,7 +240,7 @@ export default function Sidebar({
                 aria-disabled="true"
               >
                 <span className="text-xs text-text-muted">{label}</span>
-                <span className="rounded-full bg-surface-3 px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-widest text-text-dim">
+                <span className="rounded-full border border-border-strong bg-surface px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-widest text-text-dim">
                   soon
                 </span>
               </li>

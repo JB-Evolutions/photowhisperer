@@ -115,7 +115,7 @@ export default async function Home() {
                 )}
               </div>
               {!isLoggedIn && (
-                <p className="mt-4 text-sm text-text-dim">
+                <p className="mt-4 text-sm text-text-muted">
                   Try {TIER_LIMITS.snapshot} free settings, no card required
                 </p>
               )}

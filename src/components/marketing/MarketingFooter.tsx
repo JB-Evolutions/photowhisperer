@@ -40,7 +40,7 @@ export default function MarketingFooter() {
       <div className="mx-auto max-w-[1280px] px-8 py-16">
         <div className="grid grid-cols-1 gap-12 md:grid-cols-3">
           <div>
-            <h3 className="font-body text-xs uppercase tracking-[0.08em] text-text-dim">
+            <h3 className="font-body text-xs uppercase tracking-[0.08em] text-text-muted">
               Product
             </h3>
             <ul className="mt-4 flex flex-col gap-3 list-none">
@@ -55,7 +55,7 @@ export default function MarketingFooter() {
           </div>
 
           <div>
-            <h3 className="font-body text-xs uppercase tracking-[0.08em] text-text-dim">
+            <h3 className="font-body text-xs uppercase tracking-[0.08em] text-text-muted">
               Legal
             </h3>
             <ul className="mt-4 flex flex-col gap-3 list-none">
@@ -73,7 +73,7 @@ export default function MarketingFooter() {
           </div>
 
           <div>
-            <h3 className="font-body text-xs uppercase tracking-[0.08em] text-text-dim">
+            <h3 className="font-body text-xs uppercase tracking-[0.08em] text-text-muted">
               Contact
             </h3>
             <a

@@ -59,7 +59,7 @@ export default async function Nav() {
           <div className="hidden md:flex items-center gap-2 sm:gap-2.5">
             {isLoggedIn ? (
               <>
-                <span className="hidden sm:inline font-mono text-xs uppercase tracking-[0.08em] text-text-dim">
+                <span className="hidden sm:inline font-mono text-xs uppercase tracking-[0.08em] text-text-muted">
                   {TIER_DISPLAY_NAMES[tier ?? "snapshot"]}
                 </span>
                 <span className="hidden sm:inline-flex">
