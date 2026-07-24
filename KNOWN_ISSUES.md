@@ -51,10 +51,34 @@ branch.
   `infer_ip=never` confirmed on the stored event — raw IP is not stored.
   Client-side `beforeSend` scrub is now proven end-to-end against a genuine
   browser error, not just the local `scrubEvent`/probe level.
-- **#12**: remains deferred/unverified per commit `aaebd4e` — not touched
-  this session. Real `captureRequestError`-driven scene detection
-  (contexts.nextjs set by Sentry itself, not spoofed) for a genuine uncaught
-  `/api/settings` error has not been exercised.
+- **#12 — VERIFIED IN PREVIEW.** A genuine uncaught error was thrown in
+  `POST /api/settings` (after auth, before any body parsing, rate-limit
+  consumption, or DB/quota work) on a preview deployment, gated behind
+  `VERCEL_ENV === "preview" && SENTRY_12_CANARY === "1"` so it could never
+  fire on `main` or prod. The captured event: environment `vercel-preview`,
+  route `POST /api/settings`, message wholesale-replaced by the scene-route
+  placeholder, and the thrown canary string (`SCENE_LEAK_CANARY_...`)
+  absent from the entire event. This proves the real
+  `captureRequestError`-driven path — `contexts.nextjs.request_path`
+  populated by Sentry's own SDK, not a spoofed self-test — genuinely
+  redacts an uncaught server error, closing the gap left open by commit
+  `aaebd4e`. The verification branch (`sentry-12-verification`) has been
+  reverted and deleted, local and remote; `main` never received the throw.
+
+  Root cause of an initial silent no-op during this test: `SENTRY_DSN` and
+  `NEXT_PUBLIC_SENTRY_DSN` were scoped Production-only in Vercel, so the
+  Preview build initialized the SDK with no DSN and dropped events with no
+  error and no event — pure silence. Adding Preview scope to both vars
+  fixed it. This is the second silent environment-scoping failure found
+  this session — the first was `shouldLoadAnalytics` firing GA on
+  localhost because the code had no environment gate at all (fixed by
+  requiring `NODE_ENV === "production"`). Different mechanism, same shape:
+  a check meant to distinguish environments doesn't, and fails quietly
+  instead of loudly. Worth a standing habit: when behavior depends on a
+  Vercel-scoped env var, verify the *scope* explicitly for every
+  environment expected to use it — presence in one environment doesn't
+  imply presence in another, and both Sentry and analytics SDKs tend to
+  no-op silently rather than throw when misconfigured.
 
 ## Sentry stamps IP-derived city-level geo at ingest
 
