@@ -34,6 +34,13 @@ branch.
   position rather than following content. Cosmetic, unreviewed.
 - The `+` control beside "5 / 5 used" in the sidebar has unverified behavior
   at zero remaining credits.
+- The empty state (heading + suggestion chips) deliberately co-renders with
+  `OutOfCreditsCard` when a user is out of credits — `AppShell.tsx:191`
+  (`!hasThread`) and `:217` (`outOfCredits`) are independent on purpose.
+  This is intentional, not a bug: the dimmed chips show a blocked user what
+  the product does, which is more persuasive than blank space above a
+  paywall. Verified 2026-07-24 that the chips are correctly disabled in
+  this state. Do not "fix" this by hiding the empty state.
 
 ## Sentry launch-checklist items #11 and #12
 
@@ -192,16 +199,12 @@ it works.
 ## DMARC — record exists at apex, not the mail subdomain
 
 `_dmarc.photographywhisperer.com` = `v=DMARC1; p=none;
-rua=mailto:jbevolutionsltd@gmail.com;`. No record at
+rua=mailto:support@photographywhisperer.com;`. No record at
 `_dmarc.mail.photographywhisperer.com`. Org-level fallback means subdomain
 sends are still covered, but this was never explicitly verified against
 Resend's actual From: domain. Confirm which domain auth mail is sent from
-before tightening p=none to quarantine. rua= points at a personal Gmail —
-move to support@ when forwarding is set up.
-
-## Logged-in nav at 375px never visually checked
-
-Only the logged-out state has been eyeballed at mobile width.
+before tightening p=none to quarantine. rua= updated off the personal Gmail
+now that Spaceship forwarding to support@ is live and confirmed.
 
 ## RLS verified — write surface is service-role only
 
