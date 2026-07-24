@@ -34,15 +34,25 @@ export async function requestSettings(
 
   if (!res.ok) {
     let errorField: string | undefined;
+    let errorMessage: string | undefined;
     let errorMonthlyCount: number | undefined;
     let errorCreditsRemaining: number | undefined;
     try {
       const errBody = await res.json() as Record<string, unknown>;
       errorField = typeof errBody.error === "string" ? errBody.error : undefined;
+      errorMessage = typeof errBody.message === "string" ? errBody.message : undefined;
       errorMonthlyCount = typeof errBody.monthly_count === "number" ? errBody.monthly_count : undefined;
       errorCreditsRemaining = typeof errBody.credits_remaining === "number" ? errBody.credits_remaining : undefined;
     } catch {
       // unparseable body — fall through to generic
+    }
+
+    if (res.status === 400 && errorField === "validation" && errorMessage) {
+      // Surfaces route.ts's own message (e.g. the 1000-char limit) instead
+      // of the generic fallback, which reads as a server fault rather than
+      // a rejected input. Falls through to generic below if the body was
+      // unparseable or missing a message — never fabricate one.
+      return { status: "error", message: errorMessage };
     }
 
     if (res.status === 429 && errorField === "quota_exceeded") {

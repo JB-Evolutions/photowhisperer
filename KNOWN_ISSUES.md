@@ -215,6 +215,48 @@ Only the logged-out state has been eyeballed at mobile width.
   RLS — there is no policy to enforce. Writes must stay service-role/RPC only.
 - user_preferences UNVERIFIED: neither test account has a row.
 
+## prior_context is armed only by the Refine button, not by message content
+
+`SessionView.tsx`'s `pendingRefineContextRef` is only set inside the
+`onRefine` callback (`:325-336`), which fires exclusively when the user
+clicks the Refine affordance on the last `ok` response — that click also
+pre-fills the composer with the literal string `"Same scene but "`. A
+separate effect in `AppShell.tsx:99-102` clears the armed context the
+moment the composer text no longer starts with that exact prefix. Only if
+both conditions hold at the moment `send()` runs does `prior_context` get
+included in the `/api/settings` body (`settingsClient.ts:13-15`, which
+also requires `priorContext.assistant_summary` to be truthy).
+
+There is no keyword or intent detection anywhere in this path. A user who
+free-types a refinement-style message ("make it better", "try again but
+warmer") without clicking Refine sends no `prior_context` at all — the
+classifier sees that message in isolation, with no scene to refine against.
+This is how the feature is built, not a crash or a data bug, but it means
+free-typed refinements silently lose continuity by design.
+
+## Clarification suppression — repeated identical question
+
+After the invalid_input fix to the suppression directive
+(`SessionView.tsx:108-113`), a third consecutive vague input no longer
+produces a fabricated Scene Summary. But observed 2026-07-24: the
+classifier still ignores the directive's "do not ask for further
+clarification" half and returns another `clarification_required` — with
+the question text verbatim identical to the one already shown. To the
+user this reads as a stuck loop (same question twice in a row), even
+though nothing is technically broken.
+
+Within spec: `screen-spec-v1.md:305` only asks for a tweaked prompt and to
+"accept whatever the agent returns" — it does not require the frontend to
+enforce compliance. The directive is a soft nudge, not a hard override; the
+classifier remains free to ask again.
+
+Prompt-side fix deferred to v1.1. Not touching `src/api/classifierPrompt.ts`
+(stable, per CLAUDE.md) as part of this fix — a durable solution likely
+needs either a stronger prompt-level instruction there, or a frontend
+check that detects a repeated identical question and forces a different
+outcome (e.g. treat it as invalid_input client-side) rather than relying
+on the classifier to comply.
+
 ---
 
 ## RESOLVED — delete this section after next session

@@ -91,7 +91,8 @@ const ChatComposer = forwardRef<ChatComposerHandle, ChatComposerProps>(
           aria-disabled={disabled || undefined}
           placeholder={placeholder}
           rows={1}
-          className={`max-h-[140px] min-h-[24px] flex-1 resize-none overflow-y-auto bg-transparent text-sm leading-relaxed text-text outline-none placeholder:text-text-dim ${
+          maxLength={1000}
+          className={`max-h-[140px] min-h-[24px] flex-1 self-center resize-none overflow-y-auto bg-transparent text-sm leading-relaxed text-text outline-none placeholder:text-text-dim ${
             disabled ? "cursor-not-allowed" : ""
           }`}
         />

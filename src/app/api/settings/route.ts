@@ -59,11 +59,11 @@ function validateBody(body: unknown): ValidateBodyResult {
     };
   }
 
-  if (conditions.length > 5000) {
+  if (conditions.length > 1000) {
     return {
       ok: false,
       response: NextResponse.json(
-        { error: "validation", message: "conditions must be 5000 characters or fewer." },
+        { error: "validation", message: "conditions must be 1000 characters or fewer." },
         { status: 400 }
       ),
     };

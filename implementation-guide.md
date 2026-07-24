@@ -128,7 +128,7 @@ src/app/api/settings/route.ts. For now, return a HARDCODED fake response,
 selectable via query param ?fake=ok | clarification | invalid | error.
 
 Request validation:
-- Body must be JSON with required field "conditions" (string, 1–5000 chars).
+- Body must be JSON with required field "conditions" (string, 1–1000 chars).
 - Optional "session_id" (UUID).
 - Optional "prior_context" object with { user_msg: string, assistant_summary: string }.
 - Return 400 with { error: "validation", message: "..." } on failure.
@@ -1148,7 +1148,7 @@ This is rough — Pack 12 alone can take 2 weeks if you're being a perfectionist
 6. Test all 4 response shapes against the real classifier.
 7. Test all Stripe flows in test mode end-to-end.
 8. Test account deletion (the typed-confirm modal, the grace period).
-9. Test extreme inputs (empty, 5000 chars, non-English, emoji, code injection).
+9. Test extreme inputs (empty, 1000 chars, non-English, emoji, code injection).
 10. Verify RLS by attempting cross-user reads from a second test account.
 11. Sentry client scrub (10.2): with NEXT_PUBLIC_SENTRY_DSN set, load /app in a
     real browser and trigger a client error in an ErrorBoundary-caught render

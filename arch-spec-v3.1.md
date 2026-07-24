@@ -492,7 +492,7 @@ Idempotency: use Stripe's `event.id` as a deduplication key, stored in a `stripe
 **Body:**
 ```json
 {
-  "conditions": "string (required, 1-5000 chars)",
+  "conditions": "string (required, 1-1000 chars)",
   "session_id": "uuid (optional, omit for new session)",
   "prior_context": {
     "user_msg": "string",
