@@ -1,9 +1,13 @@
 // Post-deploy smoke test. No secrets, no auth — safe to run against prod
-// anytime. Proves (1) critical server-only env vars are present via
-// /api/health, and (2) proxy.ts is actually registered — per build-steps-v2.md
-// Phase 3, an unauthenticated 401 on an API route proves nothing (in-handler
-// auth checks would produce the same result even if middleware were dead);
-// only a page-route redirect proves it.
+// anytime. Proves (1) critical server-only env vars are present AND the
+// configured ANTHROPIC_API_KEY actually authenticates against Anthropic's
+// API, via /api/health?deep=1 (see src/app/api/health/route.ts — the deep
+// check is opt-in so ordinary health polls stay free of Anthropic traffic;
+// this script is the one caller in the repo that deliberately asks for it),
+// and (2) proxy.ts is actually registered — per build-steps-v2.md Phase 3,
+// an unauthenticated 401 on an API route proves nothing (in-handler auth
+// checks would produce the same result even if middleware were dead); only
+// a page-route redirect proves it.
 //
 // Usage: tsx scripts/smoke.ts [baseUrl]
 // baseUrl defaults to the canonical www origin; pass a bare-apex arg only
@@ -18,15 +22,23 @@ function fail(message: string): never {
 
 async function checkHealth() {
   // follow: apex redirects to canonical www before hitting the app; the real user path goes through it
-  const res = await fetch(new URL("/api/health", baseUrl), {
+  // deep=1: exercises the Anthropic reachability check, not just env presence — see route.ts
+  const res = await fetch(new URL("/api/health?deep=1", baseUrl), {
     redirect: "follow",
   });
-  if (res.status !== 200) {
-    fail(`/api/health returned ${res.status}, expected 200`);
+  let body: { status?: string; reason?: string } = {};
+  try {
+    body = await res.json();
+  } catch {
+    // unparseable body — status check below still fires, just without a reason
   }
-  const body = (await res.json()) as { status?: string };
+  if (res.status !== 200) {
+    fail(
+      `/api/health?deep=1 returned ${res.status}${body.reason ? ` (reason: ${body.reason})` : ""}, expected 200`
+    );
+  }
   if (body.status !== "ok") {
-    fail(`/api/health body status was ${JSON.stringify(body.status)}, expected "ok"`);
+    fail(`/api/health?deep=1 body status was ${JSON.stringify(body.status)}, expected "ok"`);
   }
 }
 
@@ -48,7 +60,7 @@ async function main() {
   try {
     await checkHealth();
     await checkAuthGate();
-    console.log(`PASS: ${baseUrl} is healthy and proxy.ts is registered`);
+    console.log(`PASS: ${baseUrl} is healthy, Anthropic is reachable, and proxy.ts is registered`);
     process.exit(0);
   } catch (err) {
     fail(`unexpected error: ${err instanceof Error ? err.message : String(err)}`);
