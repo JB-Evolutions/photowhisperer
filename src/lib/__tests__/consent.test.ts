@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import {
   CONSENT_STORAGE_KEY,
   readConsentChoice,
@@ -81,14 +81,28 @@ describe("consentToGtagUpdate", () => {
 });
 
 describe("shouldLoadAnalytics", () => {
-  it("is false when the measurement id is missing, empty, or blank", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  // Stubbed to production here too — otherwise these would trivially pass
+  // via the NODE_ENV gate alone (see below) rather than genuinely exercising
+  // the id-emptiness check they claim to cover.
+  it("is false when the measurement id is missing, empty, or blank, even in production", () => {
+    vi.stubEnv("NODE_ENV", "production");
     expect(shouldLoadAnalytics(undefined)).toBe(false);
     expect(shouldLoadAnalytics(null)).toBe(false);
     expect(shouldLoadAnalytics("")).toBe(false);
     expect(shouldLoadAnalytics("   ")).toBe(false);
   });
 
-  it("is true when a measurement id is present — GA no-ops silently otherwise", () => {
+  it("is true when a measurement id is present and NODE_ENV is production — GA no-ops silently otherwise", () => {
+    vi.stubEnv("NODE_ENV", "production");
     expect(shouldLoadAnalytics("G-2D29M0MN87")).toBe(true);
+  });
+
+  it("is false when a measurement id is present but NODE_ENV is not production", () => {
+    vi.stubEnv("NODE_ENV", "development");
+    expect(shouldLoadAnalytics("G-2D29M0MN87")).toBe(false);
   });
 });

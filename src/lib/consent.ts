@@ -34,5 +34,6 @@ export function consentToGtagUpdate(choice: ConsentChoice) {
 }
 
 export function shouldLoadAnalytics(measurementId: string | undefined | null): boolean {
+  if (process.env.NODE_ENV !== "production") return false;
   return Boolean(measurementId && measurementId.trim().length > 0);
 }
