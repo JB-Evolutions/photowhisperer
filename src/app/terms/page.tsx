@@ -165,10 +165,10 @@ export default function TermsPage() {
               <p>
                 Questions about these Terms? Email us at{" "}
                 <a
-                  href="mailto:jbevolutionsltd@gmail.com"
+                  href="mailto:support@photographywhisperer.com"
                   className="text-text underline hover:text-accent"
                 >
-                  jbevolutionsltd@gmail.com
+                  support@photographywhisperer.com
                 </a>
                 .
               </p>

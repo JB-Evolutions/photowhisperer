@@ -77,7 +77,7 @@ export default function MarketingFooter() {
               Contact
             </h3>
             <a
-              href="mailto:jbevolutionsltd@gmail.com"
+              href="mailto:support@photographywhisperer.com"
               className={`mt-4 inline-flex items-center gap-2 ${linkClass}`}
             >
               <MailIcon />

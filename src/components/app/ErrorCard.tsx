@@ -56,7 +56,7 @@ export default function ErrorCard({
           <p className="text-[13px] text-text-muted">
             Still failing?{" "}
             <a
-              href="mailto:jbevolutionsltd@gmail.com"
+              href="mailto:support@photographywhisperer.com"
               className={[
                 "text-text-muted underline underline-offset-2",
                 "transition-colors duration-200 ease-[cubic-bezier(0.2,0,0,1)]",

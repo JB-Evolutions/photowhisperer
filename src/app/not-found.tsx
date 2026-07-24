@@ -43,10 +43,10 @@ export default async function NotFound() {
             <p className="mt-6 text-sm text-text-dim">
               If you followed a link from us, sorry. Let us know at{" "}
               <a
-                href="mailto:jbevolutionsltd@gmail.com"
+                href="mailto:support@photographywhisperer.com"
                 className="underline hover:text-text"
               >
-                jbevolutionsltd@gmail.com
+                support@photographywhisperer.com
               </a>
               .
             </p>
