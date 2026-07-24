@@ -183,11 +183,21 @@ Prod-inert (never sets the flag + NODE_ENV guard). The flag lives only in
 gitignored `.env.local`, never committed. Timeout/error path still fails
 closed — this is opt-in short-circuit only.
 
-## Smoke test coverage is narrow
+## Smoke test does not exercise the real classifier pipeline
 
-`pnpm smoke` proven working against prod (exit 0), but only covers the
-health endpoint and the auth-gate redirect — proves the app booted, not that
-it works.
+`pnpm smoke` proven working against prod (exit 0). It covers the health
+endpoint — including `?deep=1`, which confirms `ANTHROPIC_API_KEY` actually
+authenticates against Anthropic, not just that the env var is set — and the
+auth-gate redirect on `/app`.
+
+What it still doesn't do: drive an authenticated request through
+`/api/settings` to the real classifier and back. `/api/settings` requires a
+real Supabase session; cookie-SSR auth can't be driven from an
+unauthenticated script, and a credentialled version of this test running
+against prod would eventually fail on quota exhaustion for that test
+account — a false signal about deploy health, not a true one. Accepted gap:
+the smoke test proves the app booted and the classifier's credential is
+valid, not that a full request round-trips correctly end to end.
 
 ## DMARC — record exists at apex, not the mail subdomain
 
@@ -253,19 +263,14 @@ check that detects a repeated identical question and forces a different
 outcome (e.g. treat it as invalid_input client-side) rather than relying
 on the classifier to comply.
 
----
+## /api/health gained an opt-in deep check for ANTHROPIC_API_KEY validity
 
-## RESOLVED — delete this section after next session
+`/api/health?deep=1` now calls Anthropic's `models.list()` to confirm the
+configured `ANTHROPIC_API_KEY` actually authenticates against Anthropic,
+not just that the env var is a non-empty string. Default `/api/health`
+(no `deep` param) is unchanged and makes no external call — same
+env-var-presence check, same response shape otherwise. `scripts/smoke.ts`
+passes `deep=1`; nothing else in the repo requests the deep check.
 
-- ~~`tsc --noEmit` fails on `sentry-scrub.test.ts` (4 errors)~~ — **FIXED in
-  201f314.** Test referenced `Sentry.TransactionEvent`, which `@sentry/nextjs`
-  stopped exporting in 10.63.0; `sentry-scrub.ts` already defined it locally
-  and just needed `export`. **More importantly:** `pnpm test` now runs
-  `tsc --noEmit` first. A `typecheck` script already existed in package.json
-  and nobody ever ran it — that gap is why 4 errors sat on `main` unnoticed.
-- ~~`onRouterTransitionStart` no-op export pending~~ — **FIXED in 201f314.**
-  Build warning gone.
-- ~~`pnpm add` is broken (stale foreign pnpm store)~~ — **FIXED.**
-  `node_modules/.modules.yaml` was stamped with `/Users/blakebyrne/...`, a
-  store that doesn't exist on this machine. `rm -rf node_modules` +
-  `pnpm install --frozen-lockfile`. Verified with an add/remove round-trip.
+Closes the gap where a present-but-invalid key (wrong value, revoked,
+expired) would pass the old presence-only check and still report healthy.
