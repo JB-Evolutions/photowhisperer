@@ -35,22 +35,6 @@ branch.
 - The `+` control beside "5 / 5 used" in the sidebar has unverified behavior
   at zero remaining credits.
 
-## Sentry deployed but INERT in prod — 10.2 not functionally complete
-
-`NEXT_PUBLIC_SENTRY_DSN` is confirmed absent from the deployed Production
-client bundle. `SENTRY_DSN` (server) can't be checked over HTTP — the design
-silently no-ops on a missing DSN. Until both are confirmed present in
-Vercel's **Production** environment scope (not just Preview/Development) and
-a fresh deploy picks them up, Sentry captures nothing in prod: zero
-monitoring, but also zero PII risk from the unverified scrub in the meantime.
-
-**ORDERING CORRECTION:** the original plan said "add DSN → redeploy → then run
-#11/#12." That is backwards. The moment the DSN is live, Sentry starts
-capturing — and #11 is the thing that has never been verified. That would mean
-turning on PII capture and *then* checking whether the PII filter works.
-Invert it: verify the scrub locally against real SDK-constructed events first,
-then enable in prod.
-
 ## Sentry launch-checklist items #11 and #12
 
 - **#11 — VERIFIED IN PROD.** A real uncaught error on `/app` was delivered
@@ -199,35 +183,37 @@ Prod-inert (never sets the flag + NODE_ENV guard). The flag lives only in
 gitignored `.env.local`, never committed. Timeout/error path still fails
 closed — this is opt-in short-circuit only.
 
-## No post-deploy smoke test
+## Smoke test coverage is narrow
 
-The missing-`ANTHROPIC_API_KEY`-in-Vercel-prod incident (which broke the live
-classifier) would have been caught by a single curl after deploy. There is no
-such check. Process gap, not a code bug.
+`pnpm smoke` proven working against prod (exit 0), but only covers the
+health endpoint and the auth-gate redirect — proves the app booted, not that
+it works.
 
-## DMARC record is a null
+## DMARC — record exists at apex, not the mail subdomain
 
-`_dmarc.mail.photographywhisperer.com` is `v=DMARC1; p=none;` with no `rua=`.
-`p=none` means monitor-only (correct for now), but with no reporting address
-it collects nothing — the record is a no-op. Fix at Spaceship: set value to
-`v=DMARC1; p=none; rua=mailto:<an address actually read>;`. Name field is
-`_dmarc.mail` (Spaceship auto-appends the domain). Keep `p=none` until the
-aggregate reports come back clean; only then tighten to `quarantine`.
-
-## Resend sending domain is on Opportunistic TLS
-
-`mail.photographywhisperer.com` in Resend is set to Opportunistic TLS, which
-sends unencrypted if the receiving server won't negotiate TLS. Auth emails
-carry password-reset and magic-link tokens. Should be Enforced TLS. One
-toggle in the Resend domain settings.
+`_dmarc.photographywhisperer.com` = `v=DMARC1; p=none;
+rua=mailto:jbevolutionsltd@gmail.com;`. No record at
+`_dmarc.mail.photographywhisperer.com`. Org-level fallback means subdomain
+sends are still covered, but this was never explicitly verified against
+Resend's actual From: domain. Confirm which domain auth mail is sent from
+before tightening p=none to quarantine. rua= points at a personal Gmail —
+move to support@ when forwarding is set up.
 
 ## Logged-in nav at 375px never visually checked
 
 Only the logged-out state has been eyeballed at mobile width.
 
-## OG image is a placeholder
+## RLS verified — write surface is service-role only
 
-`public/og-image.png`. Swap anytime, no code change needed.
+- Cross-user isolation verified 2026-07-24 via anon-key probe, accounts A/B.
+  9 PASS, 0 FAIL, 11 INERT, 2 UNVERIFIED.
+- session_messages indirect-ownership policy (EXISTS join via sessions)
+  confirmed working: A read 2 own rows, 0 of B's.
+- INERT results are structural: no UPDATE policy on subscriptions,
+  usage_tracking, sessions, credit_balances; no DELETE policy on any table.
+  Any future client-side write path to these tables will NOT be protected by
+  RLS — there is no policy to enforce. Writes must stay service-role/RPC only.
+- user_preferences UNVERIFIED: neither test account has a row.
 
 ---
 
