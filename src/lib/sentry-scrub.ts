@@ -162,7 +162,13 @@ function scrubTagValues(tags: Record<string, unknown>): Record<string, unknown> 
 export const SCENE_MESSAGE_PLACEHOLDER = "[error message omitted — scene-processing route]";
 
 function isSceneRoutePathname(pathname: string): boolean {
-  return pathname === "/api/settings" || pathname === "/app" || pathname.startsWith("/app/");
+  return (
+    pathname === "/api/settings" ||
+    pathname === "/api/sessions" ||
+    pathname.startsWith("/api/sessions/") ||
+    pathname === "/app" ||
+    pathname.startsWith("/app/")
+  );
 }
 
 function pathnameMatchesSceneRoute(url: string): boolean {
@@ -270,6 +276,9 @@ export function scrubEvent(event: Sentry.ErrorEvent): Sentry.ErrorEvent {
     // is noise, not signal, once email/ip_address/etc. are stripped.
     event.user = Object.keys(scrubbedUser).length > 0 ? (scrubbedUser as typeof event.user) : undefined;
   }
+  if (event.tags) {
+    event.tags = scrubTagValues(event.tags as Record<string, unknown>) as typeof event.tags;
+  }
   if (event.message) {
     event.message = scrubFreeText(event.message);
   }
@@ -343,6 +352,9 @@ export function scrubTransaction(event: TransactionEvent): TransactionEvent {
   if (event.user) {
     const scrubbedUser = scrubUser(event.user as Record<string, unknown>);
     event.user = Object.keys(scrubbedUser).length > 0 ? (scrubbedUser as typeof event.user) : undefined;
+  }
+  if (event.tags) {
+    event.tags = scrubTagValues(event.tags as Record<string, unknown>) as typeof event.tags;
   }
   if (event.spans) {
     event.spans = event.spans.map((span) => ({

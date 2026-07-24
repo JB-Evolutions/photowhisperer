@@ -80,51 +80,44 @@ Not blocking; accepted for v1. If tightening is ever required (e.g. EU users
 + compliance review): open a Sentry support ticket for Relay-level geo
 suppression.
 
-## scrubEvent does not cover event.user / event.tags — latent PII leak
+## scrubEvent's event.tags gap — RESOLVED (event.user was already covered)
 
-The canary probe confirmed scrubEvent (src/lib/sentry-scrub.ts) does NOT scrub
-event.user or event.tags. An SDK-constructed event with PII in those fields
-passes through uncaught.
+This entry previously claimed scrubEvent (src/lib/sentry-scrub.ts) didn't
+scrub event.user or event.tags. Re-verified 2026-07-24: that was only half
+true. event.user was already covered — scrubUser has been called from
+scrubEvent (:267-271) and scrubTransaction (:343-346) with an explicit
+SAFE_USER_KEYS allowlist (id only, everything else dropped) since before
+this session, and it already had test coverage
+(sentry-scrub.test.ts:136-149).
 
-Not firing in prod today: grep of src/ shows zero Sentry.setUser/setTag/
-scope.setUser/scope.setTag calls, so nothing currently populates those
-fields.
+event.tags was the real gap: scrubTagValues existed but had zero call
+sites anywhere in the file — defined, never wired in. Fixed by calling it
+from both scrubEvent and scrubTransaction, same "future sample-rate raise"
+reasoning already used elsewhere in the file for scrubTransaction (see the
+comment at :308-309). Test coverage added for both paths, matching the
+existing user-object fixture shape.
 
-The moment anyone adds a setUser/setTag call, this leaks PII to Sentry. It is
-a real coverage hole, not a hypothetical.
+Not firing in prod today either way: grep of src/ shows zero
+Sentry.setUser/setTag/scope.setUser/scope.setTag calls. No setUser/setTag
+calls were added to "fix" this — the scrub was the fix.
 
-Fix: extend scrubEvent to strip/redact event.user (keep id if needed, drop
-email/ip_address/username) and scan event.tags values against the same PII
-patterns used elsewhere in the scrub. Add a unit fixture covering both
-fields.
-
-Do NOT weaken existing scrub behavior. Do NOT add setUser/setTag anywhere to
-"fix" this — the scrub is the fix.
-
-## sessions routes handle scene content but are outside the scrub's scene-route allowlist
+## sessions routes now covered by the scrub's scene-route allowlist — RESOLVED
 
 `src/app/api/sessions/route.ts` and `src/app/api/sessions/[id]/route.ts` read
 and return `session_messages.content` (raw scene text) — the same content
-class the scene-route redaction in `sentry-scrub.ts` exists to protect. But
-`isSceneRoutePathname` only matches `/api/settings` and `/app*`; these two
-routes aren't in the allowlist.
+class the scene-route redaction in `sentry-scrub.ts` exists to protect.
+`isSceneRoutePathname` previously only matched `/api/settings` and `/app*`;
+these two routes weren't in the allowlist.
 
-Not a live bug today: audited every `throw`/re-throw and `console.error`/
-`console.log` on these routes — all of them surface only opaque Postgrest
-error metadata (`message`/`details`/`hint`/`code`) or `user_id`, never row
-content. Nothing currently echoes `session_messages.content` into an error
-message or breadcrumb.
-
-The gap: if a future error path on either route ever logs or throws with row
-content included, it falls through to `redactAndTruncate`'s secret-token
-regex only (catches `sk_live_`/`sb_secret_`/etc. shapes) — not the wholesale
-scene-route redaction that `/api/settings` and `/app` get. A generic scene
-description matches no secret pattern and would ship close to verbatim
-(truncated at 200 chars).
-
-Fix-when-touched: add `/api/sessions` and `/api/sessions/[id]` to
-`isSceneRoutePathname` before either route grows an error path that surfaces
-row content.
+Fixed 2026-07-24: `isSceneRoutePathname` now also matches `/api/sessions`
+(exact) and `/api/sessions/` (slash-anchored prefix, so a hypothetical
+`/api/sessions-archive` still wouldn't match) — same pattern already used
+for `/app`. Both routes now get the wholesale scene-route redaction
+(`SCENE_MESSAGE_PLACEHOLDER` on message/exception/breadcrumb.message,
+`{ omitted: true }` on breadcrumb.data) instead of falling through to
+`redactAndTruncate`'s secret-token-only regex. Test coverage added:
+`/api/sessions` and `/api/sessions/<id>` are recognized, `/api/sessions-archive`
+correctly isn't.
 
 ## Prod dumps a raw AuthApiError to console on invalid refresh token
 

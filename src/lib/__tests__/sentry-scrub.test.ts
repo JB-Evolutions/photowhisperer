@@ -77,6 +77,45 @@ describe("scrubEvent", () => {
     expect(scrubbed.message).toBe(SCENE_MESSAGE_PLACEHOLDER);
   });
 
+  it("treats /api/sessions as a scene route", () => {
+    const event = {
+      message: CANARY,
+      contexts: {
+        nextjs: { request_path: "/api/sessions" },
+      },
+    } as unknown as Sentry.ErrorEvent;
+
+    const scrubbed = scrubEvent(event);
+
+    expect(scrubbed.message).toBe(SCENE_MESSAGE_PLACEHOLDER);
+  });
+
+  it("treats /api/sessions/<id> as a scene route", () => {
+    const event = {
+      message: CANARY,
+      contexts: {
+        nextjs: { request_path: "/api/sessions/3c122509-c6fb-45fd-a2fe-aa1781285ec9" },
+      },
+    } as unknown as Sentry.ErrorEvent;
+
+    const scrubbed = scrubEvent(event);
+
+    expect(scrubbed.message).toBe(SCENE_MESSAGE_PLACEHOLDER);
+  });
+
+  it("does NOT treat /api/sessions-archive as a scene route — prefix must be slash-anchored", () => {
+    const event = {
+      message: CANARY,
+      contexts: {
+        nextjs: { request_path: "/api/sessions-archive" },
+      },
+    } as unknown as Sentry.ErrorEvent;
+
+    const scrubbed = scrubEvent(event);
+
+    expect(scrubbed.message).toBe(CANARY);
+  });
+
   it("preserves real messages via redactAndTruncate on a non-scene route", () => {
     const REAL_MESSAGE = "Cannot read properties of undefined (reading 'customer')";
     const event = {
@@ -147,6 +186,21 @@ describe("scrubEvent", () => {
     expect(scrubbed.user).toEqual({ id: "probe-123" });
     expect(JSON.stringify(scrubbed.user)).not.toContain("Auckland");
   });
+
+  it("redacts a secret-shaped tag value via the same SECRET_VALUE_RE path as free text", () => {
+    const event = {
+      tags: {
+        plan: "portrait",
+        leaked_key: "sk_live_abc123XYZ",
+      },
+    } as unknown as Sentry.ErrorEvent;
+
+    const scrubbed = scrubEvent(event);
+
+    expect(scrubbed.tags?.plan).toBe("portrait");
+    expect(scrubbed.tags?.leaked_key).toBe("[redacted]");
+    expect(JSON.stringify(scrubbed.tags)).not.toContain("sk_live_abc123XYZ");
+  });
 });
 
 describe("scrubTransaction", () => {
@@ -213,5 +267,21 @@ describe("scrubTransaction", () => {
     const scrubbed = scrubTransaction(event);
 
     expect(scrubbed.contexts?.some_unlisted_context).toBe("[omitted]");
+  });
+
+  it("redacts a secret-shaped tag value the same way scrubEvent does", () => {
+    const event = {
+      type: "transaction",
+      tags: {
+        plan: "portrait",
+        leaked_key: "sk_live_abc123XYZ",
+      },
+    } as unknown as TransactionEvent;
+
+    const scrubbed = scrubTransaction(event);
+
+    expect(scrubbed.tags?.plan).toBe("portrait");
+    expect(scrubbed.tags?.leaked_key).toBe("[redacted]");
+    expect(JSON.stringify(scrubbed.tags)).not.toContain("sk_live_abc123XYZ");
   });
 });
