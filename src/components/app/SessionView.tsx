@@ -105,9 +105,12 @@ const SessionView = forwardRef<SessionViewHandle, SessionViewProps>(
       if (pendingRef.current || !text.trim()) return;
 
       // If the classifier has already asked 2 consecutive clarifications, append a
-      // suppression directive so it produces a best-effort answer this turn.
+      // suppression directive so it produces a best-effort answer this turn. Also
+      // permits invalid_input explicitly — without this, a genuinely empty third
+      // input has no exit once clarification_required is blocked, and the
+      // classifier fabricates a scene instead of declining (observed 2026-07-24).
       const conditions = clarificationCountRef.current >= 2
-        ? text + " — Please provide your best recommendation with the information given; do not ask for further clarification."
+        ? text + " — Do not ask for further clarification. If there's no usable scene information at all, return invalid_input instead of guessing; otherwise give your best recommendation with what's given."
         : text;
 
       // Consume both prior-context slots before first await. Refine takes
