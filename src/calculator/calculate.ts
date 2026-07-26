@@ -16,7 +16,9 @@ import {
   HANDHELD_ABSOLUTE_SHUTTER_FLOOR_S,
   TRIPOD_LONG_EXPOSURE_LIMIT_S,
   FLASH_SYNC_SHUTTER_S,
-  FLASH_DEFAULT_ISO,
+  FLASH_SYNC_SAFE_SHUTTER_S,
+  FLASH_AMBIENT_ISO_CEILING,
+  FLASH_MAX_AMBIENT_DRAG_S,
 } from "./constants";
 import { formatAperture, formatShutter } from "./format";
 
@@ -140,6 +142,10 @@ export function apertureWidenedWarning(aperture: number): string {
   return `Aperture opened to ${formatAperture(aperture)} to keep ISO down; background will be noticeably blurred. Add light, or accept a higher ISO, if you need more of the scene sharp.`;
 }
 
+export function apertureLensLimitedWarning(aperture: number): string {
+  return `Aperture limited to ${formatAperture(aperture)} by your lens.`;
+}
+
 // Remedies for the Step 10 ISO warnings, gated on what's actually available to
 // the user rather than hardcoded per cause branch.
 //
@@ -234,6 +240,31 @@ function floorCause(input: SceneInput): "shake" | "motion" | null {
   return "motion";
 }
 
+// Shared by the main path's Step 3 and the flash path's ambient solve — both
+// need the same motion/shake/tripod-allowance floor before quantizing to the
+// shutter grid, and duplicating this branching risked the two paths silently
+// disagreeing on what "the floor" is.
+function computeShutterFloor(input: SceneInput): number {
+  const motionFloor = MOTION_FLOORS[input.motion_tier];
+
+  if (input.support === "handheld") {
+    const shakeFloor = handheldShakeFloor(input.focal_length_mm);
+    // For a stationary subject there is nothing to freeze, so the motion
+    // floor must not bind — only the focal-length shake rule governs
+    // handheld alone (this is exactly where the ultra-wide cap in
+    // handheldShakeFloor engages, e.g. 8mm). Non-stationary tiers still take
+    // the min of both.
+    return input.motion_tier === "stationary" ? shakeFloor : Math.min(motionFloor, shakeFloor);
+  }
+  if (
+    (input.support === "tripod" || input.support === "stabilized") &&
+    input.motion_tier === "stationary"
+  ) {
+    return TRIPOD_LONG_EXPOSURE_LIMIT_S;
+  }
+  return motionFloor;
+}
+
 export function calculateSettings(input: SceneInput): SettingsOutput {
   // Step 1 — assumptions / warnings
   const assumptions: string[] = [];
@@ -252,17 +283,170 @@ export function calculateSettings(input: SceneInput): SettingsOutput {
     if (text) assumptions.push(text);
   }
 
-  // Step 2 — flash override
+  // Step 2 — flash override: the flash supplies the KEY light at a fixed
+  // sync-safe shutter and does not participate in this solve. Everything
+  // below computes a constrained AMBIENT exposure for the background only —
+  // the scene's own EV, the user's lens, and a low ISO ceiling (flash doesn't
+  // need the background lit) all matter here.
   if (input.white_balance === "flash") {
-    const shutter = FLASH_SYNC_SHUTTER_S;
-    const aperture = DEFAULT_APERTURE[input.creative_intent];
-    const iso = FLASH_DEFAULT_ISO;
+    // 1-2 — same shutter floor as Step 3, quantized to the grid. For
+    // handheld, shutter >= 1s is unreachable on this path: handheldShakeFloor
+    // returns min(1/focal_length_mm, HANDHELD_ABSOLUTE_SHUTTER_FLOOR_S = 1/15),
+    // so the floor duration is never above 1/15 and this quantize step can
+    // return at most 1/15. Below, the drag cap (3) only ever shortens the
+    // shutter, the sync clamp (4) only ever lengthens it and never past
+    // FLASH_SYNC_SAFE_SHUTTER_S (1/125), and the too-bright pass (7) narrows
+    // the aperture without touching the shutter — so the >= 1s case Step 14
+    // exists for is unreachable here.
+    const floor = computeShutterFloor(input);
+    let shutter = slowestStandardShutterMeetingFloor(floor);
 
-    if (input.support === "handheld" && 1 / input.focal_length_mm < FLASH_SYNC_SHUTTER_S) {
+    // 3 — drag cap: ambient shutter must never drag past
+    // FLASH_MAX_AMBIENT_DRAG_S, regardless of what the motion/tripod floor
+    // would otherwise allow (a tripod + stationary flash scene must not
+    // inherit TRIPOD_LONG_EXPOSURE_LIMIT_S's 30s here).
+    if (shutter > FLASH_MAX_AMBIENT_DRAG_S) {
+      shutter = slowestStandardShutterMeetingFloor(FLASH_MAX_AMBIENT_DRAG_S);
+    }
+
+    // 4 — sync clamp: the ambient shutter can never be faster than what
+    // flash sync allows. Attribute the warning to the real cause —
+    // floorCause "motion" is genuine subject movement (ghosting risk);
+    // "shake" or null means a long-lens/camera-shake floor bound instead,
+    // which Step 12 below already covers, so don't duplicate it here with
+    // the wrong (motion) copy.
+    if (shutter < FLASH_SYNC_SAFE_SHUTTER_S) {
+      const preClampCause = floorCause(input);
+      shutter = FLASH_SYNC_SAFE_SHUTTER_S;
+      if (preClampCause === "motion") {
+        warnings.push(
+          `Subject's motion floor needs a faster shutter than flash sync (${formatShutter(FLASH_SYNC_SHUTTER_S)}) allows, so the shutter is held at ${formatShutter(shutter)}; ambient motion may ghost behind the flash.`
+        );
+      }
+    }
+
+    // 5 — aperture from creative intent, clamped by the lens. Never widened —
+    // Step 8's widening ladder doesn't run on this path: widening changes the
+    // flash exposure too, so it doesn't buy what it buys for ambient-only.
+    // lensNarrowedAperture/tooBrightNarrowedAperture below are explicit
+    // booleans set exactly at their own narrowing site (mirroring the main
+    // path's lensLimitedAperture), not derived after the fact by comparing
+    // the final aperture back to defaultAperture — that comparison alone
+    // can't tell WHICH pass most recently moved it, which matters for
+    // Step 8's warning gating just below.
+    const defaultAperture = DEFAULT_APERTURE[input.creative_intent];
+    let aperture = defaultAperture;
+    let lensNarrowedAperture = false;
+    if (input.max_aperture != null) {
+      const lensLimit = nearestStandardApertureAtOrNarrowerThan(input.max_aperture);
+      if (lensLimit > aperture) {
+        aperture = lensLimit;
+        lensNarrowedAperture = true;
+      }
+    }
+    const apertureAfterLensClamp = aperture;
+
+    // 6 — solve ambient ISO at this aperture/shutter.
+    let isoIdeal = solveIso(input.scene_ev, aperture, shutter);
+
+    // 7 — too bright: the shutter floor from 1-2 is the SLOWEST shutter that
+    // avoids blur, not the fastest allowed — sync only caps the fast end, so
+    // there's real headroom between the floor and sync that must be spent
+    // before touching the aperture. Spending it on aperture first would drive
+    // the lens to f/22 for no reason. Mirrors the main path's Step 7, clamped
+    // at the sync index instead of 0.
+    let tooBrightNarrowedAperture = false;
+    const syncIdx = STANDARD_SHUTTERS.indexOf(FLASH_SYNC_SAFE_SHUTTER_S);
+    if (isoIdeal < ISO_MIN) {
+      const stops = Math.log2(ISO_MIN / isoIdeal);
+      const idx = STANDARD_SHUTTERS.indexOf(shutter);
+      shutter = STANDARD_SHUTTERS[Math.max(syncIdx, idx - Math.round(stops))];
+      isoIdeal = solveIso(input.scene_ev, aperture, shutter);
+
+      if (isoIdeal < ISO_MIN) {
+        const stops2 = Math.log2(ISO_MIN / isoIdeal);
+        const apIdx = STANDARD_APERTURES.indexOf(aperture);
+        const newApIdx = Math.min(STANDARD_APERTURES.length - 1, apIdx + Math.round(stops2));
+        if (newApIdx > apIdx) {
+          aperture = STANDARD_APERTURES[newApIdx];
+          tooBrightNarrowedAperture = true;
+        }
+        isoIdeal = solveIso(input.scene_ev, aperture, shutter);
+      }
+    }
+
+    // 8 — narrowing consequences. lensIsFinalConstraint and
+    // tooBrightNarrowedAperture are mutually exclusive by construction
+    // (lensIsFinalConstraint requires !tooBrightNarrowedAperture), so exactly
+    // one of the two branches below can fire for a given scene — each owns
+    // the blur clause it's paired with, so the blur consequence always leads
+    // or is joined to its real cause and never trails as a bare orphan
+    // sentence after a longer technical warning.
+    const lensIsFinalConstraint = lensNarrowedAperture && !tooBrightNarrowedAperture;
+    const blurDenied = input.creative_intent === "shallow_dof" && aperture > DEFAULT_APERTURE.shallow_dof;
+
+    if (lensIsFinalConstraint) {
       warnings.push(
-        "Lens long enough that handheld at flash sync speed may show shake; consider tripod or high-speed sync."
+        blurDenied
+          ? `Aperture limited to ${formatAperture(apertureAfterLensClamp)} by your lens, so the requested background blur could not be delivered.`
+          : apertureLensLimitedWarning(apertureAfterLensClamp)
       );
     }
+    if (tooBrightNarrowedAperture) {
+      // Naming ONE number: FLASH_SYNC_SAFE_SHUTTER_S (1/125) is our own
+      // full-stop-grid choice, not the camera's actual sync limit
+      // (FLASH_SYNC_SHUTTER_S, 1/200) — don't blame sync for a grid-rounding
+      // decision. For standard/deep_dof this narrowing is a normal,
+      // conventional outcome (fill flash at Sunny 16), so it's an assumption,
+      // not a warning; only shallow_dof has its stated request actually
+      // denied by it, which is what makes it warning-worthy there.
+      const syncSentence = `Shutter held at ${formatShutter(FLASH_SYNC_SAFE_SHUTTER_S)} for flash sync, so aperture is the only lever left for this light level; use high-speed sync or an ND filter to shoot wider.`;
+      if (input.creative_intent === "shallow_dof") {
+        warnings.push(blurDenied ? `${syncSentence} The requested background blur could not be delivered.` : syncSentence);
+      } else {
+        assumptions.push(syncSentence);
+      }
+    }
+
+    // 9 — even after narrowing, the scene is still brighter than the
+    // calculator can stop down for at this shutter. Gated at half a stop
+    // (ISO_MIN / sqrt2) rather than isoIdeal < ISO_MIN itself, since the grid
+    // itself quantizes to within half a stop and a trivial residual under
+    // that bound isn't a real error.
+    if (isoIdeal < ISO_MIN / Math.SQRT2) {
+      warnings.push("Scene is brighter than the calculator can stop down for at flash sync speed.");
+    }
+
+    // 10 — exposure residual + ambient ISO ceiling, same ordering as Step 9
+    // on the main path.
+    const biasedIsoIdeal = isoIdeal * Math.pow(2, EXPOSURE_BIAS_STOPS);
+    const clampedIsoIdeal = Math.max(ISO_MIN, Math.min(FLASH_AMBIENT_ISO_CEILING, biasedIsoIdeal));
+    const iso = roundIsoToStandard(clampedIsoIdeal);
+
+    // 11 — warn how dark the background will render relative to the
+    // flash-lit subject when ambient wants more than the ceiling allows.
+    // Floored at 1 stop — "roughly 0 stops dark" is not a meaningful warning.
+    if (biasedIsoIdeal > FLASH_AMBIENT_ISO_CEILING) {
+      const stopsDark = Math.max(1, Math.round(Math.log2(biasedIsoIdeal / FLASH_AMBIENT_ISO_CEILING)));
+      warnings.push(
+        `Background will render roughly ${stopsDark} stop${stopsDark === 1 ? "" : "s"} dark relative to the flash-lit subject; the flash is the key light here.`
+      );
+    }
+
+    // 12 — long-lens/shake warning at the ACTUAL chosen shutter, which may
+    // have been drag-capped or sync-clamped above rather than sitting at
+    // sync itself — copy must not claim "at flash sync speed" when it isn't.
+    if (input.support === "handheld" && 1 / input.focal_length_mm < shutter) {
+      const atSync = shutter === FLASH_SYNC_SAFE_SHUTTER_S;
+      warnings.push(
+        atSync
+          ? `Lens long enough that handheld at flash sync speed (${formatShutter(shutter)}) may show shake; consider tripod or high-speed sync.`
+          : `Focal length is long relative to the chosen shutter (${formatShutter(shutter)}); handheld shake is likely. Consider a tripod.`
+      );
+    }
+
+    // 13 — real white-balance color temperature, not a literal.
+    const colorTemp = WB_COLOR_TEMP[input.white_balance];
 
     return {
       status: "ok",
@@ -270,7 +454,7 @@ export function calculateSettings(input: SceneInput): SettingsOutput {
       aperture: formatAperture(aperture),
       shutter_speed: formatShutter(shutter),
       white_balance: input.white_balance,
-      color_temperature: "5500K",
+      color_temperature: colorTemp !== null ? `${colorTemp}K` : null,
       assumptions,
       warnings,
       scene_summary: input.scene_summary,
@@ -278,25 +462,7 @@ export function calculateSettings(input: SceneInput): SettingsOutput {
   }
 
   // Step 3 — shutter floor
-  const motionFloor = MOTION_FLOORS[input.motion_tier];
-  let floor: number;
-
-  if (input.support === "handheld") {
-    const shakeFloor = handheldShakeFloor(input.focal_length_mm);
-    // For a stationary subject there is nothing to freeze, so the motion
-    // floor must not bind — only the focal-length shake rule governs
-    // handheld alone (this is exactly where the ultra-wide cap in
-    // handheldShakeFloor engages, e.g. 8mm). Non-stationary tiers still take
-    // the min of both.
-    floor = input.motion_tier === "stationary" ? shakeFloor : Math.min(motionFloor, shakeFloor);
-  } else if (
-    (input.support === "tripod" || input.support === "stabilized") &&
-    input.motion_tier === "stationary"
-  ) {
-    floor = TRIPOD_LONG_EXPOSURE_LIMIT_S;
-  } else {
-    floor = motionFloor;
-  }
+  const floor = computeShutterFloor(input);
 
   // Step 4 — initial shutter. Floors are durations in seconds, so the
   // shorter duration (the faster shutter) is the more restrictive one and
@@ -447,7 +613,7 @@ export function calculateSettings(input: SceneInput): SettingsOutput {
     // widen), and deleting the guard would re-couple them.
     // Verified unreachable under current constants across two sessions —
     // do not re-derive or sweep for it.
-    warnings.push(`Limited to ${formatAperture(aperture)} by your lens.`);
+    warnings.push(apertureLensLimitedWarning(aperture));
   }
 
   // Step 12 — aperture-widening warning (standard intent only, shallow_dof is exempt)

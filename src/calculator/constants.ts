@@ -36,8 +36,35 @@ export const WB_COLOR_TEMP: Record<WhiteBalance, number | null> = {
 export const ISO_MIN = 100;
 export const ISO_MAX = 12800;
 export const TRIPOD_LONG_EXPOSURE_LIMIT_S = 30;
+
+// The camera's physical flash-sync ceiling, never emitted as a shutter value
+// itself — see FLASH_SYNC_SAFE_SHUTTER_S for the grid value actually used.
 export const FLASH_SYNC_SHUTTER_S = 1 / 200;
-export const FLASH_DEFAULT_ISO = 200;
+
+// 1/200 (FLASH_SYNC_SHUTTER_S) is not a member of STANDARD_SHUTTERS
+// (STANDARD_SHUTTERS.indexOf(1/200) === -1), so it can never be used in the
+// grid index arithmetic this file relies on. 1/125 is the slowest grid value
+// whose duration is >= FLASH_SYNC_SHUTTER_S, i.e. the fastest grid shutter
+// that is actually flash-safe.
+export const FLASH_SYNC_SAFE_SHUTTER_S = 1 / 125;
+
+if (
+  !STANDARD_SHUTTERS.includes(FLASH_SYNC_SAFE_SHUTTER_S) ||
+  FLASH_SYNC_SAFE_SHUTTER_S < FLASH_SYNC_SHUTTER_S
+) {
+  throw new Error(
+    "FLASH_SYNC_SAFE_SHUTTER_S must be a member of STANDARD_SHUTTERS with a duration >= FLASH_SYNC_SHUTTER_S"
+  );
+}
+
+// Flash supplies the key light, so riding ambient ISO only adds noise to a
+// background the flash does not need lit. Deliberately 2 stops below
+// ISO_SOFT_CAP.
+export const FLASH_AMBIENT_ISO_CEILING = 800;
+
+// Caps shutter drag on the ambient solve so a tripod + stationary flash scene
+// cannot inherit TRIPOD_LONG_EXPOSURE_LIMIT_S (30s).
+export const FLASH_MAX_AMBIENT_DRAG_S = 1;
 
 // Above this, no ISO warning is pushed. Above 2x this (6400), a warning names
 // the constraint that forced it. Tune here rather than scattering literals.
