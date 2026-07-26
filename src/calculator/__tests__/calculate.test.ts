@@ -184,6 +184,16 @@ describe("edge cases", () => {
   });
 });
 
+describe("ISO soft-cap / lens-limit note decoupling", () => {
+  it("19: no lens clamp, iso lands at 3200 -> no ISO warning, no lens-limit note", () => {
+    const r = calculateSettings(scene({ scene_ev: 6, motion_tier: "stationary", support: "handheld", focal_length_mm: 50, creative_intent: "standard", white_balance: "daylight", max_aperture: null }));
+    expect(r.iso).toBe(3200);
+    expect(r.aperture).toBe("f/5.6");
+    expect(r.warnings.some((w) => w.includes("ISO 3200 needed"))).toBe(false);
+    expect(r.warnings.some((w) => /lens/i.test(w))).toBe(false);
+  });
+});
+
 describe("format helpers", () => {
   it('formatAperture(5.6) → "f/5.6"', () => {
     expect(formatAperture(5.6)).toBe("f/5.6");

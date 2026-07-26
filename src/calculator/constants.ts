@@ -49,10 +49,10 @@ export const ISO_SOFT_CAP = 3200;
 export const ISO_ORDINARY_CAP = 6400;
 export const EXTREME_LOW_LIGHT_EV_THRESHOLD = 1;
 
-// f/1.8 is how far "standard" intent may widen. This is a policy cap, not
-// merely an unknown-gear fallback: it applies even when gear IS known and
-// would allow wider (gear only ever narrows this further, never widens past
-// it — see widestAllowedAperture in calculate.ts).
+// f/1.8 is how far "standard" intent may widen when gear is unknown or the
+// focal length was assumed. A lens confirmed to cover a user-stated focal
+// length may widen past it — see widestAllowedAperture in calculate.ts. This
+// limit is only ever reached when ISO would otherwise exceed ISO_SOFT_CAP.
 export const STANDARD_INTENT_WIDE_LIMIT = 1.8;
 
 // Global brightness nudge applied to the final ISO solve, in stops, before

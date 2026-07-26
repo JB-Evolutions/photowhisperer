@@ -388,6 +388,26 @@ export function calculateSettings(input: SceneInput): SettingsOutput {
     // Independent of the ISO warning above — fires whenever the clamp
     // bound, even if ISO stayed at/under the soft cap (nothing to warn about
     // there), unless the ISO warning already named the lens as the cause.
+    //
+    // That "stayed at/under the soft cap" path requires post-clamp isoIdeal
+    // to land at or below the 3200/6400 geometric midpoint, which needs
+    // R > 2^gap, where R = (N_default/N_widest)^2 is the true optical ratio
+    // and gap = apIdx - widestIdx. Under current constants this never holds:
+    // standard f-numbers are rounded DOWN from their true stop values
+    // (5.6 < 4*sqrt(2)=5.657, 2.8 < 2*sqrt(2)=2.828), so R sits just under
+    // 2^gap for every full-stop pair (1.96 vs 2, 7.84 vs 8) — structural to
+    // the f-number convention, not a near-miss. 5.6->2.8 is an exact tie
+    // that still resolves to 6400 because the midpoint comparison is strict
+    // <. The one sub-full-stop pair, shallow_dof's 2.0->1.8, is only 0.30
+    // stops across a full grid index and fails hardest. A negative
+    // EXPOSURE_BIAS_STOPS, or aperture grid entries spanning more than a
+    // full stop, would make it reachable; changing ISO_SOFT_CAP would not,
+    // since R > 2^gap is scale-invariant. Kept anyway: this guard and
+    // isoWarningNamesLens together are the deliberate decoupling of two
+    // independent facts (ISO exceeded the soft cap; the lens capped the
+    // widen), and deleting the guard would re-couple them.
+    // Verified unreachable under current constants across two sessions —
+    // do not re-derive or sweep for it.
     warnings.push(`Limited to ${formatAperture(aperture)} by your lens.`);
   }
 
