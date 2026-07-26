@@ -86,8 +86,7 @@ describe("pure exposure correctness", () => {
     // f/2 is wider than f/2.8 on standard intent → shallow-DOF warning.
     // Identity-based, not a literal string: this stays correct across copy
     // changes since it compares against the same builder the implementation
-    // calls. See "warning copy (locked)" below for the one place the actual
-    // wording is pinned.
+    // calls. See test 21 below for the one place the actual wording is pinned.
     expect(r.warnings).toContain(apertureWidenedWarning(2.0));
     // At 35mm/slow, the motion floor (1/250) binds before the shake floor
     // (1/35) would — floorCause is "motion" here, not "shake" — and the
@@ -191,6 +190,35 @@ describe("ISO soft-cap / lens-limit note decoupling", () => {
     expect(r.aperture).toBe("f/5.6");
     expect(r.warnings.some((w) => w.includes("ISO 3200 needed"))).toBe(false);
     expect(r.warnings.some((w) => /lens/i.test(w))).toBe(false);
+  });
+});
+
+describe("ISO-warning remedies — no bad advice to a tripod user already at the ceiling", () => {
+  it("21: deep_dof + tripod + stationary + EV -6 — warning copy (locked): no tripod/longer-exposure advice, flash offered, grammar fixed", () => {
+    const r = calculateSettings(scene({ scene_ev: -6, motion_tier: "stationary", support: "tripod", focal_length_mm: 24, creative_intent: "deep_dof", white_balance: "daylight" }));
+    expect(r.iso).toBe(12800);
+    expect(r.aperture).toBe("f/8");
+    expect(r.warnings).toContain(
+      "Scene darker than calculator can fully expose — ISO 12800 needed because the deep depth of field request holds the aperture at f/8. Image may be underexposed; add light, accept a shallower depth of field, or use flash."
+    );
+    expect(r.warnings).toHaveLength(1);
+  });
+
+  it("22: standard + tripod + slow motion + EV -6 — no tripod/longer-exposure advice (motion floor, not shake, binds)", () => {
+    const r = calculateSettings(scene({ scene_ev: -6, motion_tier: "slow", support: "tripod", focal_length_mm: 24, creative_intent: "standard", white_balance: "daylight" }));
+    const isoWarning = r.warnings.find((w) => w.startsWith("Scene darker"));
+    expect(isoWarning).toBeDefined();
+    expect(isoWarning).not.toMatch(/tripod/i);
+    expect(isoWarning).not.toMatch(/longer exposure/i);
+    expect(isoWarning).toMatch(/flash/i);
+  });
+
+  it("23: handheld + EV -4 — tripod and longer-exposure advice still present (negative control)", () => {
+    const r = calculateSettings(scene({ scene_ev: -4, motion_tier: "stationary", support: "handheld", focal_length_mm: 50, creative_intent: "standard", white_balance: "daylight" }));
+    const isoWarning = r.warnings.find((w) => w.startsWith("Scene darker"));
+    expect(isoWarning).toBeDefined();
+    expect(isoWarning).toMatch(/tripod/i);
+    expect(isoWarning).toMatch(/longer exposure/i);
   });
 });
 

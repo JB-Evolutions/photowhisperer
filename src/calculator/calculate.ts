@@ -140,6 +140,47 @@ export function apertureWidenedWarning(aperture: number): string {
   return `Aperture opened to ${formatAperture(aperture)} to keep ISO down; background will be noticeably blurred. Add light, or accept a higher ISO, if you need more of the scene sharp.`;
 }
 
+// Remedies for the Step 10 ISO warnings, gated on what's actually available to
+// the user rather than hardcoded per cause branch.
+//
+// - "Use a tripod for a longer exposure" is excluded for tripod/stabilized: on
+//   that support, the shutter is either already at the dead-code 30s ceiling
+//   (stationary — see Step 8's tripod-extension block) or bound by the motion
+//   floor (non-stationary, where going slower would contradict the very floor
+//   that's keeping the subject sharp). It's ALSO excluded for handheld when
+//   floorCause is "motion", not "shake": a tripod only buys anything when the
+//   camera's own shake is the binding constraint — if the subject's movement
+//   is what's capping the shutter (Step 3 uses MOTION_FLOORS there too),
+//   mounting a tripod does nothing for it.
+// - "Accept a shallower depth of field" only applies to deep_dof: that's the
+//   one intent where the user's own request, not gear or light, is pinning
+//   the aperture and driving ISO up — mirrors apertureWidenedWarning's
+//   converse trade ("accept a higher ISO").
+function buildRemedies(
+  input: SceneInput,
+  lensLimitedAperture: boolean,
+  underexposed: boolean
+): string[] {
+  const remedies = ["add light"];
+  if (input.creative_intent === "deep_dof") remedies.push("accept a shallower depth of field");
+  if (lensLimitedAperture) remedies.push("use a faster lens");
+  // `!== "motion"` also admits null, which is safe here only because
+  // floorCause never returns null on the handheld path (see its own
+  // branching) — that's guarded by the `support === "handheld"` conjunct
+  // above, not guaranteed by floorCause's own return type.
+  if (input.support === "handheld" && floorCause(input) !== "motion") {
+    remedies.push("use a tripod for a longer exposure");
+  }
+  if (underexposed) remedies.push("use flash");
+  return remedies;
+}
+
+function joinRemedies(remedies: string[]): string {
+  if (remedies.length === 1) return remedies[0];
+  if (remedies.length === 2) return `${remedies[0]} or ${remedies[1]}`;
+  return `${remedies.slice(0, -1).join(", ")}, or ${remedies[remedies.length - 1]}`;
+}
+
 // Handheld only: the shutter floor is bound by shake (1/focal_length), not by
 // subject motion. Bracing/tripod advice is relevant because the user is, by
 // definition, handheld here.
@@ -361,7 +402,7 @@ export function calculateSettings(input: SceneInput): SettingsOutput {
 
     let cause: string;
     if (apertureProtectedByDeepDof) {
-      cause = `hold the deep depth of field at ${formatAperture(aperture)}`;
+      cause = `the deep depth of field request holds the aperture at ${formatAperture(aperture)}`;
     } else if (lensLimitedAperture) {
       cause = `your lens can't open past ${formatAperture(aperture)}`;
       isoWarningNamesLens = true;
@@ -371,16 +412,14 @@ export function calculateSettings(input: SceneInput): SettingsOutput {
       cause = `the scene is low light even after opening the aperture`;
     }
 
+    const remedySentence = joinRemedies(buildRemedies(input, lensLimitedAperture, underexposed));
+
     if (underexposed) {
       warnings.push(
-        `Scene darker than calculator can fully expose — ISO ${iso} needed because ${cause}. Image may be underexposed; consider tripod, longer exposure, or flash.`
+        `Scene darker than calculator can fully expose — ISO ${iso} needed because ${cause}. Image may be underexposed; ${remedySentence}.`
       );
-    } else if (apertureProtectedByDeepDof) {
-      warnings.push(`ISO ${iso} needed to ${cause}; add light or use a tripod for a longer exposure.`);
-    } else if (lensLimitedAperture) {
-      warnings.push(`ISO ${iso} needed because ${cause}; add light or use a faster lens.`);
     } else {
-      warnings.push(`ISO ${iso} needed because ${cause}; use a tripod or add light.`);
+      warnings.push(`ISO ${iso} needed because ${cause}; ${remedySentence}.`);
     }
   }
 
