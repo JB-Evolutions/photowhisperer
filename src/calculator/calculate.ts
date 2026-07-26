@@ -400,11 +400,17 @@ export function calculateSettings(input: SceneInput): SettingsOutput {
       // conventional outcome (fill flash at Sunny 16), so it's an assumption,
       // not a warning; only shallow_dof has its stated request actually
       // denied by it, which is what makes it warning-worthy there.
-      const syncSentence = `Shutter held at ${formatShutter(FLASH_SYNC_SAFE_SHUTTER_S)} for flash sync, so aperture is the only lever left for this light level; use high-speed sync or an ND filter to shoot wider.`;
       if (input.creative_intent === "shallow_dof") {
-        warnings.push(blurDenied ? `${syncSentence} The requested background blur could not be delivered.` : syncSentence);
+        const syncWarning = `Shutter held at ${formatShutter(FLASH_SYNC_SAFE_SHUTTER_S)} for flash sync, so aperture is the only lever left for this light level; use high-speed sync or an ND filter to shoot wider.`;
+        warnings.push(blurDenied ? `${syncWarning} The requested background blur could not be delivered.` : syncWarning);
       } else {
-        assumptions.push(syncSentence);
+        // Declarative, not advice — every other assumptions entry states a
+        // fact about what was assumed/derived, never a remedy. standard/
+        // deep_dof never asked to shoot wider, so the HSS/ND suggestion above
+        // would be noise here.
+        assumptions.push(
+          `Held the shutter at ${formatShutter(FLASH_SYNC_SAFE_SHUTTER_S)} for flash sync and set aperture to ${formatAperture(aperture)} to balance the ambient light.`
+        );
       }
     }
 
