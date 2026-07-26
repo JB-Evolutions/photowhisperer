@@ -105,10 +105,15 @@ describe("pure exposure correctness", () => {
 
 describe("edge cases", () => {
   it("11: flash override", () => {
+    // Flash ambient solve: tripod + stationary floors at
+    // TRIPOD_LONG_EXPOSURE_LIMIT_S (30s), the drag cap pulls that to 1s,
+    // and 1s is not faster than FLASH_SYNC_SAFE_SHUTTER_S so no sync clamp
+    // applies. At f/5.6 (standard) and EV 8, solved ISO lands at 100 (the
+    // floor), not 200.
     const r = calculateSettings(scene({ scene_ev: 8, motion_tier: "stationary", support: "tripod", focal_length_mm: 50, creative_intent: "standard", white_balance: "flash" }));
-    expect(r.iso).toBe(200);
+    expect(r.iso).toBe(100);
     expect(r.aperture).toBe("f/5.6");
-    expect(r.shutter_speed).toBe("1/200");
+    expect(r.shutter_speed).toBe("1/8");
     expect(r.color_temperature).toBe("5500K");
   });
 
@@ -180,6 +185,43 @@ describe("edge cases", () => {
   it("16: auto white balance — color_temperature is null", () => {
     const r = calculateSettings(scene({ scene_ev: 15, motion_tier: "stationary", support: "handheld", focal_length_mm: 50, creative_intent: "standard", white_balance: "auto" }));
     expect(r.color_temperature).toBeNull();
+  });
+});
+
+describe("flash ambient solve", () => {
+  it("24: ev=15, standard, 50mm, handheld", () => {
+    const r = calculateSettings(scene({ scene_ev: 15, motion_tier: "stationary", support: "handheld", focal_length_mm: 50, creative_intent: "standard", white_balance: "flash" }));
+    expect(r.iso).toBe(100);
+    expect(r.aperture).toBe("f/16");
+    expect(r.shutter_speed).toBe("1/125");
+  });
+
+  it("25: ev=6, standard, 50mm, handheld", () => {
+    const r = calculateSettings(scene({ scene_ev: 6, motion_tier: "stationary", support: "handheld", focal_length_mm: 50, creative_intent: "standard", white_balance: "flash" }));
+    expect(r.iso).toBe(800);
+    expect(r.aperture).toBe("f/5.6");
+    expect(r.shutter_speed).toBe("1/60");
+  });
+
+  it("26: ev=15, shallow_dof, 85mm, handheld", () => {
+    const r = calculateSettings(scene({ scene_ev: 15, motion_tier: "stationary", support: "handheld", focal_length_mm: 85, creative_intent: "shallow_dof", white_balance: "flash" }));
+    expect(r.iso).toBe(100);
+    expect(r.aperture).toBe("f/16");
+    expect(r.shutter_speed).toBe("1/125");
+  });
+
+  it("27: ev=2, deep_dof, 24mm, tripod", () => {
+    const r = calculateSettings(scene({ scene_ev: 2, motion_tier: "stationary", support: "tripod", focal_length_mm: 24, creative_intent: "deep_dof", white_balance: "flash" }));
+    expect(r.iso).toBe(800);
+    expect(r.aperture).toBe("f/8");
+    expect(r.shutter_speed).toBe('1"');
+  });
+
+  it("28: ev=6, shallow_dof, 50mm, handheld, max_aperture 4", () => {
+    const r = calculateSettings(scene({ scene_ev: 6, motion_tier: "stationary", support: "handheld", focal_length_mm: 50, creative_intent: "shallow_dof", white_balance: "flash", max_aperture: 4 }));
+    expect(r.iso).toBe(800);
+    expect(r.aperture).toBe("f/4");
+    expect(r.shutter_speed).toBe("1/60");
   });
 });
 
