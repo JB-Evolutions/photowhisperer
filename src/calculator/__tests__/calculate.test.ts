@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { calculateSettings } from "../calculate";
+import {
+  calculateSettings,
+  apertureWidenedWarning,
+  SHAKE_AT_FLOOR_WARNING,
+  MOTION_AT_FLOOR_WARNING,
+} from "../calculate";
 import { formatAperture, formatShutter } from "../format";
 import type { SceneInput } from "../types";
 
@@ -68,10 +73,27 @@ describe("pure exposure correctness", () => {
   });
 
   it("9: ev=5, slow, handheld, 35mm, standard, tungsten", () => {
+    // Old expectation (iso 12800, f/4) encoded the pre-ladder bug: aperture
+    // locked at the f/5.6 default and ISO absorbed the entire deficit. The
+    // corrected ladder widens the aperture toward the f/1.8 policy limit
+    // first — here it stops at f/2 (isoIdeal already <=3200 there, no need
+    // to go all the way to 1.8) — and only the leftover gap lands on ISO,
+    // which is now 2 stops lower (3200 vs 12800).
     const r = calculateSettings(scene({ scene_ev: 5, motion_tier: "slow", support: "handheld", focal_length_mm: 35, creative_intent: "standard", white_balance: "tungsten" }));
-    expect(r.iso).toBe(12800);
-    expect(r.aperture).toBe("f/4");
+    expect(r.iso).toBe(3200);
+    expect(r.aperture).toBe("f/2");
     expect(r.shutter_speed).toBe("1/250");
+    // f/2 is wider than f/2.8 on standard intent → shallow-DOF warning.
+    // Identity-based, not a literal string: this stays correct across copy
+    // changes since it compares against the same builder the implementation
+    // calls. See "warning copy (locked)" below for the one place the actual
+    // wording is pinned.
+    expect(r.warnings).toContain(apertureWidenedWarning(2.0));
+    // At 35mm/slow, the motion floor (1/250) binds before the shake floor
+    // (1/35) would — floorCause is "motion" here, not "shake" — and the
+    // motion-floor warning fires unconditionally (unlike the shake-floor
+    // warning, it isn't gated by the noise gate below).
+    expect(r.warnings).toContain(MOTION_AT_FLOOR_WARNING);
   });
 
   it("10: ev=15, stationary, handheld, 85mm, shallow_dof, daylight", () => {
@@ -100,7 +122,7 @@ describe("edge cases", () => {
     expect(r.warnings).toHaveLength(0);
   });
 
-  it("13: focal_length_assumed — assumption string present", () => {
+  it("13: focal_length_assumed — assumption string present (handheld)", () => {
     const r = calculateSettings({
       scene_ev: 15,
       motion_tier: "stationary",
@@ -111,8 +133,39 @@ describe("edge cases", () => {
       white_balance: "daylight",
     });
     expect(r.assumptions).toContain(
-      "Assumed 50mm full-frame focal length (handheld, not specified)."
+      "Assumed 50mm full-frame focal length (not specified); handheld shake floor derives from it."
     );
+  });
+
+  it("13b: focal_length_assumed — support-neutral string on tripod, no mention of handheld", () => {
+    const r = calculateSettings({
+      scene_ev: 15,
+      motion_tier: "stationary",
+      support: "tripod",
+      focal_length_mm: 50,
+      focal_length_assumed: true,
+      creative_intent: "standard",
+      white_balance: "daylight",
+    });
+    expect(r.assumptions).toContain("Assumed 50mm full-frame focal length (not specified).");
+    expect(r.assumptions.some((a) => a.toLowerCase().includes("handheld"))).toBe(false);
+  });
+
+  it("17: 8mm handheld stationary — absolute shake-floor cap binds at 1/15, not 1/8", () => {
+    const r = calculateSettings(scene({ scene_ev: -4, motion_tier: "stationary", support: "handheld", focal_length_mm: 8, creative_intent: "standard", white_balance: "daylight" }));
+    expect(r.shutter_speed).toBe("1/15");
+    expect(r.warnings).toContain(SHAKE_AT_FLOOR_WARNING);
+  });
+
+  it("18: 24mm handheld stationary — absolute cap does not bind, floors at 1/30, not 1/60", () => {
+    const r = calculateSettings(scene({ scene_ev: -4, motion_tier: "stationary", support: "handheld", focal_length_mm: 24, creative_intent: "standard", white_balance: "daylight" }));
+    expect(r.shutter_speed).toBe("1/30");
+    expect(r.shutter_speed).not.toBe("1/60");
+    // Negative case for the shake-warning noise gate: at 24mm the cap doesn't
+    // bind and focal_length_assumed is false, so once that gate lands, the
+    // shake floor is the "standard rule of thumb" case (not genuinely thin
+    // margin) and must NOT warn.
+    expect(r.warnings).not.toContain(SHAKE_AT_FLOOR_WARNING);
   });
 
   it("14: ev=-4, handheld — underexposure warning", () => {

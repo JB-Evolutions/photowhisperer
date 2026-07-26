@@ -12,6 +12,16 @@ export interface SceneInput {
   creative_intent: CreativeIntent;
   white_balance: WhiteBalance;
   scene_summary?: string;
+  // Fields the classifier filled with a conservative default because the
+  // user didn't specify them (subset of "motion_tier" | "support" |
+  // "creative_intent" | "white_balance"). Optional/absent for backward
+  // compatibility with older classifier responses.
+  defaulted?: string[];
+  // Widest aperture (smallest f-number) the user's kit can reach, derived
+  // from camera_profile.lenses. null when gear is absent or unparseable —
+  // callers must not assume unconstrained widening in that case, since
+  // calculate.ts falls back to a conservative unknown-gear limit.
+  max_aperture?: number | null;
 }
 
 export interface SettingsOutput {
