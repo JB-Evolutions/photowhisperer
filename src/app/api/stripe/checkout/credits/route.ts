@@ -2,13 +2,14 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient as createServerClient } from "@/lib/supabase/server";
 import { getStripe } from "@/lib/stripe";
+import { CREDIT_PACKS, type CreditPackCode } from "@/lib/quota";
 
 export const dynamic = "force-dynamic";
 
-const CREDIT_PACKS: Record<"s" | "m" | "l", { priceId: string | undefined; amount: number }> = {
-  s: { priceId: process.env.STRIPE_PRICE_ID_CREDITS_50, amount: 50 },
-  m: { priceId: process.env.STRIPE_PRICE_ID_CREDITS_200, amount: 200 },
-  l: { priceId: process.env.STRIPE_PRICE_ID_CREDITS_500, amount: 500 },
+const PACK_STRIPE_ENV: Record<CreditPackCode, string | undefined> = {
+  s: process.env.STRIPE_PRICE_ID_CREDITS_50,
+  m: process.env.STRIPE_PRICE_ID_CREDITS_200,
+  l: process.env.STRIPE_PRICE_ID_CREDITS_500,
 };
 
 export async function POST(request: NextRequest) {
@@ -40,13 +41,16 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { priceId, amount } = CREDIT_PACKS[pack];
+  const priceId = PACK_STRIPE_ENV[pack];
   if (!priceId) {
+    console.error(`Missing Stripe price ID env var for credit pack '${pack}'.`);
     return NextResponse.json(
       { error: "configuration", message: `No price configured for pack '${pack}'.` },
       { status: 500 }
     );
   }
+
+  const amount = CREDIT_PACKS[pack].credits;
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL;
 
@@ -58,6 +62,8 @@ export async function POST(request: NextRequest) {
     customer_email: user.email,
     metadata: {
       user_id: user.id,
+      // credit_amount is derived server-side from CREDIT_PACKS. Never accept a credit
+      // amount from the request body — the webhook grants whatever it finds here.
       credit_amount: String(amount),
     },
   });

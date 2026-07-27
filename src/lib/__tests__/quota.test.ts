@@ -1,5 +1,11 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { utcQuotaPeriod, nextResetDate } from "../quota";
+import {
+  utcQuotaPeriod,
+  nextResetDate,
+  formatPrice,
+  CREDIT_PACKS,
+  TIER_PRICES_USD,
+} from "../quota";
 
 describe("utcQuotaPeriod", () => {
   afterEach(() => {
@@ -92,5 +98,40 @@ describe("nextResetDate — always requests UTC rendering", () => {
     expect(spy).toHaveBeenCalledTimes(1);
     const options = spy.mock.calls[0][1];
     expect(options).toMatchObject({ timeZone: "UTC" });
+  });
+});
+
+describe("formatPrice", () => {
+  it("returns 'Free' for 0", () => {
+    expect(formatPrice(0)).toBe("Free");
+  });
+
+  it("returns whole-dollar amounts with no decimal places", () => {
+    expect(formatPrice(10)).toBe("$10");
+    expect(formatPrice(35)).toBe("$35");
+  });
+
+  it("returns non-integer amounts with two decimal places", () => {
+    expect(formatPrice(12.5)).toBe("$12.50");
+  });
+});
+
+describe("CREDIT_PACKS", () => {
+  it("matches the locked pack values", () => {
+    expect(CREDIT_PACKS.s).toEqual({ credits: 50, priceUsd: 3 });
+    expect(CREDIT_PACKS.m).toEqual({ credits: 200, priceUsd: 10 });
+    expect(CREDIT_PACKS.l).toEqual({ credits: 500, priceUsd: 25 });
+  });
+
+  it("derives the correct per-credit price for each pack", () => {
+    expect((CREDIT_PACKS.s.priceUsd / CREDIT_PACKS.s.credits).toFixed(2)).toBe("0.06");
+    expect((CREDIT_PACKS.m.priceUsd / CREDIT_PACKS.m.credits).toFixed(2)).toBe("0.05");
+    expect((CREDIT_PACKS.l.priceUsd / CREDIT_PACKS.l.credits).toFixed(2)).toBe("0.05");
+  });
+});
+
+describe("TIER_PRICES_USD", () => {
+  it("matches the locked tier prices", () => {
+    expect(TIER_PRICES_USD).toEqual({ snapshot: 0, portrait: 10, studio: 35 });
   });
 });

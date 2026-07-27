@@ -39,7 +39,7 @@ Features strip (three columns at desktop): "Works for any camera" / "Calculates 
 
 How-it-works strip: three numbered steps with a screenshot of an actual response rendered in the app's visual style. Steps are "Describe the scene → Read the settings → Dial them in." The screenshot must be a real response shape (4 cubes + 3 panels) not a mock, so visitors see exactly what they're buying.
 
-Pricing section (anchor `#pricing`): three cards side-by-side. Snapshot left, Portrait center (highlighted with gold border and "Most popular" pill), Studio right. Each card: tier name in Fraunces, price in JetBrains Mono ("$0", "$14", "$39") with `/month` in muted text, the request quota as the lede feature, then 3–4 supporting features beneath, then a button — "Start free" / "Get Portrait" / "Get Studio." Below pricing, a one-line note: "Need more? Buy extra credits anytime from your billing page."
+Pricing section (anchor `#pricing`): three cards side-by-side. Snapshot left, Portrait center (highlighted with gold border and "Most popular" pill), Studio right. Each card: tier name in Fraunces, price in JetBrains Mono ("$0", "$10", "$35") with `/month` in muted text, the request quota as the lede feature, then 3–4 supporting features beneath, then a button — "Start free" / "Get Portrait" / "Get Studio." Below pricing, a one-line note: "Need more? Buy extra credits anytime from your billing page."
 
 FAQ section: accordion with at minimum these questions — Does this work with my camera? Do I need to know exposure math? What counts as one setting? Can I cancel anytime? Do you store my data? Do my unused requests roll over? (Answer: no, they reset on the 1st UTC; extra credits do roll over.) Open one item by default to signal interactivity.
 
@@ -394,7 +394,7 @@ Single column, max-width 720px. Sections stacked top to bottom:
 
 **Usage section:** the same usage block from the sidebar but expanded — a larger progress bar, breakdown showing `X used of Y monthly + Z extra credits = W total remaining`, and the reset date in muted text. If the user has any extra credits, an "Extra credits" sub-line shows the balance and a "Buy more" outline button.
 
-**Extra credits section:** card with heading "Need more requests?", body explaining the credit-pack model (one-time purchase, doesn't expire, used after monthly quota), and three pack options as smaller cards: e.g., 50 credits / $5, 200 credits / $15, 500 credits / $30. Pack pricing is your call; flag for finalization before Phase 8. Each card has a "Buy" button that opens Stripe Checkout.
+**Extra credits section:** card with heading "Need more requests?", body explaining the credit-pack model (one-time purchase, doesn't expire, used after monthly quota), and three pack options as smaller cards: 50 credits / $3, 200 credits / $10, 500 credits / $25. Each card has a "Buy" button that opens Stripe Checkout.
 
 **Payment method section:** read from Stripe, shows card last-4 + brand, "Update" button opens customer portal. Only shown for paying tiers.
 

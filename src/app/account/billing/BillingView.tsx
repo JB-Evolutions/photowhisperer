@@ -5,7 +5,7 @@ import Link from "next/link";
 import Button from "@/components/shared/Button";
 import CreditPackPicker from "@/components/shared/CreditPackPicker";
 import FillBar from "@/components/shared/FillBar";
-import { TIER_DISPLAY_NAMES, TIER_PRICES_USD, nextResetDate } from "@/lib/quota";
+import { TIER_DISPLAY_NAMES, TIER_PRICES_USD, formatPrice, nextResetDate } from "@/lib/quota";
 import type { Tier } from "@/lib/quota";
 import { parseDbTimestamp } from "@/lib/date";
 import { useResetOnBfcache } from "@/hooks/useResetOnBfcache";
@@ -144,7 +144,7 @@ export default function BillingView({
               <h2 className="font-display text-2xl text-text">{tierLabel}</h2>
               {isPaying ? (
                 <div className="flex items-baseline gap-1">
-                  <span className="font-mono text-3xl text-text">${tierPrice}</span>
+                  <span className="font-mono text-3xl text-text">{formatPrice(tierPrice)}</span>
                   <span className="font-mono text-sm text-text-dim">/mo</span>
                 </div>
               ) : (

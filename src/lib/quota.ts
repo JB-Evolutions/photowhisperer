@@ -16,9 +16,21 @@ export const TIER_DISPLAY_NAMES: Record<Tier, string> = {
 
 export const TIER_PRICES_USD: Record<Tier, number> = {
   snapshot: 0,
-  portrait: 14,
-  studio: 39,
+  portrait: 10,
+  studio: 35,
 };
+
+export const CREDIT_PACKS = {
+  s: { credits: 50, priceUsd: 3 },
+  m: { credits: 200, priceUsd: 10 },
+  l: { credits: 500, priceUsd: 25 },
+} as const;
+
+export type CreditPackCode = keyof typeof CREDIT_PACKS;
+
+export function formatPrice(usd: number): string {
+  return usd === 0 ? "Free" : `$${Number.isInteger(usd) ? usd : usd.toFixed(2)}`;
+}
 
 export const TIER_HISTORY_LIMITS: Record<Tier, number> = {
   snapshot: 3,

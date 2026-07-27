@@ -22,7 +22,7 @@
 
 4. **Screen spec finalized.** See `screen-spec-v1.md`. Read it before Phase 9.
 
-5. **Decide credit-pack pricing.** Set the dollar amounts in Stripe before Phase 8. Suggested: $5 / $15 / $30 for 50 / 200 / 500.
+5. **Credit-pack pricing.** $3 / $10 / $25 for 50 / 200 / 500.
 
 ---
 

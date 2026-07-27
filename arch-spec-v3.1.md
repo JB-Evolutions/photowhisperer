@@ -456,7 +456,7 @@ Three one-time-purchase products in Stripe Dashboard:
 | Pack M | `STRIPE_PRICE_ID_CREDITS_200` | 200 |
 | Pack L | `STRIPE_PRICE_ID_CREDITS_500` | 500 |
 
-**Pricing TBD** — finalize before Phase 8. Suggested: $5 / $15 / $30 (clear per-credit discount at higher tiers without undercutting the subscription value).
+**Pricing locked** — $3 / $10 / $25 for 50 / 200 / 500 credits (clear per-credit discount at higher tiers without undercutting the subscription value).
 
 Credit pack purchase metadata in Stripe must include `credit_amount: 50` (or 200/500). Webhook handler reads this and increments `credit_balances`.
 
@@ -695,8 +695,8 @@ Remove deprecated env vars from v3.0: `STRIPE_PRICE_ID_SILVER`, `STRIPE_PRICE_ID
 |---|---|---|
 | Tier naming | ✅ Locked | UI: Snapshot/Portrait/Studio. DB: same lowercase. Migration rename in 003. |
 | Tier limits | ✅ Locked | 5 / 500 / 2000. All hard caps. Snapshot is positioned as a *trial* (~5 settings to evaluate), not an indefinite free tier. Extra credits extend beyond cap on all tiers. Adjustable in `TIER_LIMITS`. |
-| Credit pack pricing | ✅ Locked | $5 / $15 / $30 for 50 / 200 / 500 credits. |
-| Pricing | ✅ Locked | $0 / $14 / $39 monthly for Snapshot / Portrait / Studio. |
+| Credit pack pricing | ✅ Locked | $3 / $10 / $25 for 50 / 200 / 500 credits. |
+| Pricing | ✅ Locked | $0 / $10 / $35 monthly for Snapshot / Portrait / Studio. |
 | Multi-turn | ✅ Defined as Option C | Single-shot agent, client-side concat of prior turn, 1-turn lookback cap. |
 | Sessions | ✅ Defined | UI grouping backed by `sessions` + `session_messages` tables. Server-side write inside `/api/settings`. |
 | Camera profile | ✅ Defined | New `camera_profiles` table. Injected into every request. Optional. |
@@ -722,3 +722,4 @@ Remove deprecated env vars from v3.0: `STRIPE_PRICE_ID_SILVER`, `STRIPE_PRICE_ID
 8. **API change:** `/api/settings` now accepts `session_id` and `prior_context`, returns `session_id`, `credits_used`, `monthly_count`, `credits_remaining`.
 9. **Repo structure expanded** with auth, account, billing, onboarding, marketing pages and supporting components.
 10. **Build phase map** updated — see `build-steps-v2.md`.
+11. **Pricing revision** — Portrait $14→$10, Studio $39→$35, credit packs $5/$15/$30 → $3/$10/$25. All display pricing now sourced from `TIER_PRICES_USD` and `CREDIT_PACKS` in `src/lib/quota.ts`; no price literals elsewhere. Stripe checkout route reads credit amounts from `CREDIT_PACKS`.

@@ -1,7 +1,7 @@
 import Button from "@/components/shared/Button";
 import PricingScrollTrack from "@/components/marketing/PricingScrollTrack";
 import { getMarketingAuthState } from "@/lib/auth-state";
-import { TIER_LIMITS, TIER_PRICES_USD, type Tier } from "@/lib/quota";
+import { TIER_LIMITS, TIER_PRICES_USD, formatPrice, type Tier } from "@/lib/quota";
 
 interface TierCardConfig {
   tier: Tier;
@@ -78,9 +78,11 @@ export default async function PricingTiers() {
 
                 <div className="mt-4 flex items-baseline gap-1">
                   <span className="font-mono text-4xl text-text">
-                    ${TIER_PRICES_USD[card.tier]}
+                    {formatPrice(TIER_PRICES_USD[card.tier])}
                   </span>
-                  <span className="font-mono text-sm text-text-muted">/mo</span>
+                  {TIER_PRICES_USD[card.tier] > 0 && (
+                    <span className="font-mono text-sm text-text-muted">/mo</span>
+                  )}
                 </div>
 
                 <p className="mt-2 text-sm text-text-muted">{card.headline}</p>

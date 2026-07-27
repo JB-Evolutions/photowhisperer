@@ -2,8 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Button from "@/components/shared/Button";
-import { PACK_PRICING } from "@/components/shared/CreditPackPicker";
-import type { PackCode } from "@/components/shared/CreditPackPicker";
+import { CREDIT_PACKS, type CreditPackCode } from "@/lib/quota";
 
 type PollState = "polling" | "confirmed" | "timeout";
 
@@ -14,7 +13,7 @@ interface SuccessViewProps {
 
 function creditAmount(pack: string | undefined): number | null {
   if (pack !== "s" && pack !== "m" && pack !== "l") return null;
-  return PACK_PRICING.find((p) => p.code === (pack as PackCode))?.credits ?? null;
+  return CREDIT_PACKS[pack as CreditPackCode].credits;
 }
 
 export default function SuccessView({ type, pack }: SuccessViewProps) {
