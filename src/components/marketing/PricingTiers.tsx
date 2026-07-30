@@ -50,12 +50,31 @@ function CurrentPlanBadge() {
   );
 }
 
-export default async function PricingTiers() {
+// `title` is required so no caller can drop the section <h2> and leave the tier
+// <h3>s skipping a heading level. `titleHidden` keeps the heading in the outline
+// while removing it visually — the homepage nests these cards under its own hero
+// with no visible section heading, whereas /pricing displays one.
+export default async function PricingTiers({
+  title,
+  titleHidden = false,
+}: {
+  title: string;
+  titleHidden?: boolean;
+}) {
   const { isLoggedIn, tier: activeTier } = await getMarketingAuthState();
 
   return (
     <section id="pricing" data-section="pricing" className="py-24">
       <div className="mx-auto max-w-[1280px] px-8">
+        <h2
+          className={
+            titleHidden
+              ? "sr-only"
+              : "mb-12 text-center font-display text-3xl text-text"
+          }
+        >
+          {title}
+        </h2>
         <PricingScrollTrack>
           {TIERS.map((card) => {
             const isCurrentPlan = isLoggedIn && activeTier === card.tier;

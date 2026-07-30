@@ -3,8 +3,9 @@ import { headers } from "next/headers";
 import Nav from "@/components/shared/Nav";
 import MarketingShell from "@/components/marketing/MarketingShell";
 import PricingTiers from "@/components/marketing/PricingTiers";
-import FaqAccordion, { type FaqItem } from "@/components/marketing/FaqAccordion";
+import FaqAccordion from "@/components/marketing/FaqAccordion";
 import JsonLd from "@/components/seo/JsonLd";
+import { PRICING_FAQ_ITEMS } from "@/content/faq";
 import { TIER_DISPLAY_NAMES, TIER_HISTORY_LIMITS, TIER_LIMITS, type Tier } from "@/lib/quota";
 import { marketingSocial } from "@/lib/seo";
 
@@ -69,19 +70,6 @@ const MATRIX_ROWS: MatrixRow[] = [
   },
 ];
 
-const PRICING_FAQ_ITEMS: FaqItem[] = [
-  {
-    question: "What happens if I run out?",
-    answer:
-      "Buy extra credits anytime, or upgrade your plan for a higher monthly limit.",
-  },
-  {
-    question: "Can I downgrade?",
-    answer:
-      "Yes, via the customer portal. Your downgrade takes effect at the end of your current billing period.",
-  },
-];
-
 function CheckIcon() {
   return (
     <svg
@@ -129,10 +117,26 @@ export default async function PricingPage() {
       <Nav />
       <MarketingShell>
         <main>
-          <PricingTiers />
+          <section className="px-8 pt-24 sm:pt-32">
+            <div className="mx-auto flex max-w-[800px] flex-col items-center text-center">
+              <h1 className="font-display text-4xl text-text sm:text-5xl">
+                PhotoWhisperer pricing
+              </h1>
+              <p className="mt-6 max-w-[560px] text-base text-text-muted sm:text-lg">
+                Pick the tier that matches how often you shoot. Every plan uses
+                the same calculator; the tiers differ in how many settings you
+                get each month and how much history you keep.
+              </p>
+            </div>
+          </section>
+
+          <PricingTiers title="Plan tiers" titleHidden />
 
           <section className="px-8 py-24">
             <div className="mx-auto max-w-[1280px]">
+              <h2 className="mb-12 text-center font-display text-3xl text-text">
+                Compare features
+              </h2>
               <div className="overflow-x-auto rounded-[14px] border border-border">
                 <table className="w-full min-w-[640px] border-collapse text-sm">
                   <thead>

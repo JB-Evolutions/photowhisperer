@@ -22,8 +22,9 @@ export function marketingSocial({
   title: string;
   description: string;
   path: string;
-}): Pick<Metadata, "openGraph" | "twitter"> {
+}): Pick<Metadata, "openGraph" | "twitter" | "alternates"> {
   return {
+    alternates: { canonical: path },
     openGraph: {
       title,
       description,

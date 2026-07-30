@@ -1,49 +1,7 @@
 "use client";
 
 import { useId, useRef, useState, type KeyboardEvent } from "react";
-
-export interface FaqItem {
-  question: string;
-  answer: string;
-}
-
-const DEFAULT_FAQ_ITEMS: FaqItem[] = [
-  {
-    question: "Does this work with my camera?",
-    answer:
-      "Yes. PhotoWhisperer gives you settings in standard terms (ISO, aperture, shutter speed, white balance) that apply to any camera that shoots in manual mode, mirrorless, DSLR, or otherwise. We don't connect to your camera directly; you read the values and dial them in yourself.",
-  },
-  {
-    question: "What ISO should I use at night or in low light?",
-    answer:
-      "There's no fixed number, it depends on how dark the scene is and how much motion you can tolerate. Describe what you're shooting, a dim reception hall, a city street, a candlelit table, and we calculate the ISO alongside aperture and shutter speed for that specific light instead of handing you a generic low-light preset.",
-  },
-  {
-    question: "Is this good for beginners who don't know manual mode yet?",
-    answer:
-      "Yes. Describe the scene in plain language and we handle the exposure math behind the scenes. You don't need to know stops, the exposure triangle, or any of the underlying calculations to start shooting in manual mode.",
-  },
-  {
-    question: "What counts as one setting?",
-    answer:
-      "One setting is one scene description you submit that returns one set of camera values. Each request counts once toward your monthly limit, whether or not you end up using the result.",
-  },
-  {
-    question: "Can I cancel anytime?",
-    answer:
-      "Yes. Cancel your subscription anytime from your billing page. You'll keep access through the end of your current billing period, no penalties, no retention calls.",
-  },
-  {
-    question: "Do you store my data?",
-    answer:
-      "Your scene descriptions and the settings we return are stored so you can revisit your history. You control how much of that history you keep. Stripe handles payments, Supabase stores your account data, and Anthropic processes the scene description itself to generate your settings. We don't share any of it for model training.",
-  },
-  {
-    question: "Do my unused requests roll over?",
-    answer:
-      "No. Your monthly settings reset on the 1st of the month UTC and unused ones do not roll over. Extra credits you purchase work differently: they roll over and never expire.",
-  },
-];
+import type { FaqItem } from "@/content/faq";
 
 function ChevronIcon({ open }: { open: boolean }) {
   return (
@@ -66,11 +24,9 @@ function ChevronIcon({ open }: { open: boolean }) {
   );
 }
 
-export default function FaqAccordion({
-  items = DEFAULT_FAQ_ITEMS,
-}: {
-  items?: FaqItem[];
-}) {
+// `items` is required by design — a default here would let a page silently
+// render FAQ copy that its FAQPage JSON-LD was not built from.
+export default function FaqAccordion({ items }: { items: FaqItem[] }) {
   const baseId = useId();
   const [openIndex, setOpenIndex] = useState<number | null>(0);
   const buttonRefs = useRef<(HTMLButtonElement | null)[]>([]);

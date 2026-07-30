@@ -40,9 +40,9 @@ export default function MarketingFooter() {
       <div className="mx-auto max-w-[1280px] px-8 py-16">
         <div className="grid grid-cols-1 gap-12 md:grid-cols-3">
           <div>
-            <h3 className="font-body text-xs uppercase tracking-[0.08em] text-text-muted">
+            <h2 className="font-body text-xs uppercase tracking-[0.08em] text-text-muted">
               Product
-            </h3>
+            </h2>
             <ul className="mt-4 flex flex-col gap-3 list-none">
               {PRODUCT_LINKS.map((link) => (
                 <li key={link.href}>
@@ -55,9 +55,9 @@ export default function MarketingFooter() {
           </div>
 
           <div>
-            <h3 className="font-body text-xs uppercase tracking-[0.08em] text-text-muted">
+            <h2 className="font-body text-xs uppercase tracking-[0.08em] text-text-muted">
               Legal
-            </h3>
+            </h2>
             <ul className="mt-4 flex flex-col gap-3 list-none">
               {LEGAL_LINKS.map((link) => (
                 <li key={link.href}>
@@ -73,9 +73,9 @@ export default function MarketingFooter() {
           </div>
 
           <div>
-            <h3 className="font-body text-xs uppercase tracking-[0.08em] text-text-muted">
+            <h2 className="font-body text-xs uppercase tracking-[0.08em] text-text-muted">
               Contact
-            </h3>
+            </h2>
             <a
               href="mailto:support@photographywhisperer.com"
               className={`mt-4 inline-flex items-center gap-2 ${linkClass}`}

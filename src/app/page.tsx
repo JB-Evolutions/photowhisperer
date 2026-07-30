@@ -7,6 +7,7 @@ import AppShowcase from "@/components/marketing/AppShowcase";
 import PricingTiers from "@/components/marketing/PricingTiers";
 import FaqAccordion from "@/components/marketing/FaqAccordion";
 import JsonLd from "@/components/seo/JsonLd";
+import { HOME_FAQ_ITEMS } from "@/content/faq";
 import { getMarketingAuthState } from "@/lib/auth-state";
 import { TIER_LIMITS, TIER_DISPLAY_NAMES, TIER_PRICES_USD, type Tier } from "@/lib/quota";
 import { marketingSocial, SITE_URL, SITE_NAME } from "@/lib/seo";
@@ -71,14 +72,31 @@ const softwareApplicationSchema = {
   "@context": "https://schema.org",
   "@type": "SoftwareApplication",
   name: SITE_NAME,
+  description: DESCRIPTION,
   url: SITE_URL,
   applicationCategory: "PhotoApplication",
   operatingSystem: "Web",
+  // Tiers derive from the same constants the pricing UI renders from, so
+  // schema prices can't drift from the cards.
   offers: (Object.keys(TIER_LIMITS) as Tier[]).map((tier) => ({
     "@type": "Offer",
     name: TIER_DISPLAY_NAMES[tier],
     price: TIER_PRICES_USD[tier],
     priceCurrency: "USD",
+  })),
+};
+
+// Built from the same array FaqAccordion renders below — single source.
+const faqPageSchema = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: HOME_FAQ_ITEMS.map((item) => ({
+    "@type": "Question",
+    name: item.question,
+    acceptedAnswer: {
+      "@type": "Answer",
+      text: item.answer,
+    },
   })),
 };
 
@@ -89,6 +107,7 @@ export default async function Home() {
   return (
     <>
       <JsonLd data={softwareApplicationSchema} nonce={nonce} />
+      <JsonLd data={faqPageSchema} nonce={nonce} />
       <Nav />
       <MarketingShell>
         <main>
@@ -124,6 +143,10 @@ export default async function Home() {
 
           <section id="features" data-section="features" className="px-8 py-24">
             <div className="mx-auto max-w-[1280px]">
+              {/* No visible section heading by design — this keeps the outline
+                  descending h1 -> h2 -> h3 (feature titles) for screen readers
+                  and crawlers without altering the layout. */}
+              <h2 className="sr-only">Features</h2>
               <div className="grid grid-cols-1 gap-12 sm:grid-cols-3 sm:gap-8">
                 {FEATURES.map((feature) => (
                   <div key={feature.title} className="flex flex-col">
@@ -143,8 +166,8 @@ export default async function Home() {
           </section>
 
           <AppShowcase />
-          <PricingTiers />
-          <FaqAccordion />
+          <PricingTiers title="Pricing plans" titleHidden />
+          <FaqAccordion items={HOME_FAQ_ITEMS} />
         </main>
       </MarketingShell>
     </>
