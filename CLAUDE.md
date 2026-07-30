@@ -51,7 +51,7 @@ All colors, spacing, and typography must come from the CSS variables defined in 
 `src/api/` and `src/calculator/` are treated as stable. Do not modify files in these directories unless a build phase explicitly calls for it.
 
 ## Tests
-Run `pnpm exec vitest run` before every commit. All 27 tests must pass. Do not modify test files to make tests pass.
+Run `pnpm exec vitest run` before every commit. The entire suite must pass — no failures, no skips. Do not modify test files to make tests pass.
 
 ## Commit messages
 No Co-Authored-By lines. No AI attribution of any kind. Write commit messages as if authored by the project team.
