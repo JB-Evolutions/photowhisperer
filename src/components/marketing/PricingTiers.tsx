@@ -1,3 +1,4 @@
+import Link from "next/link";
 import Button from "@/components/shared/Button";
 import PricingScrollTrack from "@/components/marketing/PricingScrollTrack";
 import { getMarketingAuthState } from "@/lib/auth-state";
@@ -57,9 +58,11 @@ function CurrentPlanBadge() {
 export default async function PricingTiers({
   title,
   titleHidden = false,
+  footnote,
 }: {
   title: string;
   titleHidden?: boolean;
+  footnote: "credits" | "compare";
 }) {
   const { isLoggedIn, tier: activeTier } = await getMarketingAuthState();
 
@@ -130,9 +133,18 @@ export default async function PricingTiers({
           })}
         </PricingScrollTrack>
 
-        <p className="mt-8 text-center text-sm text-text-muted">
-          Need more? Buy extra credits anytime from your billing page.
-        </p>
+        {footnote === "credits" ? (
+          <p className="mt-8 text-center text-sm text-text-muted">
+            Need more? Buy extra credits anytime from your billing page.
+          </p>
+        ) : (
+          <Link
+            href="/pricing"
+            className="mt-8 block text-center text-sm text-text underline hover:text-accent"
+          >
+            Compare plans feature by feature
+          </Link>
+        )}
       </div>
     </section>
   );

@@ -130,7 +130,7 @@ export default async function PricingPage() {
             </div>
           </section>
 
-          <PricingTiers title="Plan tiers" titleHidden />
+          <PricingTiers title="Plan tiers" titleHidden footnote="credits" />
 
           <section className="px-8 py-24">
             <div className="mx-auto max-w-[1280px]">

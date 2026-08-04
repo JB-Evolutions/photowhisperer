@@ -9,7 +9,7 @@ import "@/components/marketing/marketing.css";
 
 const NAV_LINKS = [
   { label: "Features", href: "/#features" },
-  { label: "Pricing", href: "/#pricing" },
+  { label: "Pricing", href: "/pricing" },
   { label: "FAQ", href: "/#faq" },
 ];
 
@@ -30,30 +30,16 @@ export default async function Nav() {
               Deferred — auth/CTA buttons and theme toggle remain visible on mobile,
               only this link list hides. */}
           <ul className="hidden md:flex items-center gap-9 list-none">
-            <li>
-              <Link
-                href="/#features"
-                className="text-sm text-text-muted tracking-[0.01em] transition-colors hover:text-text"
-              >
-                Features
-              </Link>
-            </li>
-            <li>
-              <Link
-                href="/#pricing"
-                className="text-sm text-text-muted tracking-[0.01em] transition-colors hover:text-text"
-              >
-                Pricing
-              </Link>
-            </li>
-            <li>
-              <Link
-                href="/#faq"
-                className="text-sm text-text-muted tracking-[0.01em] transition-colors hover:text-text"
-              >
-                FAQ
-              </Link>
-            </li>
+            {NAV_LINKS.map((link) => (
+              <li key={link.href}>
+                <Link
+                  href={link.href}
+                  className="text-sm text-text-muted tracking-[0.01em] transition-colors hover:text-text"
+                >
+                  {link.label}
+                </Link>
+              </li>
+            ))}
           </ul>
 
           <div className="hidden md:flex items-center gap-2 sm:gap-2.5">

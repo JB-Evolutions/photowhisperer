@@ -166,7 +166,7 @@ export default async function Home() {
           </section>
 
           <AppShowcase />
-          <PricingTiers title="Pricing plans" titleHidden />
+          <PricingTiers title="Pricing plans" titleHidden footnote="compare" />
           <FaqAccordion items={HOME_FAQ_ITEMS} />
         </main>
       </MarketingShell>
