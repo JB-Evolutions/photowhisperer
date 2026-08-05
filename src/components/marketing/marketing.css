@@ -5,6 +5,11 @@
 
 /* Nav — moved out of an inline <style> block for CSP style-src. Rendered as a
    sibling before <MarketingShell>, so unscoped (matches original markup). */
+.marketing-shell .marketing-content {
+  position: relative;
+  z-index: 1;
+}
+
 nav.pw-top {
   position: sticky;
   top: 0;

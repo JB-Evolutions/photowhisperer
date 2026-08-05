@@ -1,8 +1,11 @@
 import type { Metadata } from "next";
+import type { ReactNode } from "react";
 import Link from "next/link";
 import Nav from "@/components/shared/Nav";
+import Button from "@/components/shared/Button";
 import MarketingShell from "@/components/marketing/MarketingShell";
 import { marketingSocial } from "@/lib/seo";
+import { getMarketingAuthState } from "@/lib/auth-state";
 
 const TITLE = "How it works | PhotographyWhisperer";
 const DESCRIPTION =
@@ -31,7 +34,68 @@ function Section({
   );
 }
 
-export default function HowItWorksPage() {
+function StepCard({
+  number,
+  heading,
+  children,
+}: {
+  number: number;
+  heading: string;
+  children: ReactNode;
+}) {
+  return (
+    <li className="flex gap-4">
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border-accent font-mono text-sm text-accent">
+        {number}
+      </span>
+      <div className="flex flex-col gap-3">
+        <h2 className="font-display text-xl text-text">{heading}</h2>
+        {children}
+      </div>
+    </li>
+  );
+}
+
+function ReferenceGroup({
+  label,
+  rows,
+  caption,
+}: {
+  label: string;
+  rows: { value: string; desc: string }[];
+  caption?: string;
+}) {
+  return (
+    <div>
+      <span className="text-[11px] uppercase tracking-[0.08em] text-text-muted">
+        {label}
+      </span>
+      <dl className="mt-2 flex flex-col gap-1.5">
+        {rows.map((row) => (
+          <div key={row.value} className="flex items-baseline gap-3">
+            <dt className="font-mono text-sm text-text">{row.value}</dt>
+            <dd className="text-sm text-text-muted">{row.desc}</dd>
+          </div>
+        ))}
+      </dl>
+      {caption ? (
+        <p className="mt-2 text-xs text-text-muted">{caption}</p>
+      ) : null}
+    </div>
+  );
+}
+
+function ReferencePanel({ children }: { children: ReactNode }) {
+  return (
+    <div className="rounded-[14px] border border-border bg-surface p-5">
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">{children}</div>
+    </div>
+  );
+}
+
+export default async function HowItWorksPage() {
+  const { isLoggedIn } = await getMarketingAuthState();
+
   return (
     <>
       <Nav />
@@ -47,79 +111,116 @@ export default function HowItWorksPage() {
               just the standard controls every manual-mode camera has.
             </p>
 
-            <Section heading="1. Describe the scene">
-              <p>
-                Tell us the light and the subject in your own words: what
-                you&apos;re shooting, how much light there is, and whether
-                anything is moving. &ldquo;Kid running across the yard at
-                golden hour&rdquo; or &ldquo;candlelit table at a wedding
-                reception&rdquo; is enough, you don&apos;t need to know f-stops
-                or shutter speed going in.
-              </p>
-              <p>
-                Two details change the answer the most: how much light is
-                actually in the scene, and how fast your subject is moving.
-                Light ranges further than people expect, bright sun sits
-                around EV 15 (the basis of the old sunny-16 rule, f/16 at
-                1/ISO), open shade drops to about EV 12, and an ordinarily lit
-                indoor room is down around EV 5 to 7, each step being roughly
-                one stop less light to work with. Motion matters just as much:
-                a person walking needs a shutter speed of about 1/125s to hold
-                sharp, a kid or a dog running climbs to around 1/500s, and fast
-                sport or birds in flight need 1/1000s or faster. If you know
-                your camera and lens, mention those too, depth of field and
-                the handholdable shutter floor both shift with focal length.
-              </p>
-            </Section>
+            <ol className="mt-12 flex flex-col gap-10">
+              <StepCard number={1} heading="Describe the scene">
+                <div className="flex flex-col gap-3 text-sm leading-[1.65] text-text-muted">
+                  <p>
+                    Tell us the light and the subject in your own words: what
+                    you&apos;re shooting, how much light there is, and
+                    whether anything is moving. &ldquo;Kid running across the
+                    yard at golden hour&rdquo; or &ldquo;candlelit table at a
+                    wedding reception&rdquo; is enough, you don&apos;t need
+                    to know f-stops or shutter speed going in.
+                  </p>
+                  <p>
+                    Two details change the answer the most: how much light
+                    is actually in the scene, and how fast your subject is
+                    moving. Light ranges further than people expect, and
+                    each step down below is roughly one stop less light to
+                    work with. If you know your camera and lens, mention
+                    those too, depth of field and the handholdable shutter
+                    floor both shift with focal length.
+                  </p>
+                </div>
+                <ReferencePanel>
+                  <ReferenceGroup
+                    label="Light (EV)"
+                    rows={[
+                      { value: "EV 15", desc: "bright sun" },
+                      { value: "EV 12", desc: "open shade" },
+                      { value: "EV 5-7", desc: "lit indoor room" },
+                    ]}
+                    caption="Bright sun is the basis of the sunny-16 rule: f/16 at 1/ISO."
+                  />
+                  <ReferenceGroup
+                    label="Motion (shutter speed)"
+                    rows={[
+                      { value: "1/125s", desc: "walking" },
+                      { value: "1/500s", desc: "running kid or dog" },
+                      { value: "1/1000s+", desc: "fast sport or birds in flight" },
+                    ]}
+                  />
+                </ReferencePanel>
+              </StepCard>
 
-            <Section heading="2. Read the settings">
-              <p>
-                You get back four values: ISO, aperture, shutter speed, and
-                white balance, the same exposure triangle every manual camera
-                uses, plus color temperature. They trade against each other in
-                stops, open the aperture one stop and you can cut the shutter
-                time in half, from 1/125s to 1/250s, or halve the ISO instead,
-                and land at the same overall exposure. Each response tells you
-                which of the three we prioritized for your scene and why,
-                rather than handing you a number with no reasoning attached.
-              </p>
-              <p>
-                Aperture sets how much is in focus as much as it sets
-                exposure: f/1.8 to f/2.8 isolates a single portrait subject
-                against a soft background, f/4 to f/5.6 keeps a couple or a
-                small group sharp, and f/8 to f/11 is where most lenses are
-                sharpest and where landscapes typically land, moving to f/16
-                when you need everything in focus from a foreground rock to
-                the horizon. ISO is the number most likely to move scene to
-                scene: roughly 800-1600 for a lit city street, 1600-3200 for a
-                dim indoor reception, and 3200-6400 for candlelight or a
-                handheld night scene, climbing past 6400 only when the shutter
-                speed matters more than a clean file.
-              </p>
-            </Section>
+              <StepCard number={2} heading="Read the settings">
+                <div className="flex flex-col gap-3 text-sm leading-[1.65] text-text-muted">
+                  <p>
+                    You get back four values: ISO, aperture, shutter speed,
+                    and white balance, the same exposure triangle every
+                    manual camera uses, plus color temperature. They trade
+                    against each other in stops, open the aperture one stop
+                    and you can cut the shutter time in half, from 1/125s to
+                    1/250s, or halve the ISO instead, and land at the same
+                    overall exposure. Each response tells you which of the
+                    three we prioritized for your scene and why, rather than
+                    handing you a number with no reasoning attached.
+                  </p>
+                  <p>
+                    Aperture sets how much is in focus as much as it sets
+                    exposure. ISO is the number most likely to move scene to
+                    scene, climbing past the ranges below only when shutter
+                    speed matters more than a clean file.
+                  </p>
+                </div>
+                <ReferencePanel>
+                  <ReferenceGroup
+                    label="Aperture"
+                    rows={[
+                      { value: "f/1.8-2.8", desc: "single subject, soft background" },
+                      { value: "f/4-5.6", desc: "couple or small group" },
+                      { value: "f/8-11", desc: "landscape; sharpest for most lenses" },
+                      { value: "f/16", desc: "everything in focus, foreground to horizon" },
+                    ]}
+                  />
+                  <ReferenceGroup
+                    label="ISO"
+                    rows={[
+                      { value: "800-1600", desc: "lit city street" },
+                      { value: "1600-3200", desc: "dim indoor reception" },
+                      { value: "3200-6400", desc: "candlelight or handheld night" },
+                    ]}
+                  />
+                </ReferencePanel>
+              </StepCard>
 
-            <Section heading="3. Dial them in">
-              <p>
-                Set aperture and ISO on your camera as given, then set shutter
-                speed, or let your camera&apos;s manual or aperture-priority mode
-                hold it for you. If you&apos;re shooting without a tripod, keep an
-                eye on the reciprocal rule folded into the shutter speed we
-                give you: roughly 1/focal length to avoid handshake blur,
-                about 1/50s on a 50mm lens, 1/200s on a 200mm, a couple of
-                stops slower if your lens or body has stabilization.
-              </p>
-              <p>
-                White balance can usually be set from the nearest preset on
-                your camera rather than typed in as a raw Kelvin value,
-                Daylight, Cloudy, Tungsten, or Shade all correspond to a
-                rough color temperature range. Shoot a test frame, check it
-                against the scene, and adjust ISO or shutter speed by a stop
-                if the light was brighter or dimmer than described. The
-                reasoning behind each value is there so you can make that
-                adjustment yourself instead of guessing from scratch next
-                time the light changes.
-              </p>
-            </Section>
+              <StepCard number={3} heading="Dial them in">
+                <div className="flex flex-col gap-3 text-sm leading-[1.65] text-text-muted">
+                  <p>
+                    Set aperture and ISO on your camera as given, then set
+                    shutter speed, or let your camera&apos;s manual or
+                    aperture-priority mode hold it for you. If you&apos;re
+                    shooting without a tripod, keep an eye on the reciprocal
+                    rule folded into the shutter speed we give you: roughly
+                    1/focal length to avoid handshake blur, about 1/50s on a
+                    50mm lens, 1/200s on a 200mm, a couple of stops slower
+                    if your lens or body has stabilization.
+                  </p>
+                  <p>
+                    White balance can usually be set from the nearest preset
+                    on your camera rather than typed in as a raw Kelvin
+                    value, Daylight, Cloudy, Tungsten, or Shade all
+                    correspond to a rough color temperature range. Shoot a
+                    test frame, check it against the scene, and adjust ISO
+                    or shutter speed by a stop if the light was brighter or
+                    dimmer than described. The reasoning behind each value
+                    is there so you can make that adjustment yourself
+                    instead of guessing from scratch next time the light
+                    changes.
+                  </p>
+                </div>
+              </StepCard>
+            </ol>
 
             <Section heading="Start with your own scene">
               <p>
@@ -133,6 +234,17 @@ export default function HowItWorksPage() {
                 </Link>{" "}
                 for the breakdown.
               </p>
+              <div className="mt-3 flex justify-center">
+                {isLoggedIn ? (
+                  <Button href="/app" variant="primary" size="lg">
+                    New scene
+                  </Button>
+                ) : (
+                  <Button href="/auth/signup" variant="primary" size="lg">
+                    Get my settings
+                  </Button>
+                )}
+              </div>
             </Section>
           </div>
         </main>

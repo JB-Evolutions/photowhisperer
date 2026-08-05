@@ -7,8 +7,10 @@ export default function MarketingShell({ children }: { children: ReactNode }) {
   return (
     <div className="marketing-shell">
       <Spotlight />
-      {children}
-      <MarketingFooter />
+      <div className="marketing-content">
+        {children}
+        <MarketingFooter />
+      </div>
     </div>
   );
 }

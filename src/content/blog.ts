@@ -93,7 +93,7 @@ export const BLOG_POSTS: BlogPost[] = [
     title: "Night street photography settings",
     description:
       "The aperture, shutter speed, and ISO ranges for shooting handheld on city streets after dark, plus how to handle mixed streetlight color temperatures.",
-    publishedAt: "2026-08-05",
+    publishedAt: "2026-07-22",
     excerpt:
       "Handheld night street work lives or dies on shutter speed. Here's the aperture, ISO, and white-balance approach that actually holds up under sodium and LED streetlight.",
     intro: [
@@ -166,7 +166,7 @@ export const BLOG_POSTS: BlogPost[] = [
     title: "Camera settings for indoor sports",
     description:
       "The ISO, aperture, and shutter speed ranges that actually freeze indoor sports action, plus the white balance approach gym lighting requires.",
-    publishedAt: "2026-08-05",
+    publishedAt: "2026-07-09",
     excerpt:
       "Indoor sports means not enough light and a subject that won't hold still. Here's the shutter, aperture, ISO, and white-balance order that actually works courtside.",
     intro: [
