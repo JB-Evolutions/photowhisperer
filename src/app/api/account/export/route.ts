@@ -103,7 +103,7 @@ export async function GET() {
       status: 200,
       headers: {
         "Content-Type": "application/json",
-        "Content-Disposition": `attachment; filename="photowhisperer-data-${dateStr}.json"`,
+        "Content-Disposition": `attachment; filename="photographywhisperer-data-${dateStr}.json"`,
       },
     });
   } catch (err) {

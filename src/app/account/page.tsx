@@ -3,7 +3,7 @@ import { createClient as createServerClient } from "@/lib/supabase/server";
 import AccountSettings from "./AccountSettings";
 import { NOINDEX } from "@/lib/seo";
 
-export const metadata = { title: "Account · PhotoWhisperer", robots: NOINDEX };
+export const metadata = { title: "Account · PhotographyWhisperer", robots: NOINDEX };
 
 export default async function AccountPage() {
   const supabase = await createServerClient();

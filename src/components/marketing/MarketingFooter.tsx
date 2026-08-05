@@ -90,7 +90,7 @@ export default function MarketingFooter() {
         </div>
 
         <div className="mt-12 border-t border-border pt-8 text-xs text-text-dim">
-          © {new Date().getFullYear()} PhotoWhisperer
+          © {new Date().getFullYear()} PhotographyWhisperer
         </div>
       </div>
     </footer>

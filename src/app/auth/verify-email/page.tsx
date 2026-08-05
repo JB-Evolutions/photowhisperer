@@ -27,7 +27,7 @@ export default async function VerifyEmailPage({
           body={
             <>
               We sent a verification link to <span className="text-text">{email}</span>. Click it to start using
-              PhotoWhisperer.
+              PhotographyWhisperer.
             </>
           }
         />

@@ -8,7 +8,7 @@ import RestoreButton from "./RestoreButton";
 import { NOINDEX } from "@/lib/seo";
 
 export const metadata = {
-  title: "Recover account · PhotoWhisperer",
+  title: "Recover account · PhotographyWhisperer",
   robots: NOINDEX,
 };
 

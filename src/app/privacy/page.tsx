@@ -3,8 +3,8 @@ import Nav from "@/components/shared/Nav";
 import MarketingShell from "@/components/marketing/MarketingShell";
 import { marketingSocial } from "@/lib/seo";
 
-const TITLE = "Privacy Policy | PhotoWhisperer";
-const DESCRIPTION = "How PhotoWhisperer collects, uses, and protects your data.";
+const TITLE = "Privacy Policy | PhotographyWhisperer";
+const DESCRIPTION = "How PhotographyWhisperer collects, uses, and protects your data.";
 
 export const metadata: Metadata = {
   title: TITLE,
@@ -86,7 +86,7 @@ export default function PrivacyPage() {
             <Section heading="3. Processors and Subprocessors">
               <p>
                 We rely on a small number of service providers to operate
-                PhotoWhisperer:
+                PhotographyWhisperer:
               </p>
               <ul className="list-disc pl-5">
                 <li>
@@ -162,7 +162,7 @@ export default function PrivacyPage() {
                 accept, Google Analytics sets cookies and collects usage
                 data, such as pages viewed, approximate location derived
                 from your IP address, and device/browser type, to help us
-                understand how PhotoWhisperer is used. We don&apos;t
+                understand how PhotographyWhisperer is used. We don&apos;t
                 deliberately send Google any personal information, like your
                 email address or scene descriptions.
               </p>

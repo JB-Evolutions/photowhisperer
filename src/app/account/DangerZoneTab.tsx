@@ -141,7 +141,7 @@ export default function DangerZoneTab() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = "photowhisperer-data.json";
+      a.download = "photographywhisperer-data.json";
       a.click();
       setTimeout(() => URL.revokeObjectURL(url), 0);
       showToast("Export downloaded");

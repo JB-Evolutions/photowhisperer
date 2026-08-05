@@ -30,7 +30,7 @@ const jetbrainsMono = JetBrains_Mono({
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
-  title: "PhotoWhisperer",
+  title: "PhotographyWhisperer",
   description: "Describe the scene. Get the camera settings.",
   // Fallback canonical only. Every indexable page sets its own via
   // marketingSocial({ path }), which replaces this wholesale — Next merges
@@ -38,7 +38,7 @@ export const metadata: Metadata = {
   alternates: { canonical: "/" },
   appleWebApp: {
     capable: true,
-    title: "PhotoWhisperer",
+    title: "PhotographyWhisperer",
     statusBarStyle: "black",
   },
   other: {

@@ -3,8 +3,8 @@ import Nav from "@/components/shared/Nav";
 import MarketingShell from "@/components/marketing/MarketingShell";
 import { marketingSocial } from "@/lib/seo";
 
-const TITLE = "Terms of Service | PhotoWhisperer";
-const DESCRIPTION = "The terms that govern your use of PhotoWhisperer.";
+const TITLE = "Terms of Service | PhotographyWhisperer";
+const DESCRIPTION = "The terms that govern your use of PhotographyWhisperer.";
 
 export const metadata: Metadata = {
   title: TITLE,
@@ -53,7 +53,7 @@ export default function TermsPage() {
 
             <Section heading="1. Acceptance of Terms">
               <p>
-                By creating an account or using PhotoWhisperer (&ldquo;the
+                By creating an account or using PhotographyWhisperer (&ldquo;the
                 Service&rdquo;), you agree to these Terms of Service. If you
                 don&apos;t agree, please don&apos;t use the Service.
               </p>
@@ -61,7 +61,7 @@ export default function TermsPage() {
 
             <Section heading="2. Description of Service">
               <p>
-                PhotoWhisperer is a photography settings calculator. You
+                PhotographyWhisperer is a photography settings calculator. You
                 describe a shooting scene in natural language, optionally
                 with your camera and lens information, and the Service
                 returns recommended camera settings, ISO, aperture, shutter
@@ -87,7 +87,7 @@ export default function TermsPage() {
 
             <Section heading="4. Subscriptions and Payment">
               <p>
-                PhotoWhisperer offers a free trial tier (Snapshot) and two
+                PhotographyWhisperer offers a free trial tier (Snapshot) and two
                 paid subscription tiers (Portrait and Studio), billed
                 monthly. Subscriptions renew automatically until canceled.
                 You can cancel anytime from your billing page; cancellation
@@ -113,7 +113,7 @@ export default function TermsPage() {
 
             <Section heading="6. Intellectual Property">
               <p>
-                PhotoWhisperer and its branding, design, and underlying
+                PhotographyWhisperer and its branding, design, and underlying
                 software are owned by us. The camera-setting recommendations
                 generated for you are yours to use freely. You retain
                 ownership of any scene descriptions you submit.
@@ -134,7 +134,7 @@ export default function TermsPage() {
 
             <Section heading="8. Limitation of Liability">
               <p>
-                To the fullest extent permitted by law, PhotoWhisperer is not
+                To the fullest extent permitted by law, PhotographyWhisperer is not
                 liable for indirect, incidental, or consequential damages
                 arising from your use of the Service, including missed shots
                 or unsatisfactory photographs. Our total liability for any

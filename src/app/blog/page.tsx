@@ -5,7 +5,7 @@ import MarketingShell from "@/components/marketing/MarketingShell";
 import { BLOG_POSTS } from "@/content/blog";
 import { marketingSocial } from "@/lib/seo";
 
-const TITLE = "Blog | PhotoWhisperer";
+const TITLE = "Blog | PhotographyWhisperer";
 const DESCRIPTION =
   "Camera settings guides for specific, hard-light situations: indoor sports, night street photography, and low-light wedding receptions.";
 

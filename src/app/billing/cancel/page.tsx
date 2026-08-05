@@ -4,7 +4,7 @@ import CancelView from "./CancelView";
 import { NOINDEX } from "@/lib/seo";
 
 export const metadata = {
-  title: "Purchase canceled · PhotoWhisperer",
+  title: "Purchase canceled · PhotographyWhisperer",
   robots: NOINDEX,
 };
 

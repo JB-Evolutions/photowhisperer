@@ -5,7 +5,7 @@ import type { Tier } from "@/lib/quota";
 import BillingView from "./BillingView";
 import { NOINDEX } from "@/lib/seo";
 
-export const metadata = { title: "Billing · PhotoWhisperer", robots: NOINDEX };
+export const metadata = { title: "Billing · PhotographyWhisperer", robots: NOINDEX };
 
 export default async function BillingPage() {
   const supabase = await createServerClient();

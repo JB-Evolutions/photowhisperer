@@ -148,7 +148,7 @@ export default function AppShowcase() {
         <div className="pw-hero-visual mt-16 rounded-2xl border border-border bg-surface p-6 sm:p-10">
           <div className="flex items-center gap-2 text-xs text-text-dim">
             <span className="h-2 w-2 rounded-full bg-accent" />
-            <span className="font-mono">PhotoWhisperer · settings ready</span>
+            <span className="font-mono">PhotographyWhisperer · settings ready</span>
           </div>
 
           <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">

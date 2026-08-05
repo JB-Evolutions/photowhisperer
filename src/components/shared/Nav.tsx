@@ -24,14 +24,14 @@ export default async function Nav() {
         <div className="pw-nav-inner">
           <Link href="/" className="pw-nav-brand">
             <Logo />
-            <span className="pw-nav-wordmark">PhotoWhisperer</span>
+            <span className="pw-nav-wordmark">PhotographyWhisperer</span>
           </Link>
 
           {/* TODO(9.13): collapse to a hamburger + full-screen overlay below `md`
               (links stacked, theme toggle top, auth buttons thumb-reachable at bottom).
               Deferred — auth/CTA buttons and theme toggle remain visible on mobile,
               only this link list hides. */}
-          <ul className="hidden lg:flex items-center gap-9 list-none">
+          <ul className="hidden lg:flex items-center gap-7 list-none">
             {NAV_LINKS.map((link) => (
               <li key={link.href}>
                 <Link

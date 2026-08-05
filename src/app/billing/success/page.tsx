@@ -4,7 +4,7 @@ import SuccessView from "./SuccessView";
 import { NOINDEX } from "@/lib/seo";
 
 export const metadata = {
-  title: "Purchase complete · PhotoWhisperer",
+  title: "Purchase complete · PhotographyWhisperer",
   robots: NOINDEX,
 };
 

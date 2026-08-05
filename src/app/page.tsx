@@ -12,7 +12,7 @@ import { getMarketingAuthState } from "@/lib/auth-state";
 import { TIER_LIMITS, TIER_DISPLAY_NAMES, TIER_PRICES_USD, type Tier } from "@/lib/quota";
 import { marketingSocial, SITE_URL, SITE_NAME } from "@/lib/seo";
 
-const TITLE = "What Camera Settings Should I Use? | PhotoWhisperer";
+const TITLE = "PhotographyWhisperer | What Camera Settings Should I Use?";
 const DESCRIPTION =
   "Tell us the light and the subject. Get ISO, aperture, shutter speed, and white balance instantly, with the reasoning behind every camera setting.";
 

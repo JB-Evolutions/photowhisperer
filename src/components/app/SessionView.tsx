@@ -26,7 +26,7 @@ export interface SessionViewHandle {
   loadSession: (id: string) => Promise<void>;
 }
 
-const DEFAULT_HEADER = "PhotoWhisperer · thinking…";
+const DEFAULT_HEADER = "PhotographyWhisperer · thinking…";
 
 interface SessionViewProps {
   onRequestFocus?: () => void;

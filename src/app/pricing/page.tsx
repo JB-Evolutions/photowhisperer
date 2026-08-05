@@ -9,9 +9,9 @@ import { PRICING_FAQ_ITEMS } from "@/content/faq";
 import { TIER_DISPLAY_NAMES, TIER_HISTORY_LIMITS, TIER_LIMITS, type Tier } from "@/lib/quota";
 import { marketingSocial } from "@/lib/seo";
 
-const TITLE = "Camera Settings Pricing Plans | PhotoWhisperer";
+const TITLE = "Camera Settings Pricing Plans | PhotographyWhisperer";
 const DESCRIPTION =
-  "Compare PhotoWhisperer plans. From 5 free camera setting requests a month to 2,000, pick the tier that matches how often you shoot.";
+  "Compare PhotographyWhisperer plans. From 5 free camera setting requests a month to 2,000, pick the tier that matches how often you shoot.";
 
 export const metadata: Metadata = {
   title: TITLE,
@@ -120,7 +120,7 @@ export default async function PricingPage() {
           <section className="px-8 pt-24 sm:pt-32">
             <div className="mx-auto flex max-w-[800px] flex-col items-center text-center">
               <h1 className="font-display text-4xl text-text sm:text-5xl">
-                PhotoWhisperer pricing
+                PhotographyWhisperer pricing
               </h1>
               <p className="mt-6 max-w-[560px] text-base text-text-muted sm:text-lg">
                 Pick the tier that matches how often you shoot. Every plan uses

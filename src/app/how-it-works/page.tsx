@@ -4,7 +4,7 @@ import Nav from "@/components/shared/Nav";
 import MarketingShell from "@/components/marketing/MarketingShell";
 import { marketingSocial } from "@/lib/seo";
 
-const TITLE = "How PhotoWhisperer Works | PhotoWhisperer";
+const TITLE = "How it works | PhotographyWhisperer";
 const DESCRIPTION =
   "How to describe a scene, read back the ISO, aperture, shutter speed, and white balance you get, and dial them into your camera.";
 
@@ -39,7 +39,7 @@ export default function HowItWorksPage() {
         <main className="px-8 py-24">
           <div className="mx-auto max-w-[720px]">
             <h1 className="font-display text-4xl text-text sm:text-5xl">
-              How PhotoWhisperer works
+              How PhotographyWhisperer works
             </h1>
             <p className="mt-6 text-[17px] leading-[1.65] text-text-muted">
               Three steps: describe the scene, read back four numbers, dial

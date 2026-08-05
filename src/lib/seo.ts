@@ -8,7 +8,7 @@ export const NOINDEX: NonNullable<Metadata["robots"]> = {
 export const SITE_URL =
   process.env.NEXT_PUBLIC_APP_URL ?? "https://www.photographywhisperer.com";
 
-export const SITE_NAME = "PhotoWhisperer";
+export const SITE_NAME = "PhotographyWhisperer";
 
 const OG_IMAGE = { url: "/og-image.png", width: 1200, height: 630 };
 

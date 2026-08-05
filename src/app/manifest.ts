@@ -2,8 +2,8 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "PhotoWhisperer",
-    short_name: "PhotoWhisperer",
+    name: "PhotographyWhisperer",
+    short_name: "PW",
     description: "Describe the scene. Get the camera settings.",
     start_url: "/app",
     display: "standalone",

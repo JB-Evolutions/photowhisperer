@@ -16,7 +16,7 @@ export const HOME_FAQ_ITEMS: FaqItem[] = [
   {
     question: "Does this work with my camera?",
     answer:
-      "Yes. PhotoWhisperer gives you settings in standard terms (ISO, aperture, shutter speed, white balance) that apply to any camera that shoots in manual mode, mirrorless, DSLR, or otherwise. We don't connect to your camera directly; you read the values and dial them in yourself.",
+      "Yes. PhotographyWhisperer gives you settings in standard terms (ISO, aperture, shutter speed, white balance) that apply to any camera that shoots in manual mode, mirrorless, DSLR, or otherwise. We don't connect to your camera directly; you read the values and dial them in yourself.",
   },
   {
     question: "What ISO should I use at night or in low light?",

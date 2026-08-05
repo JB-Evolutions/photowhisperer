@@ -4,7 +4,7 @@ import Logo from "@/components/shared/Logo";
 import { NOINDEX } from "@/lib/seo";
 
 export const metadata: Metadata = {
-  title: "Add to Home Screen · PhotoWhisperer",
+  title: "Add to Home Screen · PhotographyWhisperer",
   robots: NOINDEX,
 };
 
@@ -53,7 +53,7 @@ export default function InstallPage() {
 
         <div className="flex flex-col gap-1">
           <h1 className="font-display text-2xl text-text">
-            Add PhotoWhisperer to your phone
+            Add PhotographyWhisperer to your phone
           </h1>
           <p className="text-sm text-text-muted">
             Get quick access from your home screen, no app store needed.

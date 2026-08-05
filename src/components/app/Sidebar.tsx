@@ -131,7 +131,7 @@ export default function Sidebar({
         <div className="flex items-center gap-2.5">
           <Logo />
           <span className="font-display text-[15px] font-medium text-text pw-tracking-tight-1">
-            PhotoWhisperer
+            PhotographyWhisperer
           </span>
         </div>
         <Button

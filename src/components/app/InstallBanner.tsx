@@ -30,7 +30,7 @@ export default function InstallBanner({
       <Logo />
       <div className="min-w-0 flex-1 pr-5">
         <p className="text-sm font-medium text-text">
-          Add PhotoWhisperer to your home screen
+          Add PhotographyWhisperer to your home screen
         </p>
         <p className="mt-0.5 text-xs text-text-muted">
           One tap to open, no typing the URL
