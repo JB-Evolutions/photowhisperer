@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import Nav from "@/components/shared/Nav";
 import MarketingShell from "@/components/marketing/MarketingShell";
 import JsonLd from "@/components/seo/JsonLd";
+import PostFigure from "@/components/marketing/blog/PostFigure";
 import { BLOG_POSTS, getPostBySlug } from "@/content/blog";
 import { marketingSocial, SITE_URL, SITE_NAME } from "@/lib/seo";
 
@@ -55,6 +56,21 @@ export default async function BlogPostPage({
 
   const nonce = (await headers()).get("x-nonce") ?? undefined;
   const url = `${SITE_URL}/blog/${post.slug}`;
+
+  // A figure anchored to a heading that no longer exists (typo, or the
+  // section it pointed at got renamed) shouldn't take the post down in
+  // production — log it and drop the figure. In dev, fail loudly so the
+  // typo gets caught before it ships.
+  const sectionHeadings = new Set(post.sections.map((section) => section.heading));
+  for (const figure of post.figures ?? []) {
+    if (!sectionHeadings.has(figure.after)) {
+      const message = `Blog post "${post.slug}": figure anchor "${figure.after}" does not match any section heading.`;
+      if (process.env.NODE_ENV !== "production") {
+        throw new Error(message);
+      }
+      console.error(message);
+    }
+  }
 
   const blogPostingSchema = {
     "@context": "https://schema.org",
@@ -134,6 +150,14 @@ export default async function BlogPostPage({
                     <p key={paragraph}>{paragraph}</p>
                   ))}
                 </div>
+                {post.figures
+                  ?.filter((figure) => figure.after === section.heading)
+                  .map((figure) => (
+                    <PostFigure
+                      key={figure.kind === "diagram" ? figure.diagramId : figure.src}
+                      figure={figure}
+                    />
+                  ))}
               </section>
             ))}
 

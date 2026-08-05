@@ -3,6 +3,30 @@ export interface BlogSection {
   paragraphs: string[];
 }
 
+/**
+ * A figure attached to a post, anchored to a section by heading text (not
+ * index) so reordering sections doesn't silently move the figure.
+ *
+ * The photo variant isn't rendered anywhere yet — src/components/marketing/
+ * blog/PostFigure.tsx no-ops on it. It exists so a later photo add is a
+ * content edit here, not a template change.
+ */
+export type BlogFigure =
+  | {
+      kind: "diagram";
+      after: string;
+      diagramId: string;
+      caption: string;
+      alt: string;
+    }
+  | {
+      kind: "photo";
+      after: string;
+      src: string;
+      caption: string;
+      alt: string;
+    };
+
 export interface BlogPost {
   slug: string;
   title: string;
@@ -11,6 +35,7 @@ export interface BlogPost {
   excerpt: string;
   intro: string[];
   sections: BlogSection[];
+  figures?: BlogFigure[];
 }
 
 /** Newest first — the index and sitemap both rely on this order. */
@@ -87,6 +112,17 @@ export const BLOG_POSTS: BlogPost[] = [
         ],
       },
     ],
+    figures: [
+      {
+        kind: "diagram",
+        after: "ISO: accepting some grain",
+        diagramId: "wedding-iso-timeline",
+        caption:
+          "ISO climbs through the reception as daylight gives way to the room's own light.",
+        alt:
+          "Timeline across a wedding reception. Cocktail hour is lit by natural window light. Dinner service runs about ISO 2000 at f/2.0, 1/125s. Lights go down for the first dance. The dance floor climbs to ISO 8000 or higher at f/2.0, 1/500s. The exit or send-off keeps a shutter speed of 1/500s or faster while ISO climbs even further.",
+      },
+    ],
   },
   {
     slug: "night-street-photography-settings",
@@ -160,6 +196,17 @@ export const BLOG_POSTS: BlogPost[] = [
         ],
       },
     ],
+    figures: [
+      {
+        kind: "diagram",
+        after: "ISO: how far you can push it",
+        diagramId: "night-street-ev-scale",
+        caption:
+          "Night street shooting happens many stops below the light levels of a normal day.",
+        alt:
+          "Horizontal scale from EV 15 down to EV 4. Direct sun sits at EV 15, open shade at EV 12. Two overlapping bands mark EV 5 to 7 for a lit indoor room and EV 4 to 6 for a lit city street. Past EV 4 the scale trails off unbounded, representing dim side streets, which fall lower still with no fixed EV given.",
+      },
+    ],
   },
   {
     slug: "camera-settings-indoor-sports",
@@ -224,6 +271,17 @@ export const BLOG_POSTS: BlogPost[] = [
           "Gym lighting is rarely even end to end. A lot of facilities run fewer fixtures, or older fixtures, over one basket than the other, so the correct ISO for a shot under one hoop can be a stop or more different from the same shot at the opposite end, and a team switching ends at halftime means your settings should too. Evening rec league games in gyms with skylights or high windows are their own case: natural light contributes noticeably at 6pm and is gone by 7:30, so a setting that was correct at tip-off can leave you underexposed by the fourth quarter if you don't recheck it.",
           "Auto ISO with a fixed shutter speed and aperture, rather than fully manual exposure, is the practical way to keep up with this without re-metering by hand between every possession; you set the two numbers that matter for freezing motion and depth of field, and let the camera track the one number that's actually moving on you.",
         ],
+      },
+    ],
+    figures: [
+      {
+        kind: "diagram",
+        after: "Shutter speed: freezing the action",
+        diagramId: "indoor-sports-shutter-ladder",
+        caption:
+          "Faster motion needs a faster shutter speed, and crossing the frame costs more than closing on the camera.",
+        alt:
+          "Stepped scale of shutter speed versus subject motion: 1/125s for a walking player, 1/500s for a running kid, dog, or most youth and recreational sport, and 1/1000s or faster for fast sport or an airborne ball at varsity pace. A subject crossing the frame needs about four times the shutter speed of one moving straight toward the camera.",
       },
     ],
   },
