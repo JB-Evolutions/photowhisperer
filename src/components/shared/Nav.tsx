@@ -9,7 +9,9 @@ import "@/components/marketing/marketing.css";
 
 const NAV_LINKS = [
   { label: "Features", href: "/#features" },
+  { label: "How it works", href: "/how-it-works" },
   { label: "Pricing", href: "/pricing" },
+  { label: "Blog", href: "/blog" },
   { label: "FAQ", href: "/#faq" },
 ];
 
@@ -29,7 +31,7 @@ export default async function Nav() {
               (links stacked, theme toggle top, auth buttons thumb-reachable at bottom).
               Deferred — auth/CTA buttons and theme toggle remain visible on mobile,
               only this link list hides. */}
-          <ul className="hidden md:flex items-center gap-9 list-none">
+          <ul className="hidden lg:flex items-center gap-9 list-none">
             {NAV_LINKS.map((link) => (
               <li key={link.href}>
                 <Link
@@ -42,7 +44,7 @@ export default async function Nav() {
             ))}
           </ul>
 
-          <div className="hidden md:flex items-center gap-2 sm:gap-2.5">
+          <div className="hidden lg:flex items-center gap-2 sm:gap-2.5">
             {isLoggedIn ? (
               <>
                 <span className="hidden sm:inline font-mono text-xs uppercase tracking-[0.08em] text-text-muted">

@@ -40,7 +40,7 @@ export default function MobileNavMenu({ links, isLoggedIn, tier }: MobileNavMenu
     panelRef.current.querySelector<HTMLElement>(FOCUSABLE)?.focus();
   }, [open]);
   useEffect(() => {
-    const mql = window.matchMedia("(min-width: 768px)");
+    const mql = window.matchMedia("(min-width: 1024px)");
     const onChange = (e: MediaQueryListEvent) => { if (e.matches) setOpen(false); };
     mql.addEventListener("change", onChange);
     return () => mql.removeEventListener("change", onChange);
@@ -54,7 +54,7 @@ export default function MobileNavMenu({ links, isLoggedIn, tier }: MobileNavMenu
         aria-expanded={open}
         aria-controls="mobile-nav-menu"
         aria-label={open ? "Close menu" : "Open menu"}
-        className="md:hidden flex h-9 w-9 items-center justify-center rounded-[10px] text-text-muted transition-colors hover:text-text"
+        className="lg:hidden flex h-9 w-9 items-center justify-center rounded-[10px] text-text-muted transition-colors hover:text-text"
         onClick={() => setOpen((v) => !v)}
       >
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" aria-hidden="true">
@@ -67,7 +67,7 @@ export default function MobileNavMenu({ links, isLoggedIn, tier }: MobileNavMenu
         aria-modal="true"
         aria-label="Menu"
         aria-hidden={open ? undefined : "true"}
-        className={`fixed inset-0 z-50 md:hidden flex flex-col bg-surface transition-opacity duration-[280ms] ease-out motion-reduce:transition-none ${
+        className={`fixed inset-0 z-50 lg:hidden flex flex-col bg-surface transition-opacity duration-[280ms] ease-out motion-reduce:transition-none ${
           open ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
         }`}
         onClick={(e) => { if (e.target === e.currentTarget) handleClose(); }}

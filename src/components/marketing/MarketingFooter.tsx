@@ -3,8 +3,11 @@ import CookieSettingsLink from "@/components/marketing/CookieSettingsLink";
 
 const PRODUCT_LINKS = [
   { href: "/#features", label: "Features" },
+  { href: "/how-it-works", label: "How it works" },
   { href: "/pricing", label: "Pricing" },
+  { href: "/blog", label: "Blog" },
   { href: "/#faq", label: "FAQ" },
+  { href: "/about", label: "About" },
 ];
 
 const LEGAL_LINKS = [
