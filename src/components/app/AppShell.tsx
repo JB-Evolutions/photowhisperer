@@ -79,12 +79,9 @@ export default function AppShell({
     account.credits_remaining <= 0 &&
     !outOfCredits;
 
-  // account == null is the single gate the composer's `disabled` prop uses
-  // below, so a settings request — and therefore a quota_exceeded response —
-  // can never arrive while account is still null. accountPending refines
-  // that same condition (excluding the error case) purely to pick which
-  // placeholder message to show; it must never be used as its own gate.
-  const accountPending = account == null && !accountError;
+  // account == null is the single gate the composer's `sendDisabled` prop
+  // uses below, so a settings request — and therefore a quota_exceeded
+  // response — can never arrive while account is still null.
 
   const [cooldown, setCooldown] = useState(0);
   const rateLimited = cooldown > 0;
@@ -189,7 +186,7 @@ export default function AppShell({
 
               {/* Empty state — centered, conditionally rendered (not just hidden) */}
               {!hasThread && (
-                <div className="flex flex-1 items-center justify-center">
+                <div className="flex min-w-0 flex-1 items-center justify-center">
                   <EmptyState
                     onChipSelect={setComposerValue}
                     disabled={outOfCredits}
@@ -242,13 +239,12 @@ export default function AppShell({
                         setComposerValue("");
                       }}
                       placeholder={
-                        accountPending
-                          ? "Loading your account…"
-                          : account == null
-                            ? "Couldn't load your account — retry above to continue"
-                            : undefined
+                        account == null && accountError
+                          ? "Couldn't load your account — retry above to continue"
+                          : undefined
                       }
-                      disabled={outOfCredits || rateLimited || account == null}
+                      disabled={outOfCredits || rateLimited}
+                      sendDisabled={outOfCredits || rateLimited || account == null}
                     />
                   </>
                 )}

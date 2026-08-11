@@ -32,12 +32,12 @@ export default function EmptyState({
   outOfCreditsNotice,
 }: EmptyStateProps) {
   return (
-    <div className="flex flex-col items-center gap-8 px-6 py-12 text-center">
+    <div className="flex w-full min-w-0 flex-col items-center gap-8 px-6 py-12 text-center">
       <h1 className="font-display text-3xl font-medium text-text pw-tracking-tight-2">
         What are you shooting?
       </h1>
 
-      <div className="flex flex-wrap justify-center gap-2.5">
+      <div className="flex max-w-full flex-wrap justify-center gap-2.5">
         {CHIPS.map((chip) => (
           <button
             key={chip}

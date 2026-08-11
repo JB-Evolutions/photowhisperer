@@ -21,17 +21,27 @@ interface ChatComposerProps {
   value: string;
   onChange: (v: string) => void;
   onSend: (text: string) => void;
+  // Blocks typing: greys out the container, makes the textarea readOnly.
+  // Reserve for states where the user genuinely cannot compose a message
+  // (out of credits, rate-limited) — never for "we're still loading
+  // something," which should stay typeable. See sendDisabled for that.
   disabled?: boolean;
+  // Blocks sending only — textarea stays interactive. Defaults to
+  // `disabled` (anything that blocks typing also blocks sending), but
+  // callers can additionally disable sending without touching typeability,
+  // e.g. while an account fetch that send depends on hasn't resolved yet.
+  sendDisabled?: boolean;
   placeholder?: string;
 }
 
 const ChatComposer = forwardRef<ChatComposerHandle, ChatComposerProps>(
   function ChatComposer(
-    { value, onChange, onSend, disabled = false, placeholder = PLACEHOLDER },
+    { value, onChange, onSend, disabled = false, sendDisabled = false, placeholder = PLACEHOLDER },
     ref,
   ) {
     const containerRef = useRef<HTMLDivElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
+    const sendBlocked = disabled || sendDisabled;
 
     useImperativeHandle(ref, () => ({ focus: () => textareaRef.current?.focus() }), []);
 
@@ -44,7 +54,7 @@ const ChatComposer = forwardRef<ChatComposerHandle, ChatComposerProps>(
     }, [value]);
 
     function handleSend() {
-      if (disabled) return;
+      if (sendBlocked) return;
       const trimmed = value.trim();
       if (!trimmed) { triggerShake(); return; }
       onSend(trimmed);
@@ -66,7 +76,7 @@ const ChatComposer = forwardRef<ChatComposerHandle, ChatComposerProps>(
       }
     }
 
-    const sendEnabled = !disabled && value.trim().length > 0;
+    const sendEnabled = !sendBlocked && value.trim().length > 0;
 
     return (
       <div
@@ -92,7 +102,7 @@ const ChatComposer = forwardRef<ChatComposerHandle, ChatComposerProps>(
           placeholder={placeholder}
           rows={1}
           maxLength={1000}
-          className={`max-h-[140px] min-h-[24px] flex-1 self-center resize-none overflow-y-auto bg-transparent text-sm leading-relaxed text-text outline-none placeholder:text-text-dim ${
+          className={`max-h-[140px] min-h-[24px] flex-1 self-center resize-none overflow-y-auto bg-transparent text-base leading-relaxed text-text outline-none placeholder:text-text-dim ${
             disabled ? "cursor-not-allowed" : ""
           }`}
         />
