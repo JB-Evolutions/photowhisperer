@@ -1,4 +1,4 @@
-import type { SceneInput, SettingsOutput } from "./types";
+import type { SceneInput, SettingsOutput, MotionIntent } from "./types";
 import {
   STANDARD_APERTURES,
   STANDARD_SHUTTERS,
@@ -19,6 +19,8 @@ import {
   FLASH_SYNC_SAFE_SHUTTER_S,
   FLASH_AMBIENT_ISO_CEILING,
   FLASH_MAX_AMBIENT_DRAG_S,
+  DEEP_DOF_WIDE_LIMIT,
+  PAN_SHUTTER_S,
 } from "./constants";
 import { formatAperture, formatShutter } from "./format";
 
@@ -29,6 +31,7 @@ const DEFAULTED_ASSUMPTIONS: Record<string, string> = {
   motion_tier: "Assumed subject is stationary (movement not specified).",
   support: "Assumed handheld (support not specified).",
   creative_intent: "Assumed standard depth of field (creative intent not specified).",
+  motion_intent: "Assumed you want movement frozen sharp (not specified).",
   white_balance: "Assumed auto white balance (lighting color not specified).",
 };
 
@@ -102,6 +105,11 @@ function nearestStandardApertureAtOrNarrowerThan(value: number): number {
 // whether the user's own gear (rather than creative-intent policy) is what
 // binds that limit.
 //
+// deep_dof is NOT absolutely protected — under ISO pressure it may widen up
+// to DEEP_DOF_WIDE_LIMIT (f/4), same lens/gear clamp as every other intent,
+// just with a narrower policy ceiling than shallow_dof/standard. See
+// DEEP_DOF_WIDE_LIMIT in constants.ts for why f/4 and not wider.
+//
 // orchestrate.ts's deriveMaxAperture only ever returns a non-null
 // max_aperture sourced from a lens CONFIRMED to cover focal_length_mm when
 // focal_length_assumed is false — so in that case gear is reliably scoped
@@ -115,13 +123,12 @@ function widestAllowedAperture(
   maxAperture: number | null | undefined,
   focalLengthAssumed: boolean
 ): { widest: number; lensLimited: boolean } {
-  if (intent === "deep_dof") {
-    // Protected: a deep-DOF request never widens to save ISO, regardless of gear.
-    return { widest: DEFAULT_APERTURE.deep_dof, lensLimited: false };
-  }
-
   const policyWidest =
-    intent === "shallow_dof" ? STANDARD_APERTURES[0] : STANDARD_INTENT_WIDE_LIMIT;
+    intent === "shallow_dof"
+      ? STANDARD_APERTURES[0]
+      : intent === "deep_dof"
+        ? DEEP_DOF_WIDE_LIMIT
+        : STANDARD_INTENT_WIDE_LIMIT;
 
   if (maxAperture == null) {
     return { widest: policyWidest, lensLimited: false };
@@ -230,6 +237,9 @@ function shakeFloorWasClamped(focal_length_mm: number): boolean {
 // case (TRIPOD_LONG_EXPOSURE_LIMIT_S) — that's a deliberate long-exposure
 // allowance, not a margin risk, so no warning applies there.
 function floorCause(input: SceneInput): "shake" | "motion" | null {
+  // Neither blur nor pan is a margin risk — smear/streak is the intent, so
+  // the shake/motion-at-floor warnings must not fire for them.
+  if (input.motion_intent === "blur" || input.motion_intent === "pan") return null;
   if (input.support === "handheld") {
     if (input.motion_tier === "stationary") return "shake";
     const motionFloor = MOTION_FLOORS[input.motion_tier];
@@ -245,7 +255,17 @@ function floorCause(input: SceneInput): "shake" | "motion" | null {
 // shutter grid, and duplicating this branching risked the two paths silently
 // disagreeing on what "the floor" is.
 function computeShutterFloor(input: SceneInput): number {
-  const motionFloor = MOTION_FLOORS[input.motion_tier];
+  // Panning is a technique, not a subject speed: the shutter is set by the
+  // pan itself, regardless of support or motion tier.
+  if (input.motion_intent === "pan") {
+    return PAN_SHUTTER_S;
+  }
+
+  // Blur is achieved by NOT engaging the motion floor — compute the floor
+  // exactly as for a stationary subject, so nothing here fights the
+  // deliberate smear.
+  const motionTier = input.motion_intent === "blur" ? "stationary" : input.motion_tier;
+  const motionFloor = MOTION_FLOORS[motionTier];
 
   if (input.support === "handheld") {
     const shakeFloor = handheldShakeFloor(input.focal_length_mm);
@@ -254,11 +274,11 @@ function computeShutterFloor(input: SceneInput): number {
     // handheld alone (this is exactly where the ultra-wide cap in
     // handheldShakeFloor engages, e.g. 8mm). Non-stationary tiers still take
     // the min of both.
-    return input.motion_tier === "stationary" ? shakeFloor : Math.min(motionFloor, shakeFloor);
+    return motionTier === "stationary" ? shakeFloor : Math.min(motionFloor, shakeFloor);
   }
   if (
     (input.support === "tripod" || input.support === "stabilized") &&
-    input.motion_tier === "stationary"
+    motionTier === "stationary"
   ) {
     return TRIPOD_LONG_EXPOSURE_LIMIT_S;
   }
@@ -281,6 +301,32 @@ export function calculateSettings(input: SceneInput): SettingsOutput {
   for (const field of input.defaulted ?? []) {
     const text = DEFAULTED_ASSUMPTIONS[field];
     if (text) assumptions.push(text);
+  }
+
+  // Exposure bias must be applied to every ISO solve throughout the ladder
+  // below, not folded in once at the end — Step 8's concession ladder tests
+  // isoIdeal against ISO_SOFT_CAP to decide whether to widen the aperture,
+  // and a night scene biased -1.5 stops should not trigger that widening at
+  // all. SIGN CONVENTION: solveIso returns the ISO needed for a
+  // meter-correct exposure; multiplying by 2^bias with a POSITIVE bias
+  // yields a HIGHER ISO and a BRIGHTER image, a NEGATIVE bias a lower ISO
+  // and a darker image. Negative is the common case (night scenes,
+  // silhouettes, white subjects).
+  const totalBiasStops = EXPOSURE_BIAS_STOPS + (input.exposure_bias_stops ?? 0);
+  const biasFactor = Math.pow(2, totalBiasStops);
+  const solveIsoBiased = (ev: number, ap: number, sh: number) =>
+    solveIso(ev, ap, sh) * biasFactor;
+
+  if (totalBiasStops !== 0) {
+    const magnitude = Math.abs(totalBiasStops);
+    const direction = totalBiasStops < 0 ? "below" : "above";
+    const reason =
+      totalBiasStops < 0
+        ? "so the scene keeps its natural darkness"
+        : "so the dark subject doesn't render grey";
+    assumptions.push(
+      `Exposed ${magnitude} stop${magnitude === 1 ? "" : "s"} ${direction} meter-correct ${reason}.`
+    );
   }
 
   // Step 2 — flash override: the flash supplies the KEY light at a fixed
@@ -347,7 +393,7 @@ export function calculateSettings(input: SceneInput): SettingsOutput {
     const apertureAfterLensClamp = aperture;
 
     // 6 — solve ambient ISO at this aperture/shutter.
-    let isoIdeal = solveIso(input.scene_ev, aperture, shutter);
+    let isoIdeal = solveIsoBiased(input.scene_ev, aperture, shutter);
 
     // 7 — too bright: the shutter floor from 1-2 is the SLOWEST shutter that
     // avoids blur, not the fastest allowed — sync only caps the fast end, so
@@ -361,7 +407,7 @@ export function calculateSettings(input: SceneInput): SettingsOutput {
       const stops = Math.log2(ISO_MIN / isoIdeal);
       const idx = STANDARD_SHUTTERS.indexOf(shutter);
       shutter = STANDARD_SHUTTERS[Math.max(syncIdx, idx - Math.round(stops))];
-      isoIdeal = solveIso(input.scene_ev, aperture, shutter);
+      isoIdeal = solveIsoBiased(input.scene_ev, aperture, shutter);
 
       if (isoIdeal < ISO_MIN) {
         const stops2 = Math.log2(ISO_MIN / isoIdeal);
@@ -371,7 +417,7 @@ export function calculateSettings(input: SceneInput): SettingsOutput {
           aperture = STANDARD_APERTURES[newApIdx];
           tooBrightNarrowedAperture = true;
         }
-        isoIdeal = solveIso(input.scene_ev, aperture, shutter);
+        isoIdeal = solveIsoBiased(input.scene_ev, aperture, shutter);
       }
     }
 
@@ -424,16 +470,17 @@ export function calculateSettings(input: SceneInput): SettingsOutput {
     }
 
     // 10 — exposure residual + ambient ISO ceiling, same ordering as Step 9
-    // on the main path.
-    const biasedIsoIdeal = isoIdeal * Math.pow(2, EXPOSURE_BIAS_STOPS);
-    const clampedIsoIdeal = Math.max(ISO_MIN, Math.min(FLASH_AMBIENT_ISO_CEILING, biasedIsoIdeal));
+    // on the main path. isoIdeal already has the exposure bias baked in
+    // (every solve above is solveIsoBiased), so no separate bias fold is
+    // needed here — just the ceiling clamp and grid rounding.
+    const clampedIsoIdeal = Math.max(ISO_MIN, Math.min(FLASH_AMBIENT_ISO_CEILING, isoIdeal));
     const iso = roundIsoToStandard(clampedIsoIdeal);
 
     // 11 — warn how dark the background will render relative to the
     // flash-lit subject when ambient wants more than the ceiling allows.
     // Floored at 1 stop — "roughly 0 stops dark" is not a meaningful warning.
-    if (biasedIsoIdeal > FLASH_AMBIENT_ISO_CEILING) {
-      const stopsDark = Math.max(1, Math.round(Math.log2(biasedIsoIdeal / FLASH_AMBIENT_ISO_CEILING)));
+    if (isoIdeal > FLASH_AMBIENT_ISO_CEILING) {
+      const stopsDark = Math.max(1, Math.round(Math.log2(isoIdeal / FLASH_AMBIENT_ISO_CEILING)));
       warnings.push(
         `Background will render roughly ${stopsDark} stop${stopsDark === 1 ? "" : "s"} dark relative to the flash-lit subject; the flash is the key light here.`
       );
@@ -448,6 +495,22 @@ export function calculateSettings(input: SceneInput): SettingsOutput {
         atSync
           ? `Lens long enough that handheld at flash sync speed (${formatShutter(shutter)}) may show shake; consider tripod or high-speed sync.`
           : `Focal length is long relative to the chosen shutter (${formatShutter(shutter)}); handheld shake is likely. Consider a tripod.`
+      );
+    }
+
+    if (input.highlight_risk) {
+      warnings.push(
+        "Bright light sources in frame (lamps, windows, or signs) will clip before the rest of the scene is exposed. Shoot RAW and expose for the highlights, or bracket."
+      );
+    }
+
+    if (input.motion_intent === "blur") {
+      assumptions.push(
+        `Let motion blur at ${formatShutter(shutter)} instead of freezing the subject, as requested.`
+      );
+    } else if (input.motion_intent === "pan") {
+      assumptions.push(
+        `Shutter set to ${formatShutter(shutter)} for a panning shot; keep the camera tracking the subject through the whole exposure to keep it sharp.`
       );
     }
 
@@ -480,7 +543,7 @@ export function calculateSettings(input: SceneInput): SettingsOutput {
   let aperture = DEFAULT_APERTURE[input.creative_intent];
 
   // Step 6 — solve for ISO
-  let isoIdeal = solveIso(input.scene_ev, aperture, shutter);
+  let isoIdeal = solveIsoBiased(input.scene_ev, aperture, shutter);
 
   // Step 7 — too bright: speed up shutter first, then narrow aperture
   if (isoIdeal < ISO_MIN) {
@@ -488,14 +551,14 @@ export function calculateSettings(input: SceneInput): SettingsOutput {
     const idx = STANDARD_SHUTTERS.indexOf(shutter);
     const newIdx = Math.max(0, idx - Math.round(stops));
     shutter = STANDARD_SHUTTERS[newIdx];
-    isoIdeal = solveIso(input.scene_ev, aperture, shutter);
+    isoIdeal = solveIsoBiased(input.scene_ev, aperture, shutter);
 
     if (isoIdeal < ISO_MIN) {
       const stops2 = Math.log2(ISO_MIN / isoIdeal);
       const apIdx = STANDARD_APERTURES.indexOf(aperture);
       const newApIdx = Math.min(STANDARD_APERTURES.length - 1, apIdx + Math.round(stops2));
       aperture = STANDARD_APERTURES[newApIdx];
-      isoIdeal = solveIso(input.scene_ev, aperture, shutter);
+      isoIdeal = solveIsoBiased(input.scene_ev, aperture, shutter);
     }
   }
 
@@ -524,7 +587,7 @@ export function calculateSettings(input: SceneInput): SettingsOutput {
       }
 
       aperture = STANDARD_APERTURES[newIdx];
-      isoIdeal = solveIso(input.scene_ev, aperture, shutter);
+      isoIdeal = solveIsoBiased(input.scene_ev, aperture, shutter);
     }
 
     if (
@@ -536,26 +599,24 @@ export function calculateSettings(input: SceneInput): SettingsOutput {
       const curIdx = STANDARD_SHUTTERS.indexOf(shutter);
       const newIdx = Math.min(STANDARD_SHUTTERS.length - 1, curIdx + Math.round(stopsLeft));
       shutter = STANDARD_SHUTTERS[newIdx];
-      isoIdeal = solveIso(input.scene_ev, aperture, shutter);
+      isoIdeal = solveIsoBiased(input.scene_ev, aperture, shutter);
     }
   }
 
-  // Step 9 — exposure residual + ISO cap policy. isoIdeal already reflects
-  // the final quantized aperture/shutter exactly (solveIso was recomputed
-  // fresh after each ladder step above), so folding EXPOSURE_BIAS_STOPS in
-  // here — before the single remaining round-to-grid — is what keeps the
-  // three independently-quantized values from drifting the same direction.
+  // Step 9 — ISO cap policy + round to grid. isoIdeal already has the
+  // exposure bias baked in (every solve above is solveIsoBiased, recomputed
+  // fresh after each ladder step), so this step is exactly the ceiling
+  // clamp and standard-grid rounding — no separate bias fold needed here.
   const isExtremeLowLight = input.scene_ev <= EXTREME_LOW_LIGHT_EV_THRESHOLD;
   const isoCeiling = isExtremeLowLight ? ISO_MAX : ISO_ORDINARY_CAP;
 
-  // isoCeiling (6400 or 12800) is always above ISO_SOFT_CAP (3200), so
+  // isoCeiling (6400 or 12800) is always above ISO_SOFT_CAP (1600), so
   // underexposed implies iso lands exactly at isoCeiling, which is always
   // > ISO_SOFT_CAP — i.e. underexposed is only ever reached from inside the
   // `iso > ISO_SOFT_CAP` branch below, never separately.
   const underexposed = isoIdeal > isoCeiling;
 
-  const biasedIsoIdeal = isoIdeal * Math.pow(2, EXPOSURE_BIAS_STOPS);
-  const clampedIsoIdeal = Math.max(ISO_MIN, Math.min(isoCeiling, biasedIsoIdeal));
+  const clampedIsoIdeal = Math.max(ISO_MIN, Math.min(isoCeiling, isoIdeal));
   const iso = roundIsoToStandard(clampedIsoIdeal);
 
   // Step 10 — ISO soft-cap warning + lens-limit note. Two independent facts
@@ -625,6 +686,33 @@ export function calculateSettings(input: SceneInput): SettingsOutput {
   // Step 12 — aperture-widening warning (standard intent only, shallow_dof is exempt)
   if (input.creative_intent === "standard" && aperture < 2.8) {
     warnings.push(apertureWidenedWarning(aperture));
+  }
+
+  // deep_dof is no longer absolutely protected (see widestAllowedAperture) —
+  // when ISO pressure actually widened it past its DEFAULT_APERTURE, the
+  // requested front-to-back sharpness was reduced, which is worth a warning
+  // of its own since it's a different trade-off than the standard-intent one
+  // above (that warning names background blur; this one names lost depth).
+  if (input.creative_intent === "deep_dof" && aperture < DEFAULT_APERTURE.deep_dof) {
+    warnings.push(
+      `Depth of field opened to ${formatAperture(aperture)} to keep ISO usable; front-to-back sharpness will be narrower than requested. Use a tripod for a longer exposure if you need the full depth back.`
+    );
+  }
+
+  if (input.highlight_risk) {
+    warnings.push(
+      "Bright light sources in frame (lamps, windows, or signs) will clip before the rest of the scene is exposed. Shoot RAW and expose for the highlights, or bracket."
+    );
+  }
+
+  if (input.motion_intent === "blur") {
+    assumptions.push(
+      `Let motion blur at ${formatShutter(shutter)} instead of freezing the subject, as requested.`
+    );
+  } else if (input.motion_intent === "pan") {
+    assumptions.push(
+      `Shutter set to ${formatShutter(shutter)} for a panning shot; keep the camera tracking the subject through the whole exposure to keep it sharp.`
+    );
   }
 
   // Step 13 — shutter-at-floor warning: the chosen shutter still equals the

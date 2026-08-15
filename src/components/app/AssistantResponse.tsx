@@ -1,6 +1,9 @@
+"use client";
+
 // step 4: loading handled by session container
+import { useState } from "react";
 import type { SettingsResponse } from "@/lib/settings";
-import SettingsCubes from "@/components/app/SettingsCubes";
+import SettingsCubes, { nudgedIso, type NudgeStops } from "@/components/app/SettingsCubes";
 import ResponsePanels from "@/components/app/ResponsePanels";
 import ResponseActions from "@/components/app/ResponseActions";
 import ClarificationCard from "@/components/app/ClarificationCard";
@@ -27,8 +30,19 @@ export default function AssistantResponse({
   retryCount,
   invalidCount,
 }: AssistantResponseProps) {
+  // Local-only, resets per response since AssistantResponse remounts per
+  // message (SessionView keys the list by index). Declared unconditionally,
+  // above the switch — this component returns from every case branch below,
+  // so a hook declared inside one branch would be conditional and violate
+  // the rules of hooks whenever response.status differs between renders.
+  const [nudgeStops, setNudgeStops] = useState<NudgeStops>(0);
+
   switch (response.status) {
-    case "ok":
+    case "ok": {
+      // ResponseActions' "Copy all" needs this same adjusted value, which is
+      // why the nudge lives here rather than staying local to SettingsCubes.
+      const adjustedIso = nudgedIso(response.iso, nudgeStops);
+      const isoAdjusted = nudgeStops !== 0;
       return (
         <div className="flex flex-col gap-3">
           <SettingsCubes
@@ -37,6 +51,8 @@ export default function AssistantResponse({
             shutter_speed={response.shutter_speed}
             white_balance={response.white_balance}
             color_temperature={response.color_temperature}
+            nudgeStops={nudgeStops}
+            onNudgeStopsChange={setNudgeStops}
           />
           <ResponsePanels
             scene_summary={response.scene_summary}
@@ -44,7 +60,8 @@ export default function AssistantResponse({
             warnings={response.warnings}
           />
           <ResponseActions
-            iso={response.iso}
+            iso={adjustedIso}
+            isoAdjusted={isoAdjusted}
             aperture={response.aperture}
             shutter_speed={response.shutter_speed}
             white_balance={response.white_balance}
@@ -54,6 +71,7 @@ export default function AssistantResponse({
           />
         </div>
       );
+    }
     case "clarification_required":
       return <ClarificationCard question={response.question} />;
     case "invalid_input":

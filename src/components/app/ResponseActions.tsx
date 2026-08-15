@@ -16,6 +16,11 @@ const btnFocusClass =
 
 interface ResponseActionsProps {
   iso: number;
+  // True when `iso` is the hand-nudged value from SettingsCubes' brightness
+  // control rather than the calculated one — appends "(adjusted)" to the
+  // copy-all string so the discrepancy from the on-screen assumptions/
+  // warnings text (which still describes the calculated settings) is clear.
+  isoAdjusted?: boolean;
   aperture: string;
   shutter_speed: string;
   white_balance: string;
@@ -26,6 +31,7 @@ interface ResponseActionsProps {
 
 export default function ResponseActions({
   iso,
+  isoAdjusted,
   aperture,
   shutter_speed,
   white_balance,
@@ -37,7 +43,8 @@ export default function ResponseActions({
 
   const wbLabel     = formatWhiteBalanceEnum(white_balance);
   const wbSegment   = formatWbCopyValue(color_temperature, wbLabel);
-  const copyAllText = `ISO ${iso} · ${aperture} · ${shutter_speed} · ${wbSegment}`;
+  const isoSegment  = `ISO ${iso}${isoAdjusted ? " (adjusted)" : ""}`;
+  const copyAllText = `${isoSegment} · ${aperture} · ${shutter_speed} · ${wbSegment}`;
 
   async function handleCopyAll() {
     await copyToClipboard(copyAllText);

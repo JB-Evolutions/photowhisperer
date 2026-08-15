@@ -9,11 +9,17 @@ export const STANDARD_SHUTTERS = [
 
 export const STANDARD_ISOS = [100, 200, 400, 800, 1600, 3200, 6400, 12800];
 
+// The lower four tiers were each one stop faster than the motion they
+// describe actually requires (walking pace does not need 1/250), which
+// forced ISO up with no sharpness benefit. very_fast is deliberately left
+// at 1/2000 and the 2-stop gap to `fast` is intentional: birds in flight
+// and motorsport genuinely need it, and those scenes are almost always
+// bright enough that the floor costs no ISO.
 export const MOTION_FLOORS: Record<MotionTier, number> = {
   stationary: 1 / 60,
-  slow: 1 / 250,
-  moderate: 1 / 500,
-  fast: 1 / 1000,
+  slow: 1 / 125,
+  moderate: 1 / 250,
+  fast: 1 / 500,
   very_fast: 1 / 2000,
 };
 
@@ -58,7 +64,7 @@ if (
 }
 
 // Flash supplies the key light, so riding ambient ISO only adds noise to a
-// background the flash does not need lit. Deliberately 2 stops below
+// background the flash does not need lit. Deliberately one stop below
 // ISO_SOFT_CAP.
 export const FLASH_AMBIENT_ISO_CEILING = 800;
 
@@ -66,9 +72,12 @@ export const FLASH_AMBIENT_ISO_CEILING = 800;
 // cannot inherit TRIPOD_LONG_EXPOSURE_LIMIT_S (30s).
 export const FLASH_MAX_AMBIENT_DRAG_S = 1;
 
-// Above this, no ISO warning is pushed. Above 2x this (6400), a warning names
+// Above this, no ISO warning is pushed. Above 2x this (3200), a warning names
 // the constraint that forced it. Tune here rather than scattering literals.
-export const ISO_SOFT_CAP = 3200;
+// Lowered from 3200: this is where the concession ladder starts trading
+// aperture for ISO, so lowering it makes the solver reach for a wider
+// aperture sooner rather than riding ISO.
+export const ISO_SOFT_CAP = 1600;
 
 // Ordinary (non-extreme-low-light) scenes stop here and warn of underexposure
 // instead of silently riding ISO to ISO_MAX. Only scenes at or below
@@ -101,3 +110,16 @@ export const EXPOSURE_BIAS_STOPS = 0;
 // silently undoing that fix.
 // Only engages under ~15mm. Handheld only — tripod/stabilized don't use this.
 export const HANDHELD_ABSOLUTE_SHUTTER_FLOOR_S = 1 / 15;
+
+// Deep-DOF requests used to be pinned at f/8 with no escape, so a night
+// landscape or astro shot paid the entire light deficit in ISO (ISO
+// 12800 at f/8 where f/4 would have given 3200). Deep DOF may now widen
+// this far, and no further, under ISO pressure — f/4 still holds usable
+// front-to-back sharpness on most focal lengths.
+export const DEEP_DOF_WIDE_LIMIT = 4.0;
+
+// Panning tracks the subject with the camera: the subject stays sharp
+// while the background streaks. The shutter is therefore set by the pan
+// technique, not by the subject's motion tier. 1/60 is the classic
+// starting point and is a STANDARD_SHUTTERS grid member.
+export const PAN_SHUTTER_S = 1 / 60;

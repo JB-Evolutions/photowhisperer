@@ -2,6 +2,7 @@ export type MotionTier = "stationary" | "slow" | "moderate" | "fast" | "very_fas
 export type Support = "handheld" | "tripod" | "stabilized";
 export type CreativeIntent = "shallow_dof" | "deep_dof" | "standard";
 export type WhiteBalance = "daylight" | "cloudy" | "shade" | "tungsten" | "fluorescent" | "flash" | "auto";
+export type MotionIntent = "freeze" | "blur" | "pan";
 
 export interface SceneInput {
   scene_ev: number;
@@ -10,7 +11,17 @@ export interface SceneInput {
   focal_length_mm: number;
   focal_length_assumed: boolean;
   creative_intent: CreativeIntent;
+  motion_intent: MotionIntent;
   white_balance: WhiteBalance;
+  // Deliberate deviation from meter-correct exposure, in stops.
+  // Negative = darker than the meter wants (night reads as night, a
+  // white subject stays white). Optional for backward compatibility
+  // with older classifier responses; treated as 0 when absent.
+  exposure_bias_stops?: number;
+  // True when the frame contains small much-brighter elements (street
+  // lamps, shop windows, bare bulbs) that will clip before the subject
+  // is correctly exposed. Optional; treated as false when absent.
+  highlight_risk?: boolean;
   scene_summary?: string;
   // Fields the classifier filled with a conservative default because the
   // user didn't specify them (subset of "motion_tier" | "support" |

@@ -6,6 +6,7 @@ import type {
   MotionTier,
   Support,
   CreativeIntent,
+  MotionIntent,
   WhiteBalance,
 } from "../calculator/types";
 import type { CameraProfile, PriorContext } from "./types";
@@ -52,6 +53,7 @@ const WHITE_BALANCES: readonly WhiteBalance[] = [
   "flash",
   "auto",
 ];
+const MOTION_INTENTS: readonly MotionIntent[] = ["freeze", "blur", "pan"];
 
 function validateOkScene(obj: Record<string, unknown>): SceneInput | null {
   const {
@@ -61,7 +63,10 @@ function validateOkScene(obj: Record<string, unknown>): SceneInput | null {
     focal_length_mm,
     focal_length_assumed,
     creative_intent,
+    motion_intent,
     white_balance,
+    exposure_bias_stops,
+    highlight_risk,
     scene_summary,
     defaulted,
   } = obj;
@@ -73,7 +78,20 @@ function validateOkScene(obj: Record<string, unknown>): SceneInput | null {
     return null;
   if (typeof focal_length_assumed !== "boolean") return null;
   if (!CREATIVE_INTENTS.includes(creative_intent as CreativeIntent)) return null;
+  // Optional, absent on older classifier responses — default to "freeze"
+  // rather than reject, matching the tolerance pattern used for `defaulted`.
+  if (motion_intent !== undefined && !MOTION_INTENTS.includes(motion_intent as MotionIntent))
+    return null;
   if (!WHITE_BALANCES.includes(white_balance as WhiteBalance)) return null;
+  if (
+    exposure_bias_stops !== undefined &&
+    (typeof exposure_bias_stops !== "number" ||
+      !Number.isFinite(exposure_bias_stops) ||
+      exposure_bias_stops < -3 ||
+      exposure_bias_stops > 2)
+  )
+    return null;
+  if (highlight_risk !== undefined && typeof highlight_risk !== "boolean") return null;
   if (scene_summary !== undefined && typeof scene_summary !== "string")
     return null;
   // Optional, absent on older classifier responses — tolerate missing, but
@@ -91,7 +109,12 @@ function validateOkScene(obj: Record<string, unknown>): SceneInput | null {
     focal_length_mm,
     focal_length_assumed,
     creative_intent: creative_intent as CreativeIntent,
+    motion_intent:
+      motion_intent !== undefined ? (motion_intent as MotionIntent) : "freeze",
     white_balance: white_balance as WhiteBalance,
+    exposure_bias_stops:
+      typeof exposure_bias_stops === "number" ? exposure_bias_stops : undefined,
+    highlight_risk: typeof highlight_risk === "boolean" ? highlight_risk : undefined,
     scene_summary: typeof scene_summary === "string" ? scene_summary : undefined,
     defaulted: Array.isArray(defaulted) ? (defaulted as string[]) : undefined,
   };
