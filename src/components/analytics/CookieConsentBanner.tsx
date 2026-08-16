@@ -45,7 +45,7 @@ export default function CookieConsentBanner() {
     <div
       role="region"
       aria-label="Cookie consent"
-      className="pw-cookie-banner-in fixed inset-x-0 bottom-0 z-[100] border-t border-border bg-bg-2 px-4 py-4 sm:px-6"
+      className="pw-cookie-banner-in fixed inset-x-0 bottom-0 z-[100] border-t border-border bg-bg-2 px-4 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:px-6"
     >
       <div className="mx-auto flex max-w-[1280px] flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-text-muted">

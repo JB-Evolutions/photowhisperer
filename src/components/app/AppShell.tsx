@@ -129,10 +129,10 @@ export default function AppShell({
   return (
     <ToastProvider>
       <div
-        className="flex h-screen flex-col overflow-hidden md:grid md:grid-cols-[260px_1fr]"
+        className="flex h-dvh flex-col overflow-hidden md:grid md:grid-cols-[260px_1fr]"
       >
         {/* Desktop sidebar — hidden on mobile */}
-        <aside className="hidden h-screen overflow-hidden border-r border-border md:block">
+        <aside className="hidden h-dvh overflow-hidden border-r border-border md:block">
           <Sidebar {...sidebarProps} />
         </aside>
 
@@ -206,7 +206,7 @@ export default function AppShell({
               )}
 
               {/* Composer — always pinned at bottom */}
-              <div className="flex-shrink-0 border-t border-border p-4">
+              <div className="flex-shrink-0 border-t border-border p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
                 {/* account is guaranteed non-null here: send is gated on
                     account == null below, so a quota_exceeded response (and
                     therefore outOfCredits) can only ever arrive after

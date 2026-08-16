@@ -99,6 +99,17 @@
 /* === Base styles === */
 * { box-sizing: border-box; }
 
+/* iOS Safari zooms the viewport on focus when a form control's computed
+   font-size is under 16px. Every input/textarea/select in this codebase
+   already sets text-base explicitly, but this is the backstop so a future
+   component can't regress it — never override with text-sm/text-xs on the
+   element itself; shrink padding/line-height instead. */
+@layer base {
+  input, textarea, select {
+    font-size: 16px;
+  }
+}
+
 html {
   scroll-behavior: smooth;
   overflow-x: clip;

@@ -127,7 +127,7 @@ export default function Sidebar({
     <div className="flex h-full flex-col bg-surface">
 
       {/* (a) TOP: logo + wordmark + new scene */}
-      <div className="flex-shrink-0 space-y-3 border-b border-border px-4 py-4">
+      <div className="flex-shrink-0 space-y-3 border-b border-border px-4 pb-4 pt-[max(1rem,env(safe-area-inset-top))]">
         <div className="flex items-center gap-2.5">
           <Logo />
           <span className="font-display text-[15px] font-medium text-text pw-tracking-tight-1">
@@ -347,7 +347,7 @@ export default function Sidebar({
         )}
 
         {/* Account row */}
-        <div className="flex items-center gap-2 border-t border-border px-3 py-3">
+        <div className="flex items-center gap-2 border-t border-border px-3 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))]">
           <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-surface-3 font-body text-xs font-medium text-text">
             {getInitials(userEmail)}
           </div>

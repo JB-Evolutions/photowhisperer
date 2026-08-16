@@ -42,7 +42,7 @@ export function CreditsModal({ onClose }: { onClose: () => void }) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex flex-col bg-surface p-6 sm:items-center sm:justify-center sm:bg-black/50 sm:p-4"
+      className="fixed inset-0 z-50 flex flex-col bg-surface px-6 pt-[max(1.5rem,env(safe-area-inset-top))] pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:items-center sm:justify-center sm:bg-black/50 sm:p-4"
       onClick={handleBackdropClick}
     >
       <div

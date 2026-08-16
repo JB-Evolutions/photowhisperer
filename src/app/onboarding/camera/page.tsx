@@ -83,7 +83,7 @@ function StepFrame({
   hideSkip,
 }: StepFrameProps) {
   return (
-    <div className="flex flex-1 flex-col gap-6 p-6 sm:flex-none sm:p-10">
+    <div className="flex flex-1 flex-col gap-6 px-6 pt-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:flex-none sm:px-10 sm:pt-10 sm:pb-10">
       {onBack ? (
         <button
           type="button"
@@ -176,7 +176,7 @@ export default function CameraOnboardingPage() {
       >
         <SkipLink className="absolute right-5 top-5 hidden sm:inline-block" />
 
-        <div className="px-6 pt-8 sm:px-10 sm:pt-10">
+        <div className="px-6 pt-[max(2rem,env(safe-area-inset-top))] sm:px-10 sm:pt-10">
           <ProgressDots step={step} />
         </div>
 
@@ -295,7 +295,7 @@ export default function CameraOnboardingPage() {
       </div>
 
       {saveError && (
-        <div className="fixed inset-x-4 bottom-4 z-50 mx-auto flex max-w-[420px] flex-col gap-3 rounded-[14px] border border-danger/40 bg-danger/10 p-4 shadow-lg sm:flex-row sm:items-center sm:justify-between">
+        <div className="fixed inset-x-4 bottom-[max(1rem,env(safe-area-inset-bottom))] z-50 mx-auto flex max-w-[420px] flex-col gap-3 rounded-[14px] border border-danger/40 bg-danger/10 p-4 shadow-lg sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm text-danger">Couldn&rsquo;t save your profile.</p>
           <div className="flex items-center gap-3">
             <Button

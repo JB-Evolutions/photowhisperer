@@ -50,7 +50,7 @@ export function useToast(): {
     <div
       role="status"
       aria-live="polite"
-      className="pw-toast fixed bottom-8 left-1/2 -translate-x-1/2 z-[100] rounded-xl border border-border-strong bg-surface-3 px-4 py-2 text-sm text-text shadow-lg"
+      className="pw-toast fixed bottom-[max(2rem,env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2 z-[100] rounded-xl border border-border-strong bg-surface-3 px-4 py-2 text-sm text-text shadow-lg"
     >
       {message}
     </div>
