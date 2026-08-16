@@ -6,7 +6,7 @@ import { sharedTest, sharedResolve } from "./vitest.config";
 export default defineConfig({
   test: {
     ...sharedTest,
-    include: ["src/**/__tests__/**/*.integration.test.ts"],
+    include: ["src/**/__tests__/**/*.integration.test.{ts,tsx}"],
     // Only standard excludes — no integration exclusion — so these files are collected.
     exclude: [...configDefaults.exclude],
   },

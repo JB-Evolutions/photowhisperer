@@ -694,8 +694,15 @@ export function calculateSettings(input: SceneInput): SettingsOutput {
   // of its own since it's a different trade-off than the standard-intent one
   // above (that warning names background blur; this one names lost depth).
   if (input.creative_intent === "deep_dof" && aperture < DEFAULT_APERTURE.deep_dof) {
+    // Same gating buildRemedies uses above: a tripod only buys anything on
+    // handheld with a shake-bound (not motion-bound) floor. Suggesting one to
+    // a user who's already tripod-mounted — often already at the dead-code
+    // 30s ceiling — is dead advice, so the clause is dropped rather than
+    // shown unconditionally.
+    const tripodHelps = input.support === "handheld" && floorCause(input) !== "motion";
     warnings.push(
-      `Depth of field opened to ${formatAperture(aperture)} to keep ISO usable; front-to-back sharpness will be narrower than requested. Use a tripod for a longer exposure if you need the full depth back.`
+      `Depth of field opened to ${formatAperture(aperture)} to keep ISO usable; front-to-back sharpness will be narrower than requested.` +
+        (tripodHelps ? " Use a tripod for a longer exposure if you need the full depth back." : "")
     );
   }
 

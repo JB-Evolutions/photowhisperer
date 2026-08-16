@@ -15,10 +15,10 @@ export const sharedResolve = {
 export default defineConfig({
   test: {
     ...sharedTest,
-    include: ["src/**/__tests__/**/*.test.ts"],
+    include: ["src/**/__tests__/**/*.test.{ts,tsx}"],
     // Spread configDefaults.exclude so node_modules stays excluded, then add
     // the integration pattern so `vitest run` (the CI/build gate) is deterministic.
-    exclude: [...configDefaults.exclude, "src/**/__tests__/**/*.integration.test.ts"],
+    exclude: [...configDefaults.exclude, "src/**/__tests__/**/*.integration.test.{ts,tsx}"],
   },
   resolve: sharedResolve,
 });
