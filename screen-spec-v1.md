@@ -41,7 +41,7 @@ How-it-works strip: three numbered steps with a screenshot of an actual response
 
 Pricing section (anchor `#pricing`): three cards side-by-side. Snapshot left, Portrait center (highlighted with gold border and "Most popular" pill), Studio right. Each card: tier name in Fraunces, price in JetBrains Mono ("$0", "$10", "$35") with `/month` in muted text, the request quota as the lede feature, then 3–4 supporting features beneath, then a button — "Start free" / "Get Portrait" / "Get Studio." Below pricing, a one-line note: "Need more? Buy extra credits anytime from your billing page."
 
-FAQ section: accordion with at minimum these questions — Does this work with my camera? Do I need to know exposure math? What counts as one setting? Can I cancel anytime? Do you store my data? Do my unused requests roll over? (Answer: no, they reset on the 1st UTC; extra credits do roll over.) Open one item by default to signal interactivity.
+FAQ section: accordion with these eight questions, in order — What counts as one request? What happens if I don't use all my requests in a month? What happens when I run out? What does a good prompt look like? Do I need to understand exposure math? Will it work with my camera? Can I cancel or change plans? What do you do with my data? Open one item by default to signal interactivity.
 
 Footer: logo, three columns (Product / Company / Legal), small social icons, copyright. Theme toggle duplicated bottom-right of footer.
 
@@ -59,7 +59,7 @@ Hero stacks vertically with reduced font sizes (headline ~36px, not 64px). Butto
 
 ### 1.2 Pricing page (`/pricing`)
 
-A dedicated page mirroring the landing pricing section, with deeper comparison: a feature matrix table (rows = features, columns = tiers, cells = ✓ / value / —). Features compared: monthly requests, request rollover (none), history (3 sessions / unlimited / unlimited), camera profile editing, priority support, extra-credit packs available. Adds a small FAQ-style block beneath the table: "What happens if I run out?" → buy credits or upgrade; "Can I downgrade?" → yes via customer portal, takes effect at period end.
+A dedicated page mirroring the landing pricing section, with deeper comparison: a feature matrix table (rows = features, columns = tiers, cells = ✓ / value / —). Features compared: monthly requests, request rollover (none), history (3 sessions / unlimited / unlimited), camera profile editing, extra-credit packs available. Adds a small FAQ-style block beneath the table, scoped to tier-comparison questions only (billing/cancellation policy lives in the landing page FAQ, not duplicated here): "Is Snapshot free forever?" → it's a trial, not a long-term free plan; "Are the monthly limits hard caps?" → yes, no overage billing; "How do extra credit packs work?" → one-time purchase, never expire, drawn down after the monthly allowance; "What's the difference between Portrait and Studio?" → volume only, 500 vs. 2,000 requests a month.
 
 **Mobile:** the feature matrix horizontally scrolls inside its own container rather than collapsing into stacked cards (which destroys comparability).
 

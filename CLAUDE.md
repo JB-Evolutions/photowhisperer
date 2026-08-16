@@ -59,6 +59,14 @@ No Co-Authored-By lines. No AI attribution of any kind. Write commit messages as
 ## Risky operations
 Before any `rm -rf`, mass `git rm`, database migration, or schema-altering operation, list the affected files/rows and stop to wait for explicit user confirmation. Do not chain risky operations into a single command.
 
+## Known non-issues
+`dotenv@17.4.2` prints a random self-promo "tip" line after loading `.env.local`
+(e.g. `⌁ auth for agents [www.vestauth.com]`, `◈ encrypted .env [www.dotenvx.com]`).
+Verified by reading the installed source (`node_modules/.pnpm/dotenv@17.4.2/.../lib/main.js`,
+`_getRandomTip` and the `tips` array): it's a real, rotating banner shipped in the
+package itself, not injected or malicious. Silenced in `vitest.setup.ts` via
+`config({ path: ".env.local", quiet: true })`. Don't re-investigate this each session.
+
 ## External SSD note
 Working directory is on an external SSD that may unmount during system sleep. If a shell command returns "Working directory was deleted; shell cwd recovered" — just re-issue the command with the full `cd "/Volumes/Jayden SSD/Claude/PhotoWhisperer"` prefix. Not a real error.
 
