@@ -116,3 +116,58 @@ nav.pw-top {
   mask-composite: exclude;
   pointer-events: none;
 }
+
+/* FAQ accordion — grid-template-rows interpolates both directions off the
+   same property so content height stays automatic (no hardcoded max-height).
+   Deliberately NOT a JS-measured max-height/custom-property fallback: this
+   project's CSP sends `style-src 'self'` with no 'unsafe-inline' and no style
+   nonce, which blocks every form of runtime style mutation (inline style,
+   custom properties, even direct CSSOM rule edits) from ever reaching the
+   render tree — confirmed via getAnimations()/getKeyframes(), which showed
+   the browser still animating the original network-loaded value after a
+   CSSOM mutation that the JS-facing API itself reported as successful. A
+   JS-measured height fallback cannot work here without loosening CSP.
+   Expand/collapse each need their own duration+easing, which CSS transitions
+   only allow by keying the `transition` declaration itself to the state
+   being entered — see the two rulesets below rather than one shared one. */
+.pw-faq-panel {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 200ms cubic-bezier(0.4, 0, 0.6, 1);
+}
+.pw-faq-panel[data-open="true"] {
+  grid-template-rows: 1fr;
+  transition: grid-template-rows 240ms cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+.pw-faq-panel > div {
+  overflow: hidden;
+  min-width: 0;
+}
+
+.pw-faq-answer {
+  opacity: 0;
+  transition: opacity 120ms linear;
+}
+.pw-faq-panel[data-open="true"] .pw-faq-answer {
+  opacity: 1;
+  transition: opacity 180ms linear 60ms;
+}
+
+.pw-faq-chevron {
+  transition: transform 200ms cubic-bezier(0.4, 0, 0.6, 1);
+}
+.pw-faq-chevron[data-open="true"] {
+  transform: rotate(180deg);
+  transition: transform 240ms cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pw-faq-panel,
+  .pw-faq-panel[data-open="true"],
+  .pw-faq-answer,
+  .pw-faq-panel[data-open="true"] .pw-faq-answer,
+  .pw-faq-chevron,
+  .pw-faq-chevron[data-open="true"] {
+    transition: none;
+  }
+}

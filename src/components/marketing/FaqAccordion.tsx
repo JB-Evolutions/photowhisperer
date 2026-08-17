@@ -2,6 +2,7 @@
 
 import { useId, useRef, useState, type KeyboardEvent } from "react";
 import type { FaqItem } from "@/content/faq";
+import "@/components/marketing/marketing.css";
 
 function ChevronIcon({ open }: { open: boolean }) {
   return (
@@ -15,9 +16,8 @@ function ChevronIcon({ open }: { open: boolean }) {
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"
-      className={`shrink-0 transition-transform duration-[450ms] ease-[cubic-bezier(0.16,1,0.3,1)] ${
-        open ? "rotate-180" : ""
-      }`}
+      data-open={open}
+      className="pw-faq-chevron shrink-0"
     >
       <path d="m6 9 6 6 6-6" />
     </svg>
@@ -90,12 +90,13 @@ export default function FaqAccordion({ items }: { items: FaqItem[] }) {
                   id={panelId}
                   role="region"
                   aria-labelledby={questionId}
-                  className={`overflow-hidden transition-[max-height] duration-[450ms] ease-[cubic-bezier(0.16,1,0.3,1)] ${
-                    isOpen ? "max-h-[800px]" : "max-h-0"
-                  }`}
+                  data-open={isOpen}
+                  className="pw-faq-panel"
                 >
-                  <div className="px-6 pb-5 text-sm leading-[1.65] text-text-muted">
-                    {item.answer}
+                  <div>
+                    <div className="pw-faq-answer px-6 pb-5 text-sm leading-[1.65] text-text-muted">
+                      {item.answer}
+                    </div>
                   </div>
                 </div>
               </div>
