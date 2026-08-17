@@ -111,7 +111,7 @@ export default async function Home() {
       <Nav />
       <MarketingShell>
         <main>
-          <section id="hero" data-section="hero" className="px-8 py-24 sm:py-32">
+          <section id="hero" data-section="hero" className="px-8 pt-24 md:pt-32">
             <div className="mx-auto flex max-w-[800px] flex-col items-center text-center">
               <h1 className="font-display text-[36px] leading-[1.1] text-text sm:text-[64px]">
                 Describe the scene.
@@ -141,7 +141,7 @@ export default async function Home() {
             </div>
           </section>
 
-          <section id="features" data-section="features" className="px-8 py-24">
+          <section id="features" data-section="features" className="px-8 pt-16 md:pt-20">
             <div className="mx-auto max-w-[1280px]">
               {/* No visible section heading by design — this keeps the outline
                   descending h1 -> h2 -> h3 (feature titles) for screen readers

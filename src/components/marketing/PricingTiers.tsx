@@ -67,71 +67,73 @@ export default async function PricingTiers({
   const { isLoggedIn, tier: activeTier } = await getMarketingAuthState();
 
   return (
-    <section id="pricing" data-section="pricing" className="py-24">
+    <section id="pricing" data-section="pricing" className="pt-16 md:pt-20">
       <div className="mx-auto max-w-[1280px] px-8">
         <h2
           className={
             titleHidden
               ? "sr-only"
-              : "mb-12 text-center font-display text-3xl text-text"
+              : "text-center font-display text-3xl text-text"
           }
         >
           {title}
         </h2>
-        <PricingScrollTrack>
-          {TIERS.map((card) => {
-            const isCurrentPlan = isLoggedIn && activeTier === card.tier;
+        <div className="mt-12">
+          <PricingScrollTrack>
+            {TIERS.map((card) => {
+              const isCurrentPlan = isLoggedIn && activeTier === card.tier;
 
-            return (
-              <div
-                key={card.tier}
-                data-tier={card.tier}
-                className={`relative flex w-full flex-col rounded-[20px] border border-border bg-surface p-8 md:w-auto ${
-                  card.featured ? "pw-tier-featured" : ""
-                }`}
-              >
-                {card.featured && (
-                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-accent px-3 py-1 text-xs font-medium tracking-[0.02em] text-[var(--tile-text-on-accent)]">
-                    Most popular
-                  </span>
-                )}
-
-                <h3 className="font-display text-2xl text-text">{card.name}</h3>
-
-                <div className="mt-4 flex items-baseline gap-1">
-                  <span className="font-mono text-4xl text-text">
-                    {formatPrice(TIER_PRICES_USD[card.tier])}
-                  </span>
-                  {TIER_PRICES_USD[card.tier] > 0 && (
-                    <span className="font-mono text-sm text-text-muted">/mo</span>
+              return (
+                <div
+                  key={card.tier}
+                  data-tier={card.tier}
+                  className={`relative flex w-full flex-col rounded-[20px] border border-border bg-surface p-8 md:w-auto ${
+                    card.featured ? "pw-tier-featured" : ""
+                  }`}
+                >
+                  {card.featured && (
+                    <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-accent px-3 py-1 text-xs font-medium tracking-[0.02em] text-[var(--tile-text-on-accent)]">
+                      Most popular
+                    </span>
                   )}
-                </div>
 
-                <p className="mt-2 text-sm text-text-muted">{card.headline}</p>
-                {card.sub && (
-                  <p className="mt-1 font-mono text-sm text-text-muted">{card.sub}</p>
-                )}
+                  <h3 className="font-display text-2xl text-text">{card.name}</h3>
 
-                <div className="mt-8">
-                  {isCurrentPlan ? (
-                    // TODO: Billing page not built yet (no page.tsx for /account/billing).
-                    // When it exists, consider linking this badge to billing for plan
-                    // management instead of leaving it as a static non-interactive state.
-                    <CurrentPlanBadge />
-                  ) : (
-                    <Button
-                      href={signupHref(card.tier)}
-                      variant={card.featured ? "primary" : "outline"}
-                      className="w-full justify-center"
-                    >
-                      {card.cta}
-                    </Button>
+                  <div className="mt-4 flex items-baseline gap-1">
+                    <span className="font-mono text-4xl text-text">
+                      {formatPrice(TIER_PRICES_USD[card.tier])}
+                    </span>
+                    {TIER_PRICES_USD[card.tier] > 0 && (
+                      <span className="font-mono text-sm text-text-muted">/mo</span>
+                    )}
+                  </div>
+
+                  <p className="mt-2 text-sm text-text-muted">{card.headline}</p>
+                  {card.sub && (
+                    <p className="mt-1 font-mono text-sm text-text-muted">{card.sub}</p>
                   )}
+
+                  <div className="mt-8">
+                    {isCurrentPlan ? (
+                      // TODO: Billing page not built yet (no page.tsx for /account/billing).
+                      // When it exists, consider linking this badge to billing for plan
+                      // management instead of leaving it as a static non-interactive state.
+                      <CurrentPlanBadge />
+                    ) : (
+                      <Button
+                        href={signupHref(card.tier)}
+                        variant={card.featured ? "primary" : "outline"}
+                        className="w-full justify-center"
+                      >
+                        {card.cta}
+                      </Button>
+                    )}
+                  </div>
                 </div>
-              </div>
-            );
-          })}
-        </PricingScrollTrack>
+              );
+            })}
+          </PricingScrollTrack>
+        </div>
 
         {footnote === "credits" ? (
           <p className="mt-8 text-center text-sm text-text-muted">

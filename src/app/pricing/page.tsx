@@ -132,12 +132,12 @@ export default async function PricingPage() {
 
           <PricingTiers title="Plan tiers" titleHidden footnote="credits" />
 
-          <section className="px-8 py-24">
+          <section className="px-8 pt-16 md:pt-20">
             <div className="mx-auto max-w-[1280px]">
-              <h2 className="mb-12 text-center font-display text-3xl text-text">
+              <h2 className="text-center font-display text-3xl text-text">
                 Compare features
               </h2>
-              <div className="overflow-x-auto rounded-[14px] border border-border">
+              <div className="mt-12 overflow-x-auto rounded-[14px] border border-border">
                 <table className="w-full min-w-[640px] border-collapse text-sm">
                   <thead>
                     <tr className="border-b border-border">

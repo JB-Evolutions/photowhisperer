@@ -52,7 +52,7 @@ export default function FaqAccordion({ items }: { items: FaqItem[] }) {
   }
 
   return (
-    <section id="faq" data-section="faq" className="py-24">
+    <section id="faq" data-section="faq" className="pt-16 md:pt-20">
       <div className="mx-auto max-w-[720px] px-8">
         <h2 className="text-center font-display text-3xl text-text">
           Frequently asked questions

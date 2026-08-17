@@ -40,7 +40,7 @@ function MailIcon() {
 export default function MarketingFooter() {
   return (
     <footer className="border-t border-border">
-      <div className="mx-auto max-w-[1280px] px-8 py-16">
+      <div className="mx-auto max-w-[1280px] px-8 py-16 md:py-20">
         <div className="grid grid-cols-1 gap-12 md:grid-cols-3">
           <div>
             <h2 className="font-body text-xs uppercase tracking-[0.08em] text-text-muted">

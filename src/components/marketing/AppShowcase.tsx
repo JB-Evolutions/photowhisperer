@@ -126,7 +126,7 @@ function Panel({
 
 export default function AppShowcase() {
   return (
-    <section className="border-t border-border py-24">
+    <section className="border-t border-border pt-16 md:pt-20">
       <div className="mx-auto max-w-[1280px] px-8">
         <h2 className="text-center font-display text-3xl text-text">
           How it works
