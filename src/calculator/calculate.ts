@@ -254,7 +254,7 @@ function floorCause(input: SceneInput): "shake" | "motion" | null {
 // need the same motion/shake/tripod-allowance floor before quantizing to the
 // shutter grid, and duplicating this branching risked the two paths silently
 // disagreeing on what "the floor" is.
-function computeShutterFloor(input: SceneInput): number {
+function legacyShutterFloor(input: SceneInput): number {
   // Panning is a technique, not a subject speed: the shutter is set by the
   // pan itself, regardless of support or motion tier.
   if (input.motion_intent === "pan") {
@@ -344,7 +344,7 @@ export function calculateSettings(input: SceneInput): SettingsOutput {
     // FLASH_SYNC_SAFE_SHUTTER_S (1/125), and the too-bright pass (7) narrows
     // the aperture without touching the shutter — so the >= 1s case Step 14
     // exists for is unreachable here.
-    const floor = computeShutterFloor(input);
+    const floor = legacyShutterFloor(input);
     let shutter = slowestStandardShutterMeetingFloor(floor);
 
     // 3 — drag cap: ambient shutter must never drag past
@@ -531,7 +531,7 @@ export function calculateSettings(input: SceneInput): SettingsOutput {
   }
 
   // Step 3 — shutter floor
-  const floor = computeShutterFloor(input);
+  const floor = legacyShutterFloor(input);
 
   // Step 4 — initial shutter. Floors are durations in seconds, so the
   // shorter duration (the faster shutter) is the more restrictive one and

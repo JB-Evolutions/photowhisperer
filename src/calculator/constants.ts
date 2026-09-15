@@ -1,4 +1,5 @@
 import type { MotionTier, CreativeIntent, WhiteBalance } from "./types";
+import type { SubjectMotion } from "../lib/contract/types";
 
 export const STANDARD_APERTURES = [1.4, 1.8, 2.0, 2.8, 4.0, 5.6, 8.0, 11.0, 16.0, 22.0];
 
@@ -123,3 +124,49 @@ export const DEEP_DOF_WIDE_LIMIT = 4.0;
 // technique, not by the subject's motion tier. 1/60 is the classic
 // starting point and is a STANDARD_SHUTTERS grid member.
 export const PAN_SHUTTER_S = 1 / 60;
+
+// Slowest shutter that keeps each contract SubjectMotion sharp, used by
+// computeShutterFloor in shutterFloor.ts. "static" has nothing to freeze, so
+// it has no entry. Separate from MOTION_FLOORS above, which serves the legacy
+// SceneInput MotionTier scale that calculateSettings still uses.
+export const SUBJECT_MOTION_MIN_S: Record<Exclude<SubjectMotion, "static">, number> = {
+  slow: 1 / 60,
+  walking: 1 / 125,
+  fast: 1 / 250,
+};
+
+// Rung 3 of the exposure ladder in auto ISO mode stops here; anything beyond
+// is reported as shortfallStops rather than ridden further.
+export const AUTO_ISO_CEILING = 25600;
+
+// When the lens is unknown, the ladder does its arithmetic at this aperture
+// but reports aperture as null — it is never emitted as a recommendation.
+export const UNKNOWN_LENS_NOTIONAL_APERTURE = 4.0;
+
+// Slowest floor a stabilised handheld shot may use. Stabilisation stops
+// compound fast (5 stops at 24mm is 1.3s), but hand sway and breathing aren't
+// corrected by it, and no one reliably holds slower than this.
+export const STABILISED_HANDHELD_MAX_S = 1 / 4;
+
+// Nominal third-stop scales cameras actually display, ascending. Used by
+// roundToCameraSteps in round.ts; the full-stop STANDARD_* grids above stay
+// with calculateSettings.
+export const CAMERA_APERTURE_STEPS = [
+  1.0, 1.1, 1.2, 1.4, 1.6, 1.8, 2.0, 2.2, 2.5, 2.8, 3.2, 3.5, 4.0, 4.5, 5.0, 5.6,
+  6.3, 7.1, 8.0, 9.0, 10, 11, 13, 14, 16, 18, 20, 22, 25, 29, 32,
+];
+
+// Durations in seconds, fastest first.
+export const CAMERA_SHUTTER_STEPS_S = [
+  1 / 8000, 1 / 6400, 1 / 5000, 1 / 4000, 1 / 3200, 1 / 2500, 1 / 2000, 1 / 1600,
+  1 / 1250, 1 / 1000, 1 / 800, 1 / 640, 1 / 500, 1 / 400, 1 / 320, 1 / 250,
+  1 / 200, 1 / 160, 1 / 125, 1 / 100, 1 / 80, 1 / 60, 1 / 50, 1 / 40, 1 / 30,
+  1 / 25, 1 / 20, 1 / 15, 1 / 13, 1 / 10, 1 / 8, 1 / 6, 1 / 5, 1 / 4, 0.3, 0.4,
+  0.5, 0.6, 0.8, 1, 1.3, 1.6, 2, 2.5, 3.2, 4, 5, 6, 8, 10, 13, 15, 20, 25, 30,
+];
+
+export const CAMERA_ISO_STEPS = [
+  50, 64, 80, 100, 125, 160, 200, 250, 320, 400, 500, 640, 800, 1000, 1250, 1600,
+  2000, 2500, 3200, 4000, 5000, 6400, 8000, 10000, 12800, 16000, 20000, 25600,
+  32000, 40000, 51200, 64000, 80000, 102400,
+];
