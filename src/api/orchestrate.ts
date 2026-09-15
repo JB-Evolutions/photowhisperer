@@ -1,20 +1,31 @@
 import { APIError } from "@anthropic-ai/sdk";
 import { callClassifier } from "./classifier";
-import { calculateSettings } from "../calculator/calculate";
-import type {
-  SceneInput,
-  MotionTier,
-  Support,
-  CreativeIntent,
-  MotionIntent,
-  WhiteBalance,
-} from "../calculator/types";
-import type { CameraProfile, PriorContext } from "./types";
+import { solveExposure } from "../calculator/ladder";
+import { roundToCameraSteps } from "../calculator/round";
+import { AUTO_ISO_CEILING, WB_COLOR_TEMP } from "../calculator/constants";
+import { formatAperture, formatShutter } from "../calculator/format";
+import { describeShutter } from "../calculator/shutterFloor";
+import type { WhiteBalance } from "../calculator/types";
+import {
+  INTENT_STOPS,
+  LIGHT_CONDITION_EV,
+  type BodyProfile,
+  type BrightnessIntent,
+  type LensProfile,
+  type LightCondition,
+  type SubjectMotion,
+  type Support,
+} from "../lib/contract/types";
+import { resolveSceneEv, SUBJECT_OFFSET_STOPS } from "../lib/exposure/ev";
+import type { SubjectExposureVerdict } from "../lib/exposure/types";
+import { apertureAtFocal, parseLensString } from "../lib/lens/parse";
+import type { CameraProfile, GearProfile, ImageInput, PriorContext } from "./types";
 
 export type OrchestrateResult =
   | {
       status: "ok";
       iso: number;
+      // WIDEST_APERTURE_LABEL when the lens's aperture is unknown.
       aperture: string;
       shutter_speed: string;
       white_balance: string;
@@ -22,6 +33,10 @@ export type OrchestrateResult =
       assumptions: string[];
       warnings: string[];
       scene_summary?: string;
+      // The shutter floor's one-line reason (ShutterFloor.explain).
+      floorExplain: string;
+      // Stops short of a correct exposure after rounding; 0 when reachable.
+      shortfallStops: number;
     }
   | { status: "clarification_required"; question: string }
   | { status: "invalid_input"; message: string }
@@ -31,19 +46,27 @@ export type OrchestrateResult =
   // of the generic error state. No message: route.ts supplies fixed copy.
   | { status: "service_busy" };
 
-const MOTION_TIERS: readonly MotionTier[] = [
-  "stationary",
-  "slow",
-  "moderate",
-  "fast",
-  "very_fast",
-];
-const SUPPORTS: readonly Support[] = ["handheld", "tripod", "stabilized"];
-const CREATIVE_INTENTS: readonly CreativeIntent[] = [
-  "shallow_dof",
-  "deep_dof",
-  "standard",
-];
+export type GetSettingsOptions = {
+  image?: ImageInput | null;
+  // The composer's condition selector. User-stated, so never routed through
+  // the model and never second-guessed by it.
+  condition?: LightCondition | null;
+  intent?: BrightnessIntent;
+  // sessions.clarification_used — true once this session has been asked.
+  clarificationUsed?: boolean;
+};
+
+export const WIDEST_APERTURE_LABEL = "widest your lens allows";
+
+// The only question the orchestrator ever asks, at most once per session.
+export const CLARIFICATION_QUESTION =
+  "What's the light like — sunny, overcast, shade, indoors, or night?";
+
+export const HIGHLIGHT_WARNING =
+  "Bright light sources in frame (lamps, windows, or signs) will clip before the rest of the scene is exposed. Shoot RAW and expose for the highlights, or bracket.";
+
+const MOTIONS: readonly SubjectMotion[] = ["static", "slow", "walking", "fast"];
+const SUPPORTS: readonly Support[] = ["handheld", "tripod"];
 const WHITE_BALANCES: readonly WhiteBalance[] = [
   "daylight",
   "cloudy",
@@ -53,216 +76,411 @@ const WHITE_BALANCES: readonly WhiteBalance[] = [
   "flash",
   "auto",
 ];
-const MOTION_INTENTS: readonly MotionIntent[] = ["freeze", "blur", "pan"];
+const LIGHTING_DIRECTIONS = ["front", "side", "back", "top", "diffuse", "unknown"] as const;
+type LightingDirection = (typeof LIGHTING_DIRECTIONS)[number];
+const LIGHT_CONDITIONS = Object.keys(LIGHT_CONDITION_EV) as readonly LightCondition[];
+const VERDICTS = Object.keys(SUBJECT_OFFSET_STOPS) as readonly SubjectExposureVerdict[];
+export const BRIGHTNESS_INTENTS = Object.keys(INTENT_STOPS) as readonly BrightnessIntent[];
 
-function validateOkScene(obj: Record<string, unknown>): SceneInput | null {
+const MAX_FOCAL_MM = 2000;
+
+type ClassifiedScene = {
+  motion: SubjectMotion;
+  support: Support;
+  focal_length_mm: number | null;
+  white_balance: WhiteBalance;
+  lighting_direction: LightingDirection;
+  highlight_risk: boolean;
+  scene_summary?: string;
+  defaulted: string[];
+  subject_exposure_verdict: SubjectExposureVerdict | null;
+  condition: LightCondition | null;
+  // Overwritten from resolveSceneEv before solving; never read from the model.
+  scene_ev: number | null;
+};
+
+function validateOkScene(obj: Record<string, unknown>): ClassifiedScene | null {
   const {
-    scene_ev,
-    motion_tier,
+    motion,
     support,
     focal_length_mm,
-    focal_length_assumed,
-    creative_intent,
-    motion_intent,
     white_balance,
-    exposure_bias_stops,
+    lighting_direction,
     highlight_risk,
     scene_summary,
     defaulted,
+    subject_exposure_verdict,
+    condition,
   } = obj;
 
-  if (typeof scene_ev !== "number") return null;
-  if (!MOTION_TIERS.includes(motion_tier as MotionTier)) return null;
+  if (!MOTIONS.includes(motion as SubjectMotion)) return null;
   if (!SUPPORTS.includes(support as Support)) return null;
-  if (typeof focal_length_mm !== "number" || !Number.isInteger(focal_length_mm))
-    return null;
-  if (typeof focal_length_assumed !== "boolean") return null;
-  if (!CREATIVE_INTENTS.includes(creative_intent as CreativeIntent)) return null;
-  // Optional, absent on older classifier responses — default to "freeze"
-  // rather than reject, matching the tolerance pattern used for `defaulted`.
-  if (motion_intent !== undefined && !MOTION_INTENTS.includes(motion_intent as MotionIntent))
-    return null;
   if (!WHITE_BALANCES.includes(white_balance as WhiteBalance)) return null;
   if (
-    exposure_bias_stops !== undefined &&
-    (typeof exposure_bias_stops !== "number" ||
-      !Number.isFinite(exposure_bias_stops) ||
-      exposure_bias_stops < -3 ||
-      exposure_bias_stops > 2)
+    focal_length_mm !== undefined &&
+    focal_length_mm !== null &&
+    (typeof focal_length_mm !== "number" ||
+      !Number.isInteger(focal_length_mm) ||
+      focal_length_mm < 1 ||
+      focal_length_mm > MAX_FOCAL_MM)
+  )
+    return null;
+  if (
+    lighting_direction !== undefined &&
+    !LIGHTING_DIRECTIONS.includes(lighting_direction as LightingDirection)
   )
     return null;
   if (highlight_risk !== undefined && typeof highlight_risk !== "boolean") return null;
-  if (scene_summary !== undefined && typeof scene_summary !== "string")
-    return null;
-  // Optional, absent on older classifier responses — tolerate missing, but
-  // reject a malformed (non-string-array) value rather than silently drop it.
+  if (scene_summary !== undefined && typeof scene_summary !== "string") return null;
+  // Optional fields below: absence is tolerated, a malformed value is rejected
+  // rather than silently dropped.
   if (
     defaulted !== undefined &&
     (!Array.isArray(defaulted) || !defaulted.every((f) => typeof f === "string"))
   )
     return null;
+  if (
+    subject_exposure_verdict !== undefined &&
+    subject_exposure_verdict !== null &&
+    !VERDICTS.includes(subject_exposure_verdict as SubjectExposureVerdict)
+  )
+    return null;
+  if (
+    condition !== undefined &&
+    condition !== null &&
+    !LIGHT_CONDITIONS.includes(condition as LightCondition)
+  )
+    return null;
 
   return {
-    scene_ev,
-    motion_tier: motion_tier as MotionTier,
+    motion: motion as SubjectMotion,
     support: support as Support,
-    focal_length_mm,
-    focal_length_assumed,
-    creative_intent: creative_intent as CreativeIntent,
-    motion_intent:
-      motion_intent !== undefined ? (motion_intent as MotionIntent) : "freeze",
+    focal_length_mm: typeof focal_length_mm === "number" ? focal_length_mm : null,
     white_balance: white_balance as WhiteBalance,
-    exposure_bias_stops:
-      typeof exposure_bias_stops === "number" ? exposure_bias_stops : undefined,
-    highlight_risk: typeof highlight_risk === "boolean" ? highlight_risk : undefined,
+    lighting_direction:
+      lighting_direction !== undefined ? (lighting_direction as LightingDirection) : "unknown",
+    highlight_risk: highlight_risk === true,
     scene_summary: typeof scene_summary === "string" ? scene_summary : undefined,
-    defaulted: Array.isArray(defaulted) ? (defaulted as string[]) : undefined,
+    defaulted: Array.isArray(defaulted) ? (defaulted as string[]) : [],
+    subject_exposure_verdict:
+      subject_exposure_verdict != null ? (subject_exposure_verdict as SubjectExposureVerdict) : null,
+    condition: condition != null ? (condition as LightCondition) : null,
+    scene_ev: null,
   };
 }
 
-// Parses the aperture spec out of a lens description: "50mm f/1.8" -> a
-// constant f/1.8; "18-55mm f/3.5-5.6" -> f/3.5 at the wide end, f/5.6 at the
-// tele end (a variable-aperture zoom is physically slower once zoomed in —
-// this is never a single number). Returns null if no f/-number pattern is
-// present.
-//
-// Uses only the FIRST f/-pattern found, unlike the old single-number
-// widestApertureFromLensString (removed), which used matchAll + min across
-// every "f/" occurrence anywhere in the string. That approach doesn't
-// compose with extracting a wide/tele PAIR: there's no principled partner
-// for a minimum picked from unrelated occurrences elsewhere in the string.
-// A lens description is expected to state its own aperture (spec or range)
-// once, immediately after its focal length — real inputs throughout this
-// codebase never do otherwise. Intentional behavior change, not an oversight.
-function parseLensAperture(lens: string): { wide: number; tele: number } | null {
-  const match = lens.match(/f\/(\d+(?:\.\d+)?)(?:-(\d+(?:\.\d+)?))?/i);
-  if (!match) return null;
-  const wide = Number(match[1]);
-  const tele = match[2] !== undefined ? Number(match[2]) : wide;
-  return { wide, tele };
-}
+// An older prompt could still answer clarification_required. The orchestrator
+// owns clarification now, so that answer is treated as a scene with nothing
+// specified and goes through the same light resolution and cap.
+const UNSPECIFIED_SCENE: ClassifiedScene = {
+  motion: "static",
+  support: "handheld",
+  focal_length_mm: null,
+  white_balance: "auto",
+  lighting_direction: "unknown",
+  highlight_risk: false,
+  defaulted: ["motion", "support", "white_balance"],
+  subject_exposure_verdict: null,
+  condition: null,
+  scene_ev: null,
+};
 
-// Parses the focal-length range a lens covers, e.g. "70-200mm f/4" -> 70..200,
-// "50mm f/1.8" -> 50..50. Strips the "f/..." aperture segment first so its
-// digits (e.g. the "3.5-5.6" in "f/3.5-5.6") are never mistaken for a focal
-// range. Anchored to a number (or range) immediately followed by "mm", so a
-// brand name with a leading digit ("7artisans 35mm f/1.2") isn't mistaken
-// for a focal length — the bare "7" isn't followed by "mm" so it's skipped
-// in favor of "35mm". Returns null when nothing matches that pattern.
-//
-// NOTE: assumes the lens's mm figure is directly comparable to
-// focal_length_mm — i.e. both full-frame-equivalent. Physical lens mm on
-// APS-C/MFT bodies differs from full-frame-equivalent by a 1.5-2x crop
-// factor that this does not correct for (camera_profile.body is free text
-// with no reliable sensor-size mapping). Known limitation: matching may
-// mis-scope for non-full-frame gear.
-function parseLensFocalRange(lens: string): { minFocal: number; maxFocal: number } | null {
-  const apertureMatch = lens.match(/f\/(\d+(?:\.\d+)?)(?:-\d+(?:\.\d+)?)?/i);
-  const withoutAperture = apertureMatch
-    ? lens.slice(0, apertureMatch.index) + lens.slice(apertureMatch.index! + apertureMatch[0].length)
-    : lens;
+// ─── Light condition from text ────────────────────────────────────────────────
 
-  const focalMatch = withoutAperture.match(/(\d+)(?:\s*-\s*(\d+))?\s*mm\b/i);
-  if (!focalMatch) return null;
+const CONDITION_LABEL: Record<LightCondition, string> = {
+  snow_sand: "bright snow or sand",
+  direct_sun: "direct sun",
+  hazy_sun: "hazy sun",
+  overcast: "overcast",
+  open_shade: "open shade",
+  golden_hour: "golden hour",
+  blue_hour: "blue hour",
+  night_street: "a street-lit night",
+  night_no_street: "night without street lights",
+  night_moonlit: "a moonlit night",
+  indoor_window: "indoor window light",
+  indoor_artificial: "indoor artificial light",
+  indoor_dim: "dim indoor light",
+  candlelit: "candlelight",
+};
 
-  const f1 = Number(focalMatch[1]);
-  const f2 = focalMatch[2] !== undefined ? Number(focalMatch[2]) : f1;
-  return { minFocal: Math.min(f1, f2), maxFocal: Math.max(f1, f2) };
-}
+const INDOOR_RE =
+  /\b(indoors?|inside|room|kitchen|lounge|bedroom|bathroom|office|cafes?|restaurant|bar|pub|shop|store|hall|church|museum|gym|studio|home|house|hotel|classroom)\b|café|🏠/iu;
 
-// Linearly interpolates a variable-aperture zoom's f-number between its wide
-// and tele ends based on where focal_length_mm sits in the lens's focal
-// range. A constant-aperture lens (wide === tele) or a prime (minFocal ===
-// maxFocal) just returns its one aperture, exactly — the manufacturer-stated
-// endpoint values are exact, not an approximation. A focal length exactly at
-// either endpoint likewise returns that endpoint's exact value. A focal
-// length strictly BETWEEN the endpoints returns the raw linear estimate —
-// calculate.ts's nearestStandardApertureAtOrNarrowerThan rounds this to the
-// grid (always narrower, never nearest) when it's actually consumed, so
-// rounding here too would just be redundant duplicate logic.
-function effectiveApertureAtFocal(
-  apertureSpec: { wide: number; tele: number },
-  range: { minFocal: number; maxFocal: number },
-  focal_length_mm: number
-): number {
-  if (apertureSpec.wide === apertureSpec.tele || range.minFocal === range.maxFocal) {
-    return apertureSpec.wide;
+type TextRule = {
+  re: RegExp;
+  outdoor: LightCondition;
+  indoor: LightCondition;
+};
+
+// Time-of-day, light-source and weather tokens, most specific first — the
+// first match wins, so "sunset" is read before "sun" and "partly cloudy"
+// before "cloudy". A bare place word ("park", "kitchen") is not a token: it
+// only decides between the outdoor and indoor reading of one.
+const TEXT_RULES: readonly TextRule[] = [
+  { re: /\b(candle\w*|firelight|fireplace|campfire)\b|🕯️?|🔥/iu, outdoor: "candlelit", indoor: "candlelit" },
+  { re: /\b(snow\w*|skiing|sand)\b|❄️?|⛄|☃️?/iu, outdoor: "snow_sand", indoor: "indoor_window" },
+  { re: /\b(golden hour|sunset|sunrise)\b|🌅|🌄/iu, outdoor: "golden_hour", indoor: "indoor_window" },
+  { re: /\b(blue hour|dusk|twilight)\b/iu, outdoor: "blue_hour", indoor: "indoor_dim" },
+  { re: /\b(moon\w*)\b|🌙|🌛|🌜|🌕|🌝/iu, outdoor: "night_moonlit", indoor: "indoor_dim" },
+  { re: /\b(no street ?lights?|pitch black|stars|starlight|milky way)\b|🌌/iu, outdoor: "night_no_street", indoor: "indoor_dim" },
+  { re: /\b(street ?lights?|street ?lamps?|city lights|neon)\b|🌃|🌆|🌉/iu, outdoor: "night_street", indoor: "indoor_artificial" },
+  { re: /\b(dim|dimly|dimmed|low[- ]light|dark room)\b/iu, outdoor: "blue_hour", indoor: "indoor_dim" },
+  { re: /\b(window light|windows?)\b|🪟/iu, outdoor: "indoor_window", indoor: "indoor_window" },
+  { re: /\b(lamps?|tungsten|fluorescent|led|bulbs?|ceiling lights?|overhead lights?|spotlights?)\b|💡/iu, outdoor: "night_street", indoor: "indoor_artificial" },
+  { re: /\b(open shade|shade|shady|shaded|under (the )?trees)\b|🌳/iu, outdoor: "open_shade", indoor: "indoor_artificial" },
+  { re: /\b(haze|hazy|thin cloud|light cloud|partly cloudy)\b|⛅|🌤️?/iu, outdoor: "hazy_sun", indoor: "indoor_window" },
+  { re: /\b(overcast|cloudy|clouds?|gr[ae]y sky|rain\w*|drizzle|fog\w*|mist\w*|storm\w*)\b|☁️?|🌧️?|🌥️?|⛈️?|🌫️?/iu, outdoor: "overcast", indoor: "indoor_artificial" },
+  { re: /\b(sunny|sunshine|sunlight|sunlit|sun|clear sky|blue sky)\b|☀️?|🌞/iu, outdoor: "direct_sun", indoor: "indoor_window" },
+  { re: /\b(night\w*|after dark|evening)\b/iu, outdoor: "night_street", indoor: "indoor_artificial" },
+  { re: /\b(morning|afternoon|midday|noon|daytime|daylight|day)\b/iu, outdoor: "hazy_sun", indoor: "indoor_window" },
+];
+
+// With no token at all, a photo is more often indoors than not, and indoor
+// artificial light sits mid-range so the miss is a stop or two either way.
+const NO_TOKEN_OUTDOOR: LightCondition = "overcast";
+const NO_TOKEN_INDOOR: LightCondition = "indoor_artificial";
+
+export function inferConditionFromText(
+  text: string
+): { condition: LightCondition; token: string } | null {
+  const indoor = INDOOR_RE.test(text);
+  for (const rule of TEXT_RULES) {
+    const match = rule.re.exec(text);
+    if (match) return { condition: indoor ? rule.indoor : rule.outdoor, token: match[0] };
   }
-  const t = (focal_length_mm - range.minFocal) / (range.maxFocal - range.minFocal);
-  if (t <= 0) return apertureSpec.wide;
-  if (t >= 1) return apertureSpec.tele;
-  return apertureSpec.wide + (apertureSpec.tele - apertureSpec.wide) * t;
+  return null;
 }
 
-// The widest aperture (smallest f-number) actually usable at the scene's
-// focal length, selected only from lens(es) whose parsed focal range covers
-// it, and interpolated to the physically correct aperture at that exact
-// focal length for variable-aperture zooms — a 50mm f/1.8 must not license
-// f/1.8 at 200mm, and an 18-55mm f/3.5-5.6 must not license f/3.5 at 55mm
-// (it's physically f/5.6 there).
-//
-// Returns null when a numeric value can't be confidently attributed to a
-// lens that covers this exact focal length: no gear at all, no lens with a
-// parseable aperture, or (with a real, user-stated focal length) no lens's
-// parsed range covering it. That last case — a real focal length the kit
-// genuinely can't reach — is the one place null is the only honest answer;
-// there's nothing to fall back to that isn't a guess.
-//
-// focal_length_assumed is different: there's no real focal length being
-// violated, since the 50mm figure is itself a guess, not a request. In that
-// case this returns the widest wide-end aperture anywhere in the kit
-// instead of null — it can never be wider than what's actually in the bag,
-// so unlike guessing a *specific* lens covers a *specific* (possibly wrong)
-// focal length, it's a sound ceiling: strictly safer than falling back to
-// the generic unknown-gear policy limit, which could be wider than every
-// lens the user owns.
-export function deriveMaxAperture(
-  camera_profile: CameraProfile | null,
-  focal_length_mm: number,
-  focal_length_assumed: boolean
-): number | null {
-  if (!camera_profile?.lenses || camera_profile.lenses.length === 0) return null;
+// Nearest condition when there is no token to go on (empty, emoji, free text).
+function fallbackCondition(text: string): LightCondition {
+  return INDOOR_RE.test(text) ? NO_TOKEN_INDOOR : NO_TOKEN_OUTDOOR;
+}
 
-  const apertures = camera_profile.lenses
-    .map((lens) => parseLensAperture(lens))
-    .filter((a): a is { wide: number; tele: number } => a !== null);
-
-  if (apertures.length === 0) return null;
-
-  if (focal_length_assumed) {
-    return Math.min(...apertures.map((a) => a.wide));
+// solveExposure takes a LightCondition, not an EV, so a measured EV is matched
+// to the nearest table entry. Ties go to the darker entry.
+function nearestConditionForEv(ev: number): LightCondition {
+  let best = LIGHT_CONDITIONS[0];
+  for (const c of LIGHT_CONDITIONS) {
+    const d = Math.abs(LIGHT_CONDITION_EV[c] - ev);
+    const bestD = Math.abs(LIGHT_CONDITION_EV[best] - ev);
+    if (d < bestD - 1e-9 || (Math.abs(d - bestD) <= 1e-9 && LIGHT_CONDITION_EV[c] < LIGHT_CONDITION_EV[best])) {
+      best = c;
+    }
   }
+  return best;
+}
 
-  const parsed = camera_profile.lenses
-    .map((lens) => {
-      const apertureSpec = parseLensAperture(lens);
-      const range = parseLensFocalRange(lens);
-      return apertureSpec !== null && range !== null ? { apertureSpec, range } : null;
-    })
-    .filter(
-      (l): l is { apertureSpec: { wide: number; tele: number }; range: { minFocal: number; maxFocal: number } } =>
-        l !== null
+function round1(n: number): number {
+  return Math.round(n * 10) / 10;
+}
+
+// ─── Gear ─────────────────────────────────────────────────────────────────────
+
+const DEFAULT_BODY: BodyProfile = {
+  label: "unknown",
+  cropFactor: null,
+  ibisStops: null,
+  isoBase: 100,
+  isoMode: "auto",
+  isoValue: null,
+  isoMax: null,
+};
+
+const UNKNOWN_LENS: LensProfile = {
+  label: "unknown",
+  focalMinMm: null,
+  focalMaxMm: null,
+  aperWide: null,
+  aperTele: null,
+  stabilised: null,
+  stabStops: null,
+  confidence: "unknown",
+};
+
+// Normal field of view, as a full-frame focal length.
+const NORMAL_FOCAL_FF_MM = 50;
+
+function isGearProfile(p: GearProfile | CameraProfile): p is GearProfile {
+  return typeof p.body === "object" && p.body !== null;
+}
+
+// The legacy free-text profile is parsed the same way the stored lens rows are.
+function toGear(profile: GearProfile | CameraProfile | null): GearProfile {
+  if (!profile) return { body: DEFAULT_BODY, lenses: [] };
+  if (isGearProfile(profile)) return profile;
+  return {
+    body: { ...DEFAULT_BODY, label: profile.body ?? DEFAULT_BODY.label },
+    lenses: (profile.lenses ?? [])
+      .filter((l) => typeof l === "string" && l.trim() !== "")
+      .map(parseLensString),
+  };
+}
+
+function chooseLens(
+  gear: GearProfile,
+  statedFocal: number | null
+): { lens: LensProfile; focalMm: number; assumptions: string[] } {
+  const { body, lenses } = gear;
+  const assumptions: string[] = [];
+  const normalFocal = Math.round(NORMAL_FOCAL_FF_MM / (body.cropFactor ?? 1));
+
+  if (statedFocal !== null) {
+    const covering = lenses.filter(
+      (l) =>
+        l.focalMinMm !== null &&
+        l.focalMaxMm !== null &&
+        statedFocal >= l.focalMinMm &&
+        statedFocal <= l.focalMaxMm
     );
+    if (covering.length > 0) {
+      // Widest aperture at this focal length; unknown apertures sort last.
+      const ranked = [...covering].sort(
+        (a, b) =>
+          (apertureAtFocal(a, statedFocal) ?? Infinity) - (apertureAtFocal(b, statedFocal) ?? Infinity)
+      );
+      const lens = ranked[0];
+      if (apertureAtFocal(lens, statedFocal) === null) {
+        assumptions.push(
+          `Couldn't read the aperture of "${lens.label}" — aperture shown as the ${WIDEST_APERTURE_LABEL}.`
+        );
+      }
+      return { lens, focalMm: statedFocal, assumptions };
+    }
+    assumptions.push(
+      lenses.length === 0
+        ? `No lens in your camera profile — aperture shown as the ${WIDEST_APERTURE_LABEL}.`
+        : `None of your lenses is known to cover ${statedFocal}mm — aperture shown as the ${WIDEST_APERTURE_LABEL}.`
+    );
+    return { lens: UNKNOWN_LENS, focalMm: statedFocal, assumptions };
+  }
 
-  const covering = parsed.filter(
-    (l) => focal_length_mm >= l.range.minFocal && focal_length_mm <= l.range.maxFocal
-  );
-  if (covering.length === 0) return null;
+  if (lenses.length === 0) {
+    assumptions.push(`Assumed ${normalFocal}mm (focal length not specified).`);
+    assumptions.push(`No lens in your camera profile — aperture shown as the ${WIDEST_APERTURE_LABEL}.`);
+    return { lens: UNKNOWN_LENS, focalMm: normalFocal, assumptions };
+  }
 
-  const effectiveApertures = covering.map((l) =>
-    effectiveApertureAtFocal(l.apertureSpec, l.range, focal_length_mm)
-  );
-  return Math.min(...effectiveApertures);
+  const lens = lenses.find((l) => l.focalMinMm !== null && l.focalMaxMm !== null) ?? lenses[0];
+  const focalMm =
+    lens.focalMinMm !== null && lens.focalMaxMm !== null
+      ? Math.min(Math.max(normalFocal, lens.focalMinMm), lens.focalMaxMm)
+      : normalFocal;
+  assumptions.push(`Assumed ${focalMm}mm on your ${lens.label} (focal length not specified).`);
+  if (apertureAtFocal(lens, focalMm) === null) {
+    assumptions.push(
+      `Couldn't read the aperture of "${lens.label}" — aperture shown as the ${WIDEST_APERTURE_LABEL}.`
+    );
+  }
+  return { lens, focalMm, assumptions };
+}
+
+// ─── Result assembly ──────────────────────────────────────────────────────────
+
+const DEFAULTED_ASSUMPTION_TEXT: Record<string, string> = {
+  motion: "Assumed subject is stationary (movement not specified).",
+  support: "Assumed handheld (support not specified).",
+  white_balance: "Assumed auto white balance (lighting colour not specified).",
+};
+
+function isoCeilingFor(body: BodyProfile): number | undefined {
+  if (body.isoMode === "capped") return body.isoMax ?? undefined;
+  if (body.isoMode === "locked") return body.isoValue ?? body.isoBase;
+  return undefined;
+}
+
+function shortfallLine(
+  stops: number,
+  body: BodyProfile,
+  iso: number,
+  aperture: number | null,
+  floorS: number
+): string {
+  let cause: string;
+  if (body.isoMode === "locked") {
+    cause = `your locked ISO (ISO ${iso})`;
+  } else if (body.isoMode === "capped" && body.isoMax !== null) {
+    cause = `your ISO cap (ISO ${iso})`;
+  } else {
+    cause = `the ISO cap (ISO ${Math.min(iso, AUTO_ISO_CEILING)})`;
+  }
+  const lensPart = aperture !== null ? ` and the lens aperture limit (${formatAperture(aperture)})` : "";
+  return `Still ${stops.toFixed(1)} stops underexposed — limited by ${cause}${lensPart}, with the shutter at its ${describeShutter(floorS)} floor.`;
+}
+
+function solveAndFormat(args: {
+  scene: ClassifiedScene;
+  condition: LightCondition;
+  intent: BrightnessIntent;
+  gear: GearProfile;
+  lightAssumptions: string[];
+}): OrchestrateResult {
+  const { scene, condition, intent, gear, lightAssumptions } = args;
+  const { body } = gear;
+  const { lens, focalMm, assumptions: lensAssumptions } = chooseLens(gear, scene.focal_length_mm);
+
+  const raw = solveExposure({
+    light: condition,
+    intent,
+    focalMm,
+    body,
+    lens,
+    motion: scene.motion,
+    support: scene.support,
+  });
+  // Rounded BEFORE anything reaches the response: the user dials camera steps.
+  const rounded = roundToCameraSteps(raw, isoCeilingFor(body));
+
+  const assumptions: string[] = [...lightAssumptions];
+  for (const field of scene.defaulted) {
+    const text = DEFAULTED_ASSUMPTION_TEXT[field];
+    if (text) assumptions.push(text);
+  }
+  assumptions.push(...lensAssumptions);
+  if (body.cropFactor === null) {
+    assumptions.push("Assumed a full-frame sensor (crop factor not set in your camera profile).");
+  }
+  if (scene.support === "handheld" && lens !== UNKNOWN_LENS && lens.stabilised === null && !body.ibisStops) {
+    assumptions.push(`Stabilisation of "${lens.label}" unknown — assumed none for the shutter floor.`);
+  }
+
+  // A raw shortfall is a real limit. Rounding alone can open a sliver of a gap
+  // (e.g. a too-bright scene's shutter snapping faster), which isn't one.
+  const shortfallStops = raw.shortfallStops > 0 ? rounded.shortfallStops : 0;
+  if (shortfallStops >= 0.05) {
+    assumptions.push(shortfallLine(shortfallStops, body, rounded.iso, rounded.aperture, rounded.shutterS));
+  }
+
+  const colorTemp = WB_COLOR_TEMP[scene.white_balance];
+
+  return {
+    status: "ok",
+    iso: rounded.iso,
+    aperture: rounded.aperture === null ? WIDEST_APERTURE_LABEL : formatAperture(rounded.aperture),
+    shutter_speed: formatShutter(rounded.shutterS),
+    white_balance: scene.white_balance,
+    color_temperature: colorTemp !== null ? `${colorTemp}K` : null,
+    assumptions,
+    warnings: scene.highlight_risk ? [HIGHLIGHT_WARNING] : [],
+    scene_summary: scene.scene_summary,
+    floorExplain: rounded.floor.explain,
+    shortfallStops: shortfallStops >= 0.05 ? round1(shortfallStops) : 0,
+  };
 }
 
 export async function getSettings(
   conditions: string,
-  camera_profile: CameraProfile | null = null,
-  prior_context: PriorContext | null = null
+  camera_profile: GearProfile | CameraProfile | null = null,
+  prior_context: PriorContext | null = null,
+  options: GetSettingsOptions = {}
 ): Promise<OrchestrateResult> {
+  const image = options.image ?? null;
+  const intent = options.intent ?? "natural";
+  const clarificationUsed = options.clarificationUsed === true;
+
   let raw: string;
   try {
-    raw = await callClassifier(conditions, camera_profile, prior_context);
+    raw = await callClassifier(conditions, prior_context, image);
   } catch (err) {
     console.error("Classifier API error:", err);
     // Only 429/503/529 (rate-limit/overloaded) count as "busy" — a plain 500,
@@ -288,24 +506,12 @@ export async function getSettings(
     };
   }
 
-  if (
-    typeof parsed !== "object" ||
-    parsed === null ||
-    Array.isArray(parsed)
-  ) {
+  if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
     console.error("Classifier response is not an object:", parsed);
     return { status: "error", message: "Received an unexpected response shape." };
   }
 
   const obj = parsed as Record<string, unknown>;
-
-  if (obj["status"] === "clarification_required") {
-    if (typeof obj["question"] !== "string") {
-      console.error("clarification_required missing question:", obj);
-      return { status: "error", message: "Received an invalid clarification response." };
-    }
-    return { status: "clarification_required", question: obj["question"] };
-  }
 
   if (obj["status"] === "invalid_input") {
     const message =
@@ -315,18 +521,76 @@ export async function getSettings(
     return { status: "invalid_input", message };
   }
 
+  let scene: ClassifiedScene;
   if (obj["status"] === "ok") {
-    const scene = validateOkScene(obj);
-    if (!scene) {
+    const validated = validateOkScene(obj);
+    if (!validated) {
       console.error("Classifier ok response failed validation:", obj);
       return { status: "error", message: "Received an invalid scene classification." };
     }
-
-    const max_aperture = deriveMaxAperture(camera_profile, scene.focal_length_mm, scene.focal_length_assumed);
-
-    return calculateSettings({ ...scene, max_aperture });
+    scene = validated;
+  } else if (obj["status"] === "clarification_required") {
+    scene = { ...UNSPECIFIED_SCENE };
+  } else {
+    console.error("Unexpected classifier status:", obj["status"]);
+    return { status: "error", message: "Received an unrecognized response status." };
   }
 
-  console.error("Unexpected classifier status:", obj["status"]);
-  return { status: "error", message: "Received an unrecognized response status." };
+  // scene.exposure_bias_stops is deliberately never read: metering correction
+  // is folded into scene_ev, and BrightnessIntent is the only creative bias.
+  const resolution = resolveSceneEv({
+    exif: image?.exif ?? null,
+    verdict: image ? scene.subject_exposure_verdict : null,
+    histogram: image?.histogram ?? null,
+    hdrSuspect: image?.rawExifFlags.hdrSuspect ?? false,
+    // The model's condition is only asked for on a photo without EXIF; text
+    // requests never take light from the model.
+    condition: image ? scene.condition : null,
+  });
+  scene.scene_ev = resolution.scene_ev;
+
+  const lightAssumptions: string[] = [];
+  let condition: LightCondition;
+
+  if (resolution.tier === 1 && resolution.scene_ev !== null) {
+    condition = nearestConditionForEv(resolution.scene_ev);
+    if (resolution.assumption) lightAssumptions.push(resolution.assumption);
+    if (Math.abs(LIGHT_CONDITION_EV[condition] - resolution.scene_ev) >= 0.5) {
+      lightAssumptions.push(
+        `Measured light (EV ${round1(resolution.scene_ev)}) matched to the nearest light level, ${CONDITION_LABEL[condition]} (EV ${LIGHT_CONDITION_EV[condition]}).`
+      );
+    }
+  } else if (options.condition) {
+    // Stated by the user: taken as-is, no assumption line.
+    condition = options.condition;
+    scene.scene_ev = LIGHT_CONDITION_EV[condition];
+  } else if (resolution.tier === 2 && scene.condition !== null) {
+    condition = scene.condition;
+    if (resolution.assumption) lightAssumptions.push(resolution.assumption);
+  } else {
+    // Tier 3: nothing measured or estimated.
+    const inferred = inferConditionFromText(conditions);
+    if (inferred) {
+      condition = inferred.condition;
+      lightAssumptions.push(
+        `Light read as ${CONDITION_LABEL[condition]} from "${inferred.token}".`
+      );
+    } else if (!clarificationUsed) {
+      return { status: "clarification_required", question: CLARIFICATION_QUESTION };
+    } else {
+      condition = fallbackCondition(conditions);
+      lightAssumptions.push(
+        `No light level given, so assumed ${CONDITION_LABEL[condition]} — pick a light condition for exact settings.`
+      );
+    }
+    scene.scene_ev = LIGHT_CONDITION_EV[condition];
+  }
+
+  return solveAndFormat({
+    scene,
+    condition,
+    intent,
+    gear: toGear(camera_profile),
+    lightAssumptions,
+  });
 }

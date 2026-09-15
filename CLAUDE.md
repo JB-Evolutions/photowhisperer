@@ -26,8 +26,10 @@ inserts into `public.users`, `public.subscriptions` (tier='snapshot'), and
 with `search_path` pinned to `public`. It fires `AFTER INSERT ON auth.users`.
 
 **Quota function:** `check_and_increment_quota_with_credits(user_id, month, year,
-tier_limit)` atomically increments `usage_tracking` and consumes from
-`credit_balances` when the monthly limit is exceeded. Tier limit values live in
+tier_limit, units)` atomically increments `usage_tracking` and consumes from
+`credit_balances` when the monthly limit is exceeded. `p_units` defaults to 1;
+photo requests pass 2. Units are charged all-or-nothing (monthly capacity
+first, then credits); if they can't all be covered nothing is consumed. Tier limit values live in
 `TIER_LIMITS` in `src/lib/quota.ts`: snapshot=5, portrait=500, studio=2000.
 
 **Test script:** `supabase/test-phase2.sql` — re-runnable (resets state at top
