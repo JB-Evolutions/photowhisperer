@@ -10,6 +10,7 @@ import ClarificationCard from "@/components/app/ClarificationCard";
 import InvalidInputCard from "@/components/app/InvalidInputCard";
 import ErrorCard from "@/components/app/ErrorCard";
 import ServiceBusyCard from "@/components/app/ServiceBusyCard";
+import GearUnavailableCard from "@/components/app/GearUnavailableCard";
 import PhotoRequestCard from "@/components/app/PhotoRequestCard";
 import { responseAssumptions, type ThreadResponse } from "@/components/app/photoAttachment";
 import type { ClarificationChip } from "@/components/app/conditions";
@@ -137,6 +138,14 @@ export default function AssistantResponse({
     case "service_busy":
       return (
         <ServiceBusyCard
+          retryCount={retryCount}
+          onRetry={onRetry}
+        />
+      );
+    case "gear_profile_unavailable":
+      return (
+        <GearUnavailableCard
+          retryAfterSeconds={response.retryAfterSeconds}
           retryCount={retryCount}
           onRetry={onRetry}
         />

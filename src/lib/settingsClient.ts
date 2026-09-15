@@ -32,7 +32,34 @@ export type ClientSettingsResponse =
   | { status: "payload_too_large" }
   // Photo request needed more units than were left. Charging is
   // all-or-nothing, so nothing was consumed.
-  | { status: "quota_exhausted"; units_required: number; units_available: number };
+  | { status: "quota_exhausted"; units_required: number; units_available: number }
+  // The route couldn't load the user's gear and refused to answer without it
+  // (before any charge). retryAfterSeconds comes from Retry-After.
+  | { status: "gear_profile_unavailable"; retryAfterSeconds: number };
+
+export const DEFAULT_RETRY_AFTER_SECONDS = 10;
+// A misconfigured header shouldn't lock the retry button for an hour.
+export const MAX_RETRY_AFTER_SECONDS = 300;
+
+// Retry-After is either delta-seconds or an HTTP-date. Returns null when
+// absent or unparseable so the caller picks the default.
+export function parseRetryAfter(value: string | null | undefined, now: number = Date.now()): number | null {
+  if (value == null) return null;
+  const s = value.trim();
+  if (s === "") return null;
+  let seconds: number;
+  if (/^\d+$/.test(s)) {
+    seconds = Number(s);
+  } else {
+    // Every HTTP-date form starts with a day name. Checking first matters:
+    // Date.parse is lenient and would read "-5" or "1.5" as past dates → 0s.
+    if (!/^[A-Za-z]{3}/.test(s)) return null;
+    const at = Date.parse(s);
+    if (Number.isNaN(at)) return null;
+    seconds = Math.max(0, Math.ceil((at - now) / 1000));
+  }
+  return Math.min(seconds, MAX_RETRY_AFTER_SECONDS);
+}
 
 export async function requestSettings(
   conditions: string,
@@ -134,6 +161,15 @@ export async function requestSettings(
     }
     if (res.status === 429 && errorField === "rate_limited") {
       return { status: "rate_limited" };
+    }
+    if (res.status === 503 && errorField === "gear_profile_unavailable") {
+      // headers is optional-chained: a bare { ok, status, json } response
+      // (as some tests construct) still gets the default wait.
+      return {
+        status: "gear_profile_unavailable",
+        retryAfterSeconds:
+          parseRetryAfter(res.headers?.get("Retry-After")) ?? DEFAULT_RETRY_AFTER_SECONDS,
+      };
     }
     if (res.status === 503 && errorField === "service_busy") {
       // Dedicated status, not "error" — carved out the same way quota_exceeded

@@ -320,7 +320,8 @@ const SessionView = forwardRef<SessionViewHandle, SessionViewProps>(
         result.status === "quota_exceeded" ||
         result.status === "quota_exhausted" ||
         result.status === "payload_too_large" ||
-        result.status === "service_busy"
+        result.status === "service_busy" ||
+        result.status === "gear_profile_unavailable"
       ) {
         clarificationOriginRef.current = null;
       }
@@ -339,9 +340,10 @@ const SessionView = forwardRef<SessionViewHandle, SessionViewProps>(
         clarificationCountRef.current = 0;
         setRetryCount((n) => n + 1);
         setInvalidCount(0);
-      } else if (result.status === "service_busy") {
+      } else if (result.status === "service_busy" || result.status === "gear_profile_unavailable") {
         // Same retry-counting as "error" — 3 consecutive retries degrades
-        // ServiceBusyCard to the "Still failing? Report a problem" link.
+        // the card to the "Still failing? Report a problem" link. Neither
+        // status charged anything, so onRetry is the plain resend.
         clarificationCountRef.current = 0;
         setRetryCount((n) => n + 1);
         setInvalidCount(0);
