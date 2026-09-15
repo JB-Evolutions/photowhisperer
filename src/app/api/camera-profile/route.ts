@@ -7,6 +7,11 @@ import {
   upsertCameraProfile,
   type CameraProfile,
 } from "@/lib/camera-profile";
+import {
+  loadStructuredProfile,
+  saveStructuredProfile,
+  validateStructuredProfile,
+} from "./structured";
 
 const VALID_FLASH = new Set(["none", "speedlight", "studio"]);
 
@@ -107,7 +112,15 @@ export async function GET() {
 
   try {
     const profile = await getCameraProfile(user.id);
-    return NextResponse.json({ profile });
+    // Structured fields are additive: a failed read must not break the
+    // legacy profile response.
+    let structured = null;
+    try {
+      structured = await loadStructuredProfile(supabase, user.id);
+    } catch (err) {
+      console.error("GET /api/camera-profile structured read failure:", err);
+    }
+    return NextResponse.json({ profile, structured });
   } catch (err) {
     console.error("GET /api/camera-profile failure:", err);
     return NextResponse.json(
@@ -138,6 +151,27 @@ export async function PUT(request: NextRequest) {
       { error: "validation", message: "Request body must be valid JSON." },
       { status: 400 }
     );
+  }
+
+  // Structured save: { body, structured: { lenses: LensProfile[], cropFactor,
+  // ibisStops, isoBase, isoMode, isoValue, isoMax } }.
+  if (typeof rawBody === "object" && rawBody !== null && "structured" in rawBody) {
+    const { body, structured } = rawBody as Record<string, unknown>;
+    const checked = validateStructuredProfile(body ?? null, structured);
+    if (!checked.ok) {
+      return NextResponse.json({ error: "validation", message: checked.message }, { status: 400 });
+    }
+    try {
+      await saveStructuredProfile(supabase, user.id, checked.value);
+      const { body: savedBody, ...savedStructured } = checked.value;
+      return NextResponse.json({ body: savedBody, structured: savedStructured });
+    } catch (err) {
+      console.error("PUT /api/camera-profile structured failure:", err);
+      return NextResponse.json(
+        { error: "server_error", message: "Couldn't save your camera profile — try again?" },
+        { status: 500 }
+      );
+    }
   }
 
   const validated = validateBody(rawBody);

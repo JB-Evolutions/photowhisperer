@@ -1,6 +1,12 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import type { BodyProfile, BrightnessIntent, LightCondition } from "@/lib/contract/types";
+import { prepareImage } from "@/lib/image/prepare";
+import { clearComposerDraft, restoreComposerDraft, saveComposerDraft } from "@/lib/image/composer";
+import ConditionSelector from "@/components/app/ConditionSelector";
+import { DEFAULT_INTENT } from "@/components/app/conditions";
+import { attachmentErrorKind, jpegDataUri, type ComposerAttachment } from "@/components/app/photoAttachment";
 import { ToastProvider } from "@/components/app/useToast";
 import Sidebar from "@/components/app/Sidebar";
 import MobileTopBar from "@/components/app/MobileTopBar";
@@ -50,6 +56,17 @@ export default function AppShell({
   const composerRef = useRef<ChatComposerHandle>(null);
   const sessionViewRef = useRef<SessionViewHandle>(null);
 
+  // Condition selector: session-scoped, never mandatory.
+  const [condition, setCondition] = useState<LightCondition | null>(null);
+  const [intent, setIntent] = useState<BrightnessIntent>(DEFAULT_INTENT);
+  // Words the shortfall line; unknown until the profile loads (or if it fails).
+  const [isoMode, setIsoMode] = useState<BodyProfile["isoMode"] | null>(null);
+
+  const [attachment, setAttachment] = useState<ComposerAttachment | null>(null);
+  // Bumped whenever the attachment is replaced, removed or sent, so a late
+  // prepareImage result can't resurrect it.
+  const attachmentIdRef = useRef(0);
+
   const install = useInstallPrompt();
 
   // Forces the §4.10 card on for a quota_exceeded response that arrived
@@ -93,6 +110,77 @@ export default function AppShell({
     }, 1000);
     return () => clearInterval(id);
   }, [rateLimited]); // fires only on active↔idle transition, not every tick
+
+  // iOS can relaunch a standalone PWA when the file picker opens: restore
+  // the draft saved just before it opened, then drop it.
+  // Deferred a tick so the restore runs after hydration, and so a StrictMode
+  // double-mount cancels the first attempt before it clears the draft.
+  useEffect(() => {
+    const id = window.setTimeout(() => {
+      const draft = restoreComposerDraft();
+      clearComposerDraft();
+      if (!draft) return;
+      if (draft.text) setComposerValue(draft.text);
+      if (draft.session_id) void sessionViewRef.current?.loadSession(draft.session_id);
+    }, 0);
+    return () => window.clearTimeout(id);
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/camera-profile")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: { structured?: { isoMode?: BodyProfile["isoMode"] } | null } | null) => {
+        if (!cancelled) setIsoMode(data?.structured?.isoMode ?? null);
+      })
+      .catch(() => {
+        // Non-fatal: the shortfall line falls back to "Even at ISO …".
+      });
+    return () => { cancelled = true; };
+  }, []);
+
+  function handleBeforePickerOpen() {
+    saveComposerDraft({ text: composerValue, session_id: activeSessionId });
+    // The page survived the picker — the draft is no longer needed.
+    window.addEventListener("focus", () => clearComposerDraft(), { once: true });
+  }
+
+  function handlePickPhoto(file: File) {
+    clearComposerDraft();
+    const id = ++attachmentIdRef.current;
+    const promise = prepareImage(file);
+    setAttachment({ id, name: file.name, status: "preparing", thumbnailSrc: null, errorKind: null, promise });
+    promise.then(
+      (prepared) => {
+        if (attachmentIdRef.current !== id) return;
+        setAttachment((a) =>
+          a && a.id === id ? { ...a, status: "ready", thumbnailSrc: jpegDataUri(prepared.thumbnailBase64) } : a,
+        );
+      },
+      (err: unknown) => {
+        if (attachmentIdRef.current !== id) return;
+        setAttachment((a) => (a && a.id === id ? { ...a, status: "error", errorKind: attachmentErrorKind(err) } : a));
+      },
+    );
+  }
+
+  function handleRemoveAttachment() {
+    attachmentIdRef.current += 1;
+    setAttachment(null);
+    composerRef.current?.focus();
+  }
+
+  function handleSend(text: string) {
+    const view = sessionViewRef.current;
+    // Keep the text and photo in the composer rather than silently dropping them.
+    if (!view || !view.canSend()) return;
+    const sendable = attachment && attachment.status !== "error" ? attachment : null;
+    view.send(text, { attachment: sendable });
+    setComposerValue("");
+    attachmentIdRef.current += 1;
+    setAttachment(null);
+    clearComposerDraft();
+  }
 
   useEffect(() => {
     if (!composerValue.startsWith("Same scene but ")) {
@@ -181,12 +269,17 @@ export default function AppShell({
                     setComposerValue(text);
                     composerRef.current?.focus();
                   }}
+                  condition={condition}
+                  intent={intent}
+                  isoMode={isoMode}
+                  onConditionChosen={setCondition}
+                  onTryAnotherPhoto={() => composerRef.current?.openPhotoPicker()}
                 />
               </div>
 
               {/* Empty state — centered, conditionally rendered (not just hidden) */}
               {!hasThread && (
-                <div className="flex min-w-0 flex-1 items-center justify-center">
+                <div data-shot="app-empty-state" className="flex min-w-0 flex-1 items-center justify-center">
                   <EmptyState
                     onChipSelect={setComposerValue}
                     disabled={outOfCredits}
@@ -206,7 +299,7 @@ export default function AppShell({
               )}
 
               {/* Composer — always pinned at bottom */}
-              <div className="flex-shrink-0 border-t border-border p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+              <div data-shot="app-composer" className="flex-shrink-0 border-t border-border p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
                 {/* account is guaranteed non-null here: send is gated on
                     account == null below, so a quota_exceeded response (and
                     therefore outOfCredits) can only ever arrive after
@@ -234,10 +327,11 @@ export default function AppShell({
                       ref={composerRef}
                       value={composerValue}
                       onChange={setComposerValue}
-                      onSend={(text) => {
-                        sessionViewRef.current?.send(text);
-                        setComposerValue("");
-                      }}
+                      onSend={handleSend}
+                      attachment={attachment}
+                      onPickPhoto={handlePickPhoto}
+                      onRemoveAttachment={handleRemoveAttachment}
+                      onBeforePickerOpen={handleBeforePickerOpen}
                       placeholder={
                         account == null && accountError
                           ? "Couldn't load your account — retry above to continue"
@@ -245,6 +339,13 @@ export default function AppShell({
                       }
                       disabled={outOfCredits || rateLimited}
                       sendDisabled={outOfCredits || rateLimited || account == null}
+                    />
+                    <ConditionSelector
+                      condition={condition}
+                      intent={intent}
+                      onConditionChange={setCondition}
+                      onIntentChange={setIntent}
+                      disabled={outOfCredits || rateLimited}
                     />
                   </>
                 )}

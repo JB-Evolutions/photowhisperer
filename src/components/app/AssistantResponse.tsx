@@ -2,7 +2,7 @@
 
 // step 4: loading handled by session container
 import { useState } from "react";
-import type { SettingsResponse } from "@/lib/settings";
+import type { BodyProfile } from "@/lib/contract/types";
 import SettingsCubes, { nudgedIso, type NudgeStops } from "@/components/app/SettingsCubes";
 import ResponsePanels from "@/components/app/ResponsePanels";
 import ResponseActions from "@/components/app/ResponseActions";
@@ -10,15 +10,24 @@ import ClarificationCard from "@/components/app/ClarificationCard";
 import InvalidInputCard from "@/components/app/InvalidInputCard";
 import ErrorCard from "@/components/app/ErrorCard";
 import ServiceBusyCard from "@/components/app/ServiceBusyCard";
+import PhotoRequestCard from "@/components/app/PhotoRequestCard";
+import { responseAssumptions, type ThreadResponse } from "@/components/app/photoAttachment";
+import type { ClarificationChip } from "@/components/app/conditions";
 
 interface AssistantResponseProps {
-  response: SettingsResponse;
+  response: ThreadResponse;
   onRefine?: () => void;
   onFeedback?: (rating: "up" | "down") => void;
   onRetry?: () => void;
   onSeeExamples?: () => void;
   retryCount?: number;
   invalidCount?: number;
+  // Words the shortfall line ("Locked at ISO 100, …"). null when unknown.
+  isoMode?: BodyProfile["isoMode"] | null;
+  clarificationChips?: readonly ClarificationChip[];
+  onChipSelect?: (chip: ClarificationChip) => void;
+  onSendWithoutPhoto?: () => void;
+  onTryAnotherPhoto?: () => void;
 }
 
 export default function AssistantResponse({
@@ -29,6 +38,11 @@ export default function AssistantResponse({
   onSeeExamples,
   retryCount,
   invalidCount,
+  isoMode = null,
+  clarificationChips,
+  onChipSelect,
+  onSendWithoutPhoto,
+  onTryAnotherPhoto,
 }: AssistantResponseProps) {
   // Local-only, resets per response since AssistantResponse remounts per
   // message (SessionView keys the list by index). Declared unconditionally,
@@ -44,7 +58,7 @@ export default function AssistantResponse({
       const adjustedIso = nudgedIso(response.iso, nudgeStops);
       const isoAdjusted = nudgeStops !== 0;
       return (
-        <div className="flex flex-col gap-3">
+        <div data-shot="app-settings" className="flex flex-col gap-3">
           <SettingsCubes
             iso={response.iso}
             aperture={response.aperture}
@@ -56,7 +70,7 @@ export default function AssistantResponse({
           />
           <ResponsePanels
             scene_summary={response.scene_summary}
-            assumptions={response.assumptions}
+            assumptions={responseAssumptions(response, isoMode)}
             warnings={response.warnings}
           />
           <ResponseActions
@@ -73,7 +87,13 @@ export default function AssistantResponse({
       );
     }
     case "clarification_required":
-      return <ClarificationCard question={response.question} />;
+      return (
+        <ClarificationCard
+          question={response.question}
+          chips={clarificationChips}
+          onChipSelect={onChipSelect}
+        />
+      );
     case "invalid_input":
       return (
         <InvalidInputCard
@@ -95,6 +115,25 @@ export default function AssistantResponse({
       // composer (forced via onQuotaExceeded, see SessionView/AppShell) is
       // the only UI for this case.
       return null;
+    case "quota_exhausted":
+      // Nothing left at all: same as quota_exceeded, the composer card is the UI.
+      if (response.units_available <= 0) return null;
+      return (
+        <PhotoRequestCard
+          response={response}
+          onSendWithoutPhoto={onSendWithoutPhoto}
+          onTryAnotherPhoto={onTryAnotherPhoto}
+        />
+      );
+    case "payload_too_large":
+    case "photo_failed":
+      return (
+        <PhotoRequestCard
+          response={response}
+          onSendWithoutPhoto={onSendWithoutPhoto}
+          onTryAnotherPhoto={onTryAnotherPhoto}
+        />
+      );
     case "service_busy":
       return (
         <ServiceBusyCard

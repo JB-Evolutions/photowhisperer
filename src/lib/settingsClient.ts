@@ -1,17 +1,57 @@
-import type { SettingsRequestBody, SettingsResponse } from "@/lib/settings";
+import type { SettingsRequestBody, SettingsResponse, SettingsResponseOk } from "@/lib/settings";
+import type { BrightnessIntent, LightCondition } from "@/lib/contract/types";
+import type { ExifExposure, Histogram } from "@/lib/exposure/types";
+
+export type SettingsImagePayload = {
+  jpegBase64: string;
+  thumbnailBase64: string;
+  exif: ExifExposure | null;
+  rawExifFlags: { hdrSuspect: boolean };
+  histogram: Histogram;
+};
+
+// Rides on every request: the composer's session-scoped condition selector.
+export type SettingsRequestExtras = {
+  condition: LightCondition | null;
+  intent: BrightnessIntent;
+  image?: SettingsImagePayload;
+};
+
+// aperture null renders "widest your lens allows". floorExplain and
+// shortfallStops are always sent by the structured route, but sessions stored
+// before it lack them — hence optional here.
+export type ExposureSettingsResponseOk = Omit<SettingsResponseOk, "aperture"> & {
+  aperture: string | null;
+  floorExplain?: string;
+  shortfallStops?: number;
+};
+
+export type ClientSettingsResponse =
+  | Exclude<SettingsResponse, SettingsResponseOk>
+  | ExposureSettingsResponseOk
+  | { status: "payload_too_large" }
+  // Photo request needed more units than were left. Charging is
+  // all-or-nothing, so nothing was consumed.
+  | { status: "quota_exhausted"; units_required: number; units_available: number };
 
 export async function requestSettings(
   conditions: string,
   sessionId: string | null,
   priorContext?: { user_msg: string; assistant_summary: string },
   signal?: AbortSignal,
-): Promise<SettingsResponse> {
+  extras?: SettingsRequestExtras,
+): Promise<ClientSettingsResponse> {
   const url = "/api/settings";
 
-  const body: SettingsRequestBody = { conditions };
+  const body: SettingsRequestBody & Partial<SettingsRequestExtras> = { conditions };
   if (sessionId) body.session_id = sessionId;
   if (priorContext && priorContext.assistant_summary) {
     body.prior_context = priorContext;
+  }
+  if (extras) {
+    body.condition = extras.condition;
+    body.intent = extras.intent;
+    if (extras.image) body.image = extras.image;
   }
 
   let res: Response;
@@ -37,14 +77,37 @@ export async function requestSettings(
     let errorMessage: string | undefined;
     let errorMonthlyCount: number | undefined;
     let errorCreditsRemaining: number | undefined;
+    let errorUnitsRequired: number | undefined;
+    let errorUnitsAvailable: number | undefined;
     try {
       const errBody = await res.json() as Record<string, unknown>;
       errorField = typeof errBody.error === "string" ? errBody.error : undefined;
       errorMessage = typeof errBody.message === "string" ? errBody.message : undefined;
       errorMonthlyCount = typeof errBody.monthly_count === "number" ? errBody.monthly_count : undefined;
       errorCreditsRemaining = typeof errBody.credits_remaining === "number" ? errBody.credits_remaining : undefined;
+      errorUnitsRequired = typeof errBody.units_required === "number" ? errBody.units_required : undefined;
+      errorUnitsAvailable = typeof errBody.units_available === "number" ? errBody.units_available : undefined;
     } catch {
       // unparseable body — fall through to generic
+    }
+
+    // Any 413 — the platform can reject an oversized body before the route
+    // runs, without the route's JSON shape.
+    if (res.status === 413) {
+      return { status: "payload_too_large" };
+    }
+
+    if (
+      res.status === 429 &&
+      errorField === "quota_exhausted" &&
+      errorUnitsRequired !== undefined &&
+      errorUnitsAvailable !== undefined
+    ) {
+      return {
+        status: "quota_exhausted",
+        units_required: errorUnitsRequired,
+        units_available: errorUnitsAvailable,
+      };
     }
 
     if (res.status === 400 && errorField === "validation" && errorMessage) {
@@ -108,5 +171,5 @@ export async function requestSettings(
     return { status: "error", message: "Unexpected response." };
   }
 
-  return data as SettingsResponse;
+  return data as ClientSettingsResponse;
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import { WIDEST_APERTURE_COPY } from "@/components/app/photoAttachment";
 import { useState, useEffect, type ReactNode, type KeyboardEvent } from "react";
 import { useToastContext, copyToClipboard } from "@/components/app/useToast";
 import { formatWhiteBalanceEnum, formatWbCopyValue } from "@/lib/settings";
@@ -123,7 +124,8 @@ function PlusIcon() {
 
 interface SettingsCubesProps {
   iso: number;
-  aperture: string;
+  // null: the calculator wants the lens wide open, whatever that is.
+  aperture: string | null;
   shutter_speed: string;
   white_balance: string;
   color_temperature: string | null;
@@ -271,11 +273,23 @@ export default function SettingsCubes({
       </div>
 
       {/* Aperture: "f/" slightly smaller + number large */}
-      <Cube label="Aperture" hint={apertureHint(aperture)} onCopy={() => copy(aperture, aperture)}>
-        <span className="font-mono text-[36px] leading-none text-text">
-          <span className="text-[22px]">f/</span>{aperture.replace("f/", "")}
-        </span>
-      </Cube>
+      {aperture === null ? (
+        <Cube
+          label="Aperture"
+          hint="Open your lens up as far as it goes."
+          onCopy={() => copy(WIDEST_APERTURE_COPY, WIDEST_APERTURE_COPY)}
+        >
+          <span className="font-display text-[20px] leading-tight text-text first-letter:uppercase">
+            {WIDEST_APERTURE_COPY}
+          </span>
+        </Cube>
+      ) : (
+        <Cube label="Aperture" hint={apertureHint(aperture)} onCopy={() => copy(aperture, aperture)}>
+          <span className="font-mono text-[36px] leading-none text-text">
+            <span className="text-[22px]">f/</span>{aperture.replace("f/", "")}
+          </span>
+        </Cube>
+      )}
 
       {/* Shutter: ≥1s whole string; <1s "1/" small + denom large + "s" muted */}
       <Cube label="Shutter" hint={shutterHint(shutter_speed)} onCopy={() => copy(shutter_speed, shutter_speed)}>

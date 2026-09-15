@@ -1,16 +1,25 @@
 "use client";
 
 import { useState, useRef, useEffect, forwardRef, useImperativeHandle } from "react";
-import type { SettingsResponse } from "@/lib/settings";
-import { requestSettings } from "@/lib/settingsClient";
+import type { BodyProfile, BrightnessIntent, LightCondition } from "@/lib/contract/types";
+import { requestSettings, type SettingsImagePayload } from "@/lib/settingsClient";
 import { useToastContext } from "@/components/app/useToast";
-import UserMessage from "@/components/app/UserMessage";
+import UserMessage, { type UserMessagePhoto } from "@/components/app/UserMessage";
 import AssistantResponse from "@/components/app/AssistantResponse";
 import LoadingSkeleton from "@/components/app/LoadingSkeleton";
+import {
+  attachmentErrorKind,
+  buildImagePayload,
+  jpegDataUri,
+  type ComposerAttachment,
+  type ThreadResponse,
+} from "@/components/app/photoAttachment";
+import { CLARIFICATION_CHIPS, DEFAULT_INTENT, type ClarificationChip } from "@/components/app/conditions";
 
 export type Message =
-  | { role: "user"; text: string }
-  | { role: "assistant"; response: SettingsResponse };
+  | { role: "user"; text: string; photo?: UserMessagePhoto | null }
+  // withChips: the one clarification per session that offers brightness chips.
+  | { role: "assistant"; response: ThreadResponse; withChips?: boolean };
 
 interface SessionMessageRow {
   message_id: string;
@@ -19,14 +28,33 @@ interface SessionMessageRow {
   created_at: string;
 }
 
+// A photo already prepared, carried so a retry, chip tap or 20s retry can
+// resend it without preparing it again.
+type SentImage = { payload: SettingsImagePayload; src: string; name: string | null };
+
+export interface SendOptions {
+  // Composer attachment, possibly still preparing.
+  attachment?: ComposerAttachment | null;
+  image?: SentImage | null;
+  // Overrides the session's condition for this one request (a chip tap).
+  condition?: LightCondition | null;
+  // Show the photo in the user bubble. Off for a chip tap.
+  echoPhoto?: boolean;
+}
+
+type LastRequest = { text: string; image: SentImage | null; condition: LightCondition | null | undefined };
+
 export interface SessionViewHandle {
-  send: (text: string) => void;
+  send: (text: string, opts?: SendOptions) => void;
+  // False while a request is in flight — send() would ignore the call.
+  canSend: () => boolean;
   clearPendingRefinement: () => void;
   reset: () => void;
   loadSession: (id: string) => Promise<void>;
 }
 
 const DEFAULT_HEADER = "PhotographyWhisperer · thinking…";
+const READING_HEADER = "PhotographyWhisperer · reading your photo…";
 
 interface SessionViewProps {
   onRequestFocus?: () => void;
@@ -45,21 +73,63 @@ interface SessionViewProps {
   // send(), a past session loaded via loadSession(), or cleared by reset().
   // Single callback so AppShell tracks one thing instead of three.
   onSessionIdChange?: (id: string | null) => void;
+  // Session-scoped condition selector, sent on every request.
+  condition?: LightCondition | null;
+  intent?: BrightnessIntent;
+  isoMode?: BodyProfile["isoMode"] | null;
+  // A clarification chip was tapped — AppShell mirrors it into the selector.
+  onConditionChosen?: (condition: LightCondition) => void;
+  onTryAnotherPhoto?: () => void;
+}
+
+// History rows may carry a thumbnail as a signed URL or inline base64,
+// depending on what the sessions route returns. Read defensively.
+function storedThumbnail(content: Record<string, unknown>): string | null {
+  const { thumbnailUrl, thumbnailBase64, image } = content as {
+    thumbnailUrl?: unknown;
+    thumbnailBase64?: unknown;
+    image?: { thumbnailBase64?: unknown } | null;
+  };
+  if (typeof thumbnailUrl === "string" && thumbnailUrl.startsWith("https://")) return thumbnailUrl;
+  if (typeof thumbnailBase64 === "string" && thumbnailBase64) return jpegDataUri(thumbnailBase64);
+  if (image && typeof image.thumbnailBase64 === "string" && image.thumbnailBase64) {
+    return jpegDataUri(image.thumbnailBase64);
+  }
+  return null;
 }
 
 const SessionView = forwardRef<SessionViewHandle, SessionViewProps>(
-  function SessionView({ onRequestFocus, onThreadEmptyChange, onUsageUpdate, onRateLimit, onQuotaExceeded, onRequestSucceeded, onPreFillComposer, onSessionIdChange }, ref) {
+  function SessionView(
+    {
+      onRequestFocus,
+      onThreadEmptyChange,
+      onUsageUpdate,
+      onRateLimit,
+      onQuotaExceeded,
+      onRequestSucceeded,
+      onPreFillComposer,
+      onSessionIdChange,
+      condition = null,
+      intent = DEFAULT_INTENT,
+      isoMode = null,
+      onConditionChosen,
+      onTryAnotherPhoto,
+    },
+    ref,
+  ) {
     const showToast = useToastContext();
     const [messages, setMessages] = useState<Message[]>([]);
     const [sessionId, setSessionId] = useState<string | null>(null);
     const [pending, setPending] = useState(false);
+    const [stage, setStage] = useState<"reading" | "thinking">("thinking");
     const [headerText, setHeaderText] = useState(DEFAULT_HEADER);
     const [showSlowRetry, setShowSlowRetry] = useState(false);
     const [invalidCount, setInvalidCount] = useState(0);
     const [retryCount, setRetryCount] = useState(0);
 
     const abortControllerRef = useRef<AbortController | null>(null);
-    const inFlightConditions = useRef<string>("");
+    const inFlightRequest = useRef<LastRequest>({ text: "", image: null, condition: undefined });
+    const lastRequest = useRef<LastRequest>({ text: "", image: null, condition: undefined });
     const lastConditions = useRef<string>("");
     const lastSceneSummary = useRef<string | null>(null);
     const clarificationOriginRef = useRef<string | null>(null);
@@ -69,6 +139,8 @@ const SessionView = forwardRef<SessionViewHandle, SessionViewProps>(
     // because send() reads it before the await; useState would stale-close inside the
     // [sessionId] useImperativeHandle and suppression would never fire.
     const clarificationCountRef = useRef(0);
+    // Brightness chips are offered at most once per session.
+    const chipsOfferedRef = useRef(false);
     // Mirrors pending state but updated synchronously so send()'s guard
     // and the 20s retry handler agree without waiting for a re-render.
     const pendingRef = useRef(false);
@@ -80,6 +152,14 @@ const SessionView = forwardRef<SessionViewHandle, SessionViewProps>(
     const timer20Ref = useRef<ReturnType<typeof setTimeout> | null>(null);
     const timer30Ref = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+    // Props read by send(), which the [sessionId] imperative handle closes over.
+    const conditionRef = useRef(condition);
+    const intentRef = useRef(intent);
+    useEffect(() => {
+      conditionRef.current = condition;
+      intentRef.current = intent;
+    }, [condition, intent]);
+
     function clearTimers() {
       if (timer8Ref.current)  { clearTimeout(timer8Ref.current);  timer8Ref.current  = null; }
       if (timer20Ref.current) { clearTimeout(timer20Ref.current); timer20Ref.current = null; }
@@ -90,6 +170,7 @@ const SessionView = forwardRef<SessionViewHandle, SessionViewProps>(
       clearTimers();
       pendingRef.current = false;
       setPending(false);
+      setStage("thinking");
       setHeaderText(DEFAULT_HEADER);
       setShowSlowRetry(false);
     }
@@ -101,8 +182,11 @@ const SessionView = forwardRef<SessionViewHandle, SessionViewProps>(
       };
     }, []);
 
-    async function send(text: string) {
-      if (pendingRef.current || !text.trim()) return;
+    async function send(text: string, opts: SendOptions = {}) {
+      const { attachment = null, condition: conditionOverride, echoPhoto = true } = opts;
+      let image = opts.image ?? null;
+      if (pendingRef.current) return;
+      if (!text.trim() && !attachment && !image) return;
 
       // If the classifier has already asked 2 consecutive clarifications, append a
       // suppression directive so it produces a best-effort answer this turn. Also
@@ -121,12 +205,20 @@ const SessionView = forwardRef<SessionViewHandle, SessionViewProps>(
 
       const controller = new AbortController();
       abortControllerRef.current = controller;
-      inFlightConditions.current = text;
       lastConditions.current = text;
 
       const requestId = ++requestIdRef.current;
 
-      setMessages((prev) => [...prev, { role: "user" as const, text }]);
+      // The bubble shows the full prepared JPEG; a photo still preparing shows
+      // a placeholder until it resolves.
+      const showPhoto = echoPhoto && (attachment !== null || image !== null);
+      const photoName = attachment?.name ?? image?.name ?? null;
+      const userMessage: Message = {
+        role: "user",
+        text,
+        photo: showPhoto ? { src: image?.src ?? null, name: photoName } : null,
+      };
+      setMessages((prev) => [...prev, userMessage]);
       if (!hasNotifiedRef.current) {
         hasNotifiedRef.current = true;
         onThreadEmptyChange?.(false);
@@ -134,11 +226,51 @@ const SessionView = forwardRef<SessionViewHandle, SessionViewProps>(
       pendingRef.current = true;
       setPending(true);
 
+      if (attachment && !image) {
+        setStage("reading");
+        setHeaderText(READING_HEADER);
+        let prepared;
+        try {
+          prepared = await attachment.promise;
+        } catch (err) {
+          if (requestId !== requestIdRef.current) return;
+          resetPendingState();
+          setMessages((prev) => [
+            ...prev,
+            { role: "assistant", response: { status: "photo_failed", kind: attachmentErrorKind(err) } },
+          ]);
+          return;
+        }
+        if (requestId !== requestIdRef.current) return;
+        image = { payload: buildImagePayload(prepared), src: jpegDataUri(prepared.jpegBase64), name: attachment.name };
+        const src = image.src;
+        if (showPhoto) {
+          setMessages((prev) =>
+            prev.map((m) =>
+              m === userMessage && m.role === "user" && m.photo ? { ...m, photo: { ...m.photo, src } } : m,
+            ),
+          );
+        }
+      }
+
+      const request: LastRequest = { text, image, condition: conditionOverride };
+      inFlightRequest.current = request;
+      lastRequest.current = request;
+
+      setStage("thinking");
+      setHeaderText(DEFAULT_HEADER);
+
+      // Escalation is measured from the start of the POST, not from when the
+      // photo started preparing.
       timer8Ref.current  = setTimeout(() => setHeaderText("Still thinking…"), 8000);
       timer20Ref.current = setTimeout(() => setShowSlowRetry(true), 20000);
       timer30Ref.current = setTimeout(() => controller.abort(), 30000);
 
-      const result = await requestSettings(conditions, sessionId, priorContext ?? undefined, controller.signal);
+      const result = await requestSettings(conditions, sessionId, priorContext ?? undefined, controller.signal, {
+        condition: conditionOverride !== undefined ? conditionOverride : conditionRef.current,
+        intent: intentRef.current,
+        ...(image ? { image: image.payload } : {}),
+      });
 
       // A newer send() superseded this one (20s retry was clicked) — discard.
       if (requestId !== requestIdRef.current) return;
@@ -172,8 +304,12 @@ const SessionView = forwardRef<SessionViewHandle, SessionViewProps>(
 
       // §4.10: force the OutOfCreditsCard regardless of whether the numeric
       // fields above arrived — the card's visibility must never depend on
-      // them (see settings.ts).
-      if (result.status === "quota_exceeded") {
+      // them (see settings.ts). A photo request with nothing left at all
+      // lands in the same place; with 1 unit left it gets its own card.
+      if (
+        result.status === "quota_exceeded" ||
+        (result.status === "quota_exhausted" && result.units_available <= 0)
+      ) {
         onQuotaExceeded?.();
       }
 
@@ -182,6 +318,8 @@ const SessionView = forwardRef<SessionViewHandle, SessionViewProps>(
         result.status === "ok" ||
         result.status === "error" ||
         result.status === "quota_exceeded" ||
+        result.status === "quota_exhausted" ||
+        result.status === "payload_too_large" ||
         result.status === "service_busy"
       ) {
         clarificationOriginRef.current = null;
@@ -207,9 +345,13 @@ const SessionView = forwardRef<SessionViewHandle, SessionViewProps>(
         clarificationCountRef.current = 0;
         setRetryCount((n) => n + 1);
         setInvalidCount(0);
-      } else if (result.status === "quota_exceeded") {
-        // No retry button ever shows for this status (AssistantResponse
-        // renders null), so no point incrementing retryCount.
+      } else if (
+        result.status === "quota_exceeded" ||
+        result.status === "quota_exhausted" ||
+        result.status === "payload_too_large"
+      ) {
+        // No retry button ever shows for these statuses, so no point
+        // incrementing retryCount.
         clarificationCountRef.current = 0;
         setInvalidCount(0);
         setRetryCount(0);
@@ -220,6 +362,7 @@ const SessionView = forwardRef<SessionViewHandle, SessionViewProps>(
         setRetryCount(0);
       }
 
+      let withChips = false;
       if (result.status === "clarification_required") {
         if (clarificationOriginRef.current === null) {
           clarificationOriginRef.current = text;
@@ -228,13 +371,30 @@ const SessionView = forwardRef<SessionViewHandle, SessionViewProps>(
           user_msg: clarificationOriginRef.current,
           assistant_summary: "Clarifying question I asked: " + result.question,
         };
+        if (image && !chipsOfferedRef.current) {
+          chipsOfferedRef.current = true;
+          withChips = true;
+        }
       }
 
-      setMessages((prev) => [...prev, { role: "assistant", response: result }]);
+      setMessages((prev) => [...prev, { role: "assistant", response: result, withChips }]);
 
       if (result.status === "clarification_required" || result.status === "invalid_input") {
         onRequestFocus?.();
       }
+    }
+
+    function resendLast(opts: { withPhoto: boolean }) {
+      const last = lastRequest.current;
+      send(last.text, {
+        image: opts.withPhoto ? last.image : null,
+        condition: last.condition,
+      });
+    }
+
+    function handleChipSelect(chip: ClarificationChip) {
+      onConditionChosen?.(chip.condition);
+      send(chip.label, { image: lastRequest.current.image, condition: chip.condition, echoPhoto: false });
     }
 
     // Tears down any in-flight send() (abort + requestId bump so a late
@@ -250,6 +410,7 @@ const SessionView = forwardRef<SessionViewHandle, SessionViewProps>(
       clarificationOriginRef.current = null;
       pendingRefineContextRef.current = null;
       pendingClarificationContextRef.current = null;
+      chipsOfferedRef.current = false;
       setInvalidCount(0);
       setRetryCount(0);
     }
@@ -258,7 +419,8 @@ const SessionView = forwardRef<SessionViewHandle, SessionViewProps>(
       invalidateInFlight();
       lastSceneSummary.current = null;
       lastConditions.current = "";
-      inFlightConditions.current = "";
+      inFlightRequest.current = { text: "", image: null, condition: undefined };
+      lastRequest.current = { text: "", image: null, condition: undefined };
       setMessages([]);
       setSessionId(null);
       onSessionIdChange?.(null);
@@ -279,11 +441,17 @@ const SessionView = forwardRef<SessionViewHandle, SessionViewProps>(
         return;
       }
 
-      const loaded: Message[] = rows.map((row) =>
-        row.role === "user"
-          ? { role: "user", text: (row.content as { text: string }).text }
-          : { role: "assistant", response: row.content as unknown as SettingsResponse }
-      );
+      const loaded: Message[] = rows.map((row) => {
+        if (row.role === "user") {
+          const src = storedThumbnail(row.content);
+          return {
+            role: "user",
+            text: typeof row.content.text === "string" ? row.content.text : "",
+            photo: src ? { src, name: null } : null,
+          };
+        }
+        return { role: "assistant", response: row.content as unknown as ThreadResponse };
+      });
 
       // Rehydrate refine context from the last turn so "Refine" keeps
       // working on a reloaded thread, same as it does on a live one.
@@ -292,6 +460,8 @@ const SessionView = forwardRef<SessionViewHandle, SessionViewProps>(
         (m) => m.role === "assistant" && m.response.status === "ok"
       ) as (Message & { role: "assistant" }) | undefined;
       lastConditions.current = lastUser?.role === "user" ? lastUser.text : "";
+      // Stored thumbnails are too small to resend, so a reloaded retry is text-only.
+      lastRequest.current = { text: lastConditions.current, image: null, condition: undefined };
       lastSceneSummary.current =
         lastAssistantOk?.response.status === "ok" ? lastAssistantOk.response.scene_summary ?? null : null;
 
@@ -304,6 +474,7 @@ const SessionView = forwardRef<SessionViewHandle, SessionViewProps>(
 
     useImperativeHandle(ref, () => ({
       send,
+      canSend: () => !pendingRef.current,
       clearPendingRefinement: () => { pendingRefineContextRef.current = null; },
       reset,
       loadSession,
@@ -315,14 +486,23 @@ const SessionView = forwardRef<SessionViewHandle, SessionViewProps>(
       <div className="flex flex-col gap-4">
         {messages.map((msg, i) =>
           msg.role === "user" ? (
-            <UserMessage key={i} text={msg.text} />
+            <UserMessage key={i} text={msg.text} photo={msg.photo} />
           ) : (
             <AssistantResponse
               key={i}
               response={msg.response}
+              isoMode={isoMode}
               invalidCount={i === lastIndex ? invalidCount : undefined}
               retryCount={i === lastIndex ? retryCount : undefined}
-              onRetry={i === lastIndex ? () => send(lastConditions.current) : undefined}
+              onRetry={i === lastIndex ? () => resendLast({ withPhoto: true }) : undefined}
+              clarificationChips={i === lastIndex && msg.withChips ? CLARIFICATION_CHIPS : undefined}
+              onChipSelect={i === lastIndex && msg.withChips ? handleChipSelect : undefined}
+              onSendWithoutPhoto={
+                i === lastIndex && lastRequest.current.text.trim()
+                  ? () => resendLast({ withPhoto: false })
+                  : undefined
+              }
+              onTryAnotherPhoto={i === lastIndex ? onTryAnotherPhoto : undefined}
               onRefine={
                 i === lastIndex && msg.response.status === "ok"
                   ? () => {
@@ -350,7 +530,7 @@ const SessionView = forwardRef<SessionViewHandle, SessionViewProps>(
 
         {pending && (
           <>
-            <LoadingSkeleton headerText={headerText} />
+            <LoadingSkeleton headerText={headerText} stage={stage} />
             {showSlowRetry && (
               <button
                 type="button"
@@ -360,7 +540,8 @@ const SessionView = forwardRef<SessionViewHandle, SessionViewProps>(
                   clearTimers();
                   abortControllerRef.current?.abort();
                   resetPendingState();
-                  send(inFlightConditions.current);
+                  const inFlight = inFlightRequest.current;
+                  send(inFlight.text, { image: inFlight.image, condition: inFlight.condition });
                 }}
                 className={[
                   "self-start rounded-lg border border-border px-3 py-2 text-sm text-text-muted",

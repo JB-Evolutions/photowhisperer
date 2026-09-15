@@ -3,6 +3,7 @@
 import Button from "@/components/shared/Button";
 import { useToastContext, copyToClipboard } from "@/components/app/useToast";
 import { formatWhiteBalanceEnum, formatWbCopyValue } from "@/lib/settings";
+import { WIDEST_APERTURE_COPY } from "@/components/app/photoAttachment";
 
 const thumbClass = [
   "flex h-9 w-9 items-center justify-center rounded-lg text-text-muted",
@@ -21,7 +22,7 @@ interface ResponseActionsProps {
   // copy-all string so the discrepancy from the on-screen assumptions/
   // warnings text (which still describes the calculated settings) is clear.
   isoAdjusted?: boolean;
-  aperture: string;
+  aperture: string | null;
   shutter_speed: string;
   white_balance: string;
   color_temperature: string | null;
@@ -44,7 +45,7 @@ export default function ResponseActions({
   const wbLabel     = formatWhiteBalanceEnum(white_balance);
   const wbSegment   = formatWbCopyValue(color_temperature, wbLabel);
   const isoSegment  = `ISO ${iso}${isoAdjusted ? " (adjusted)" : ""}`;
-  const copyAllText = `${isoSegment} · ${aperture} · ${shutter_speed} · ${wbSegment}`;
+  const copyAllText = `${isoSegment} · ${aperture ?? WIDEST_APERTURE_COPY} · ${shutter_speed} · ${wbSegment}`;
 
   async function handleCopyAll() {
     await copyToClipboard(copyAllText);
