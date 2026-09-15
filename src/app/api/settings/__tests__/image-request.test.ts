@@ -7,6 +7,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 const {
   rpcSpy,
   getSettingsSpy,
+  getGearProfileSpy,
   limitSpy,
   appendMessagesSpy,
   ensureSessionSpy,
@@ -38,8 +39,12 @@ const {
   return {
     rpcSpy: vi.fn(),
     getSettingsSpy: vi.fn(),
+    getGearProfileSpy: vi.fn(async (..._args: unknown[]): Promise<unknown> => null),
     limitSpy: vi.fn(async () => ({ success: true, reset: Date.now() + 60_000 })),
-    appendMessagesSpy: vi.fn(async (..._args: unknown[]) => {}),
+    appendMessagesSpy: vi.fn(async (..._args: unknown[]) => ({
+      userMessageId: "msg-user-1",
+      assistantMessageId: "msg-assistant-1",
+    })),
     ensureSessionSpy: vi.fn(async () => ({
       session_id: "11111111-1111-4111-8111-111111111111",
       was_created: false,
@@ -65,8 +70,10 @@ vi.mock("@/lib/quota", () => ({
 vi.mock("@/lib/rate-limit", () => ({ limitWithTimeout: limitSpy }));
 
 vi.mock("@/lib/camera-profile", () => ({
-  getGearProfile: vi.fn(async () => null),
-  getCameraProfile: vi.fn(async () => null),
+  getGearProfile: getGearProfileSpy,
+  // Present so a legacy fallback, if one crept back in, would be observable
+  // rather than a mock-access throw.
+  getCameraProfile: vi.fn(async () => ({ body: "legacy", lenses: [], flash: null, notes: null })),
 }));
 
 vi.mock("@/api/orchestrate", () => ({ getSettings: getSettingsSpy }));
@@ -276,9 +283,21 @@ describe("POST /api/settings — photo requests", () => {
       expect(persistSpy).toHaveBeenCalledWith({
         userId: "user-abc",
         sessionId: SESSION_ID,
-        text: "portrait",
+        messageId: "msg-user-1",
         thumbnailBase64: JPEG,
       });
+    });
+
+    it("the upload closure carries the id returned by the insert for this request", async () => {
+      appendMessagesSpy.mockResolvedValueOnce({ userMessageId: "msg-this-turn", assistantMessageId: "msg-a" });
+
+      await post({ conditions: "", image: validImage() });
+      await (afterSpy.mock.calls[0][0] as () => Promise<void>)();
+
+      expect(persistSpy).toHaveBeenCalledTimes(1);
+      const args = persistSpy.mock.calls[0] as unknown as [Record<string, unknown>];
+      expect(args[0].messageId).toBe("msg-this-turn");
+      expect(args[0]).not.toHaveProperty("text");
     });
 
     it("text requests save no thumbnailPath and schedule nothing", async () => {
@@ -332,6 +351,50 @@ describe("POST /api/settings — photo requests", () => {
 
       expect(res.status).toBe(400);
       expect((await res.json()).message).toContain("thumbnailBase64");
+    });
+  });
+
+  describe("condition sent as an empty string", () => {
+    it('condition: "" with an image → treated as absent, not a 400', async () => {
+      const res = await post({ conditions: "", condition: "", intent: "natural", image: validImage() });
+
+      expect(res.status).toBe(200);
+      expect(getSettingsSpy).toHaveBeenCalledTimes(1);
+      expect(getSettingsSpy.mock.calls[0][3]).toMatchObject({ condition: null });
+      expect(rpcSpy.mock.calls[0][1]).toMatchObject({ p_units: 2 });
+    });
+
+    it('condition: "" with no image → treated as absent, not a 400', async () => {
+      const res = await post({ conditions: "overcast portrait", condition: "" });
+
+      expect(res.status).toBe(200);
+      expect(getSettingsSpy.mock.calls[0][3]).toMatchObject({ condition: null });
+    });
+  });
+
+  describe("gear profile unavailable", () => {
+    it("getGearProfile throws → 503 gear_profile_unavailable, no classifier, no charge, no legacy fallback", async () => {
+      const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+      getGearProfileSpy.mockRejectedValueOnce(new Error("connection reset"));
+
+      const res = await post({ conditions: "portrait", image: validImage() });
+
+      expect(res.status).toBe(503);
+      expect(await res.json()).toEqual({ error: "gear_profile_unavailable" });
+      expect(getSettingsSpy).not.toHaveBeenCalled();
+      expect(rpcSpy).not.toHaveBeenCalled();
+      expect(appendMessagesSpy).not.toHaveBeenCalled();
+      expect(errorSpy).toHaveBeenCalledTimes(1);
+      errorSpy.mockRestore();
+    });
+
+    it("no profile at all (null) is not an error → answered", async () => {
+      getGearProfileSpy.mockResolvedValueOnce(null);
+
+      const res = await post({ conditions: "overcast portrait" });
+
+      expect(res.status).toBe(200);
+      expect(getSettingsSpy.mock.calls[0][1]).toBeNull();
     });
   });
 

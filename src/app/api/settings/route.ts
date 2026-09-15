@@ -5,9 +5,9 @@ import { after, NextResponse, type NextRequest } from "next/server";
 import { createClient as createServerClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getTierLimit, utcQuotaPeriod } from "@/lib/quota";
-import { getCameraProfile, getGearProfile } from "@/lib/camera-profile";
+import { getGearProfile } from "@/lib/camera-profile";
 import { getSettings, type OrchestrateResult } from "@/api/orchestrate";
-import type { CameraProfile, GearProfile, ImageInput, PriorContext } from "@/api/types";
+import type { GearProfile, ImageInput, PriorContext } from "@/api/types";
 import {
   INTENT_STOPS,
   LIGHT_CONDITION_EV,
@@ -162,8 +162,11 @@ function validateBody(body: unknown): ValidateBodyResult {
     return validationError("Request body must be a JSON object.");
   }
 
-  const { conditions, session_id, prior_context, condition, intent, image } =
+  const { conditions, session_id, prior_context, condition: rawCondition, intent, image } =
     body as Record<string, unknown>;
+  // The composer sends "" when no light condition is picked (e.g. a photo with
+  // no text). That means "not given", same as null — never a validation error.
+  const condition = rawCondition === "" ? null : rawCondition;
 
   // A photo may be sent with no words; text alone must say something.
   if (typeof conditions !== "string" || (conditions.length < 1 && image === undefined)) {
@@ -445,14 +448,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Structured profile first; the legacy free-text profile is the fallback
-    // if the structured read fails.
-    let camera_profile: GearProfile | CameraProfile | null;
+    // Fail closed. Answering without the user's gear would drop their lens
+    // and ISO limits and hand back settings their camera can't reach. Nothing
+    // has been charged yet and the classifier hasn't run. (A user with no
+    // camera_lenses rows isn't an error: getGearProfile parses the legacy
+    // lenses column itself.)
+    let camera_profile: GearProfile | null;
     try {
       camera_profile = await getGearProfile(user.id);
     } catch (err) {
-      console.error("getGearProfile failed, falling back to legacy camera profile:", err);
-      camera_profile = await getCameraProfile(user.id);
+      console.error("getGearProfile failed; refusing to answer without gear constraints:", err);
+      return NextResponse.json(
+        { error: "gear_profile_unavailable" },
+        { status: 503, headers: { "Retry-After": "10" } }
+      );
     }
 
     // One clarification per session. If the flag can't be read, assume it
@@ -532,12 +541,12 @@ export async function POST(request: NextRequest) {
         question: result.question,
         session_id,
       };
-      await appendMessages(session_id, userContent, clarificationPayload);
+      const saved = await appendMessages(session_id, userContent, clarificationPayload);
       if (image) {
         scheduleThumbnail({
           userId: user.id,
           sessionId: session_id,
-          text: conditions,
+          messageId: saved.userMessageId,
           thumbnailBase64: image.thumbnailBase64,
         });
       }
@@ -594,12 +603,12 @@ export async function POST(request: NextRequest) {
       session_id,
     };
 
-    await appendMessages(session_id, userContent, responsePayload);
+    const saved = await appendMessages(session_id, userContent, responsePayload);
     if (image) {
       scheduleThumbnail({
         userId: user.id,
         sessionId: session_id,
-        text: conditions,
+        messageId: saved.userMessageId,
         thumbnailBase64: image.thumbnailBase64,
       });
     }

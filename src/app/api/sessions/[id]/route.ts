@@ -8,6 +8,7 @@
 // the user's own data.
 import { NextResponse } from "next/server";
 import { createClient as createServerClient } from "@/lib/supabase/server";
+import { signSessionThumbnails } from "@/lib/session-thumbnail";
 
 export async function GET(
   _req: Request,
@@ -53,10 +54,17 @@ export async function GET(
 
     if (messagesError) throw messagesError;
 
+    // Stored thumbnail paths become short-lived signed URLs; a signing failure
+    // leaves thumbnailUrl null and never fails the request.
+    const signed = await signSessionThumbnails(messages ?? [], {
+      userId: user.id,
+      sessionId: session.session_id,
+    });
+
     return NextResponse.json({
       session_id: session.session_id,
       title: session.title,
-      messages: messages ?? [],
+      messages: signed,
     });
   } catch (err) {
     console.error("GET /api/sessions/[id] failure:", err);

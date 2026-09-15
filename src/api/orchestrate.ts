@@ -257,20 +257,6 @@ function fallbackCondition(text: string): LightCondition {
   return INDOOR_RE.test(text) ? NO_TOKEN_INDOOR : NO_TOKEN_OUTDOOR;
 }
 
-// solveExposure takes a LightCondition, not an EV, so a measured EV is matched
-// to the nearest table entry. Ties go to the darker entry.
-function nearestConditionForEv(ev: number): LightCondition {
-  let best = LIGHT_CONDITIONS[0];
-  for (const c of LIGHT_CONDITIONS) {
-    const d = Math.abs(LIGHT_CONDITION_EV[c] - ev);
-    const bestD = Math.abs(LIGHT_CONDITION_EV[best] - ev);
-    if (d < bestD - 1e-9 || (Math.abs(d - bestD) <= 1e-9 && LIGHT_CONDITION_EV[c] < LIGHT_CONDITION_EV[best])) {
-      best = c;
-    }
-  }
-  return best;
-}
-
 function round1(n: number): number {
   return Math.round(n * 10) / 10;
 }
@@ -410,17 +396,17 @@ function shortfallLine(
 
 function solveAndFormat(args: {
   scene: ClassifiedScene;
-  condition: LightCondition;
+  sceneEv: number;
   intent: BrightnessIntent;
   gear: GearProfile;
   lightAssumptions: string[];
 }): OrchestrateResult {
-  const { scene, condition, intent, gear, lightAssumptions } = args;
+  const { scene, sceneEv, intent, gear, lightAssumptions } = args;
   const { body } = gear;
   const { lens, focalMm, assumptions: lensAssumptions } = chooseLens(gear, scene.focal_length_mm);
 
   const raw = solveExposure({
-    light: condition,
+    sceneEv,
     intent,
     focalMm,
     body,
@@ -547,28 +533,24 @@ export async function getSettings(
     // requests never take light from the model.
     condition: image ? scene.condition : null,
   });
-  scene.scene_ev = resolution.scene_ev;
 
+  // The solver takes a number. A photo's resolved EV goes in unmodified; every
+  // condition-based path reads LIGHT_CONDITION_EV.
   const lightAssumptions: string[] = [];
-  let condition: LightCondition;
+  let sceneEv: number;
 
   if (resolution.tier === 1 && resolution.scene_ev !== null) {
-    condition = nearestConditionForEv(resolution.scene_ev);
+    sceneEv = resolution.scene_ev;
     if (resolution.assumption) lightAssumptions.push(resolution.assumption);
-    if (Math.abs(LIGHT_CONDITION_EV[condition] - resolution.scene_ev) >= 0.5) {
-      lightAssumptions.push(
-        `Measured light (EV ${round1(resolution.scene_ev)}) matched to the nearest light level, ${CONDITION_LABEL[condition]} (EV ${LIGHT_CONDITION_EV[condition]}).`
-      );
-    }
   } else if (options.condition) {
     // Stated by the user: taken as-is, no assumption line.
-    condition = options.condition;
-    scene.scene_ev = LIGHT_CONDITION_EV[condition];
-  } else if (resolution.tier === 2 && scene.condition !== null) {
-    condition = scene.condition;
+    sceneEv = LIGHT_CONDITION_EV[options.condition];
+  } else if (resolution.tier === 2 && resolution.scene_ev !== null) {
+    sceneEv = resolution.scene_ev;
     if (resolution.assumption) lightAssumptions.push(resolution.assumption);
   } else {
     // Tier 3: nothing measured or estimated.
+    let condition: LightCondition;
     const inferred = inferConditionFromText(conditions);
     if (inferred) {
       condition = inferred.condition;
@@ -583,12 +565,13 @@ export async function getSettings(
         `No light level given, so assumed ${CONDITION_LABEL[condition]} — pick a light condition for exact settings.`
       );
     }
-    scene.scene_ev = LIGHT_CONDITION_EV[condition];
+    sceneEv = LIGHT_CONDITION_EV[condition];
   }
+  scene.scene_ev = sceneEv;
 
   return solveAndFormat({
     scene,
-    condition,
+    sceneEv,
     intent,
     gear: toGear(camera_profile),
     lightAssumptions,

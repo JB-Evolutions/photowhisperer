@@ -39,6 +39,7 @@ vi.mock("@/lib/rate-limit", () => ({
 
 vi.mock("@/lib/camera-profile", () => ({
   getCameraProfile: vi.fn(async () => null),
+  getGearProfile: vi.fn(async () => null),
 }));
 
 vi.mock("@/api/orchestrate", () => ({

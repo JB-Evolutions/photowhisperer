@@ -37,18 +37,35 @@ export async function ensureSession(
   return { session_id: data.session_id, was_created: true };
 }
 
+export interface AppendMessagesResult {
+  userMessageId: string;
+  assistantMessageId: string;
+}
+
 export async function appendMessages(
   sessionId: string,
   userContent: { text: string },
   assistantContent: Record<string, unknown>
-): Promise<void> {
+): Promise<AppendMessagesResult> {
   const admin = createAdminClient();
 
-  const { error } = await admin.from("session_messages").insert([
-    { session_id: sessionId, role: "user", content: userContent },
-    { session_id: sessionId, role: "assistant", content: assistantContent },
-  ]);
+  const { data, error } = await admin
+    .from("session_messages")
+    .insert([
+      { session_id: sessionId, role: "user", content: userContent },
+      { session_id: sessionId, role: "assistant", content: assistantContent },
+    ])
+    .select("message_id, role");
   if (error) throw error;
+
+  // Picked by role rather than position: the returned row order isn't part of
+  // the insert's contract.
+  const rows = (data ?? []) as Array<{ message_id: string; role: string }>;
+  const userMessageId = rows.find((r) => r.role === "user")?.message_id;
+  const assistantMessageId = rows.find((r) => r.role === "assistant")?.message_id;
+  if (!userMessageId || !assistantMessageId) {
+    throw new Error("appendMessages: insert did not return both message ids");
+  }
 
   // Bump on every turn, not just the first — otherwise a re-messaged session
   // never reorders to the top of the sidebar (updated_at DESC). Best-effort:
@@ -59,6 +76,8 @@ export async function appendMessages(
     .update({ updated_at: new Date().toISOString() })
     .eq("session_id", sessionId);
   if (touchError) console.error("appendMessages: updated_at bump failed:", touchError);
+
+  return { userMessageId, assistantMessageId };
 }
 
 export async function updateSessionTitle(

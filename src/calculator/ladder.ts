@@ -1,11 +1,9 @@
 import {
   INTENT_STOPS,
-  LIGHT_CONDITION_EV,
   type BodyProfile,
   type BrightnessIntent,
   type ExposureSolution,
   type LensProfile,
-  type LightCondition,
   type SubjectMotion,
   type Support,
 } from "../lib/contract/types";
@@ -40,8 +38,12 @@ function narrowerTenth(fNumber: number): number {
 //
 // shutterS and iso are exact solved values, not snapped to a camera's
 // third-stop scale; roundToCameraSteps in round.ts snaps them for display.
+//
+// sceneEv is the scene's EV at ISO 100, resolved by the caller: a text
+// request passes LIGHT_CONDITION_EV[condition], a photo passes
+// resolveSceneEv()'s scene_ev as-is. It is never bucketed here.
 export function solveExposure(args: {
-  light: LightCondition;
+  sceneEv: number;
   intent: BrightnessIntent;
   focalMm: number;
   body: BodyProfile;
@@ -49,7 +51,10 @@ export function solveExposure(args: {
   motion: SubjectMotion;
   support: Support;
 }): ExposureSolution {
-  const { light, intent, focalMm, body, lens } = args;
+  const { sceneEv, intent, focalMm, body, lens } = args;
+  if (!Number.isFinite(sceneEv)) {
+    throw new RangeError(`solveExposure: sceneEv must be a finite number, got ${sceneEv}`);
+  }
   const floor = computeShutterFloor(args);
   const ladderTrace: string[] = [];
 
@@ -57,7 +62,7 @@ export function solveExposure(args: {
   // it. moody (-1) asks for one stop less exposure, i.e. a target EV one
   // higher; any shortfall below is measured against that deliberate target,
   // so moody can never absorb a real shortfall.
-  const targetEv = LIGHT_CONDITION_EV[light] - INTENT_STOPS[intent];
+  const targetEv = sceneEv - INTENT_STOPS[intent];
 
   // Rung 1.
   const lensLimit = apertureAtFocal(lens, focalMm);

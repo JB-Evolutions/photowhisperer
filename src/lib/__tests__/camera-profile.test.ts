@@ -8,6 +8,7 @@ const { db } = vi.hoisted(() => {
     camera_profiles: [] as Row[],
     camera_lenses: [] as Row[],
     failLensInsert: false,
+    failLensSelect: false,
   };
 
   function project(row: Row, cols: string | null): Row {
@@ -52,6 +53,7 @@ const { db } = vi.hoisted(() => {
         }
         return { data: [project(merged, cols)], error: null };
       }
+      if (table === "camera_lenses" && db.failLensSelect) return { data: null, error: { message: "read failed" } };
       let out = rows.filter(match);
       if (orderBy) {
         const { col, ascending } = orderBy;
@@ -191,6 +193,14 @@ describe("getGearProfile / upsertGearProfile", () => {
     db.camera_profiles = [];
     db.camera_lenses = [];
     db.failLensInsert = false;
+    db.failLensSelect = false;
+  });
+
+  it("a camera_lenses read error throws — it is not treated as 'no lens rows'", async () => {
+    db.camera_profiles.push({ user_id: USER, body: "Sony A6000", lenses: ["Sony 18-55 f/3.5-5.6"] });
+    db.failLensSelect = true;
+
+    await expect(getGearProfile(USER)).rejects.toMatchObject({ message: "read failed" });
   });
 
   it("round-trips a structured profile", async () => {

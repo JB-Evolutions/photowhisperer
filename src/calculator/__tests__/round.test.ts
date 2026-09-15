@@ -120,7 +120,7 @@ describe("roundToCameraSteps — safe direction holds for every solveExposure ou
     for (const light of lights) for (const intent of intents) for (const motion of motions)
       for (const support of supports) for (const body of bodies) for (const lens of lenses)
         for (const focalMm of [18, 35, 55]) {
-          const exact = solveExposure({ light, intent, motion, support, body, lens, focalMm });
+          const exact = solveExposure({ sceneEv: LIGHT_CONDITION_EV[light], intent, motion, support, body, lens, focalMm });
           const r = roundToCameraSteps(exact);
 
           if (exact.aperture == null) {
@@ -155,7 +155,7 @@ describe("roundToCameraSteps — isoCeiling clamps rounded ISO", () => {
     const capped: BodyProfile = { ...FULL_FRAME, isoMode: "capped", isoMax: 3000 };
     // Fast motion puts the floor at 1/250, so this scene wants ~ISO 5066 and
     // the exact solve pins ISO to the 3000 cap.
-    const exact = solveExposure({ light: "night_no_street", intent: "natural", motion: "fast", support: "handheld", focalMm: 50, body: capped, lens: FIFTY_PRIME });
+    const exact = solveExposure({ sceneEv: LIGHT_CONDITION_EV.night_no_street, intent: "natural", motion: "fast", support: "handheld", focalMm: 50, body: capped, lens: FIFTY_PRIME });
     expect(exact.iso).toBe(3000);
 
     const unclamped = roundToCameraSteps(exact);
@@ -171,7 +171,7 @@ describe("roundToCameraSteps — isoCeiling clamps rounded ISO", () => {
     for (const isoValue of [100, 400, 3000]) {
       const locked: BodyProfile = { ...FULL_FRAME, isoMode: "locked", isoValue };
       for (const light of Object.keys(LIGHT_CONDITION_EV) as LightCondition[]) {
-        const exact = solveExposure({ light, intent: "natural", motion: "static", support: "handheld", focalMm: 50, body: locked, lens: FIFTY_PRIME });
+        const exact = solveExposure({ sceneEv: LIGHT_CONDITION_EV[light], intent: "natural", motion: "static", support: "handheld", focalMm: 50, body: locked, lens: FIFTY_PRIME });
         expect(roundToCameraSteps(exact, locked.isoValue!).iso).toBe(isoValue);
       }
     }

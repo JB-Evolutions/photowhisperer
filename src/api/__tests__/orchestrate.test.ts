@@ -16,7 +16,16 @@ vi.mock("@anthropic-ai/sdk", async (importOriginal) => {
   };
 });
 
+// Pass-through spy: the real solver runs, and tests can read the sceneEv it
+// was handed.
+vi.mock("../../calculator/ladder", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../../calculator/ladder")>();
+  return { ...actual, solveExposure: vi.fn(actual.solveExposure) };
+});
+
 import { APIError } from "@anthropic-ai/sdk";
+import { solveExposure } from "../../calculator/ladder";
+import { LIGHT_CONDITION_EV } from "../../lib/contract/types";
 import {
   getSettings,
   CLARIFICATION_QUESTION,
@@ -340,7 +349,7 @@ describe("getSettings", () => {
     });
 
     it("tier 1: EXIF EV is used, no clarification even with no text", async () => {
-      // f/8, 1/250, ISO 100 → EV 13.97 → hazy sun (EV 14), within half a stop.
+      // f/8, 1/250, ISO 100 → EV 13.97, used as measured (not snapped to hazy sun, EV 14).
       mockCreate.mockResolvedValue(okScene({ subject_exposure_verdict: "metered_on_subject" }));
 
       const result = await getSettings("", null, null, {
@@ -349,25 +358,10 @@ describe("getSettings", () => {
 
       expect(result.status).toBe("ok");
       if (result.status === "ok") {
-        // EV 14 at the notional f/4: 1/1024 → 1/1250.
-        expect(result.shutter_speed).toBe("1/1250");
+        // Same exposure as the photo at the notional f/4: 2 stops wider → 1/1000.
+        // Snapping to EV 14 gave 1/1024 → 1/1250.
+        expect(result.shutter_speed).toBe("1/1000");
         expect(result.assumptions.some((a) => a.startsWith("Measured light"))).toBe(false);
-      }
-    });
-
-    it("tier 1: a measured EV between table entries states the nearest-level assumption", async () => {
-      // f/4, 1/64, ISO 100 → EV 10, equidistant from blue hour (9) and golden hour (11).
-      mockCreate.mockResolvedValue(okScene());
-
-      const result = await getSettings("", null, null, {
-        image: image({ exif: { fNumber: 4, exposureTimeS: 1 / 64, iso: 100, exposureBiasEv: 0 } }),
-      });
-
-      expect(result.status).toBe("ok");
-      if (result.status === "ok") {
-        expect(result.assumptions).toContain(
-          "Measured light (EV 10) matched to the nearest light level, blue hour (EV 9)."
-        );
       }
     });
 
@@ -402,6 +396,81 @@ describe("getSettings", () => {
       const result = await getSettings("", null, null, { image: image() });
 
       expect(result.status).toBe("clarification_required");
+    });
+  });
+
+  // ─── Scene EV reaches the solver unbucketed ────────────────────────────────
+  describe("scene EV is passed to the solver as a number", () => {
+    const solveSpy = vi.mocked(solveExposure);
+    const gear: GearProfile = {
+      body: AUTO_BODY,
+      lenses: [
+        {
+          label: "50mm f/1.8",
+          focalMinMm: 50,
+          focalMaxMm: 50,
+          aperWide: 1.8,
+          aperTele: 1.8,
+          stabilised: false,
+          stabStops: null,
+          confidence: "high",
+        },
+      ],
+    };
+    // EV = log2(N² / t) − log2(ISO / 100).
+    const EXIF_EV_1_5 = { fNumber: 2, exposureTimeS: Math.SQRT2, iso: 100, exposureBiasEv: 0 };
+    const EXIF_EV_4 = { fNumber: 4, exposureTimeS: 1, iso: 100, exposureBiasEv: 0 };
+    const EXIF_EV_9_3 = { fNumber: 4, exposureTimeS: 16 / 2 ** 9.3, iso: 100, exposureBiasEv: 0 };
+
+    beforeEach(() => {
+      solveSpy.mockClear();
+      mockCreate.mockResolvedValue(okScene({ focal_length_mm: 50 }));
+    });
+
+    it("photo with measured EV 1.5 → not the night_no_street (EV 4) result", async () => {
+      const photo = await getSettings("", gear, null, { image: image({ exif: EXIF_EV_1_5 }) });
+      const text = await getSettings("a portrait", gear, null, { condition: "night_no_street" });
+
+      expect(solveSpy.mock.calls[0][0].sceneEv).toBeCloseTo(1.5, 9);
+      expect(photo.status).toBe("ok");
+      expect(text.status).toBe("ok");
+      expect(photo).not.toEqual(text);
+      if (photo.status === "ok" && text.status === "ok") {
+        // 2.5 stops darker at the same shutter floor → more ISO.
+        expect(photo.shutter_speed).toBe(text.shutter_speed);
+        expect(photo.iso).toBeGreaterThan(text.iso);
+        expect(photo.assumptions.some((a) => a.includes("nearest light level"))).toBe(false);
+      }
+    });
+
+    it("exposure compensation keeps its sign: settings EV 2.5 with −1 bias is scene EV 1.5", async () => {
+      const unbiased = await getSettings("", gear, null, { image: image({ exif: EXIF_EV_1_5 }) });
+      const biased = await getSettings("", gear, null, {
+        image: image({ exif: { fNumber: 2, exposureTimeS: Math.SQRT1_2, iso: 100, exposureBiasEv: -1 } }),
+      });
+
+      expect(solveSpy.mock.calls[1][0].sceneEv).toBeCloseTo(1.5, 9);
+      expect(biased).toEqual(unbiased);
+    });
+
+    it("text request with condition night_no_street → solver gets exactly EV 4, same result as a measured EV 4", async () => {
+      const text = await getSettings("a portrait", gear, null, { condition: "night_no_street" });
+      const photo = await getSettings("", gear, null, { image: image({ exif: EXIF_EV_4 }) });
+
+      expect(solveSpy.mock.calls[0][0].sceneEv).toBe(LIGHT_CONDITION_EV.night_no_street);
+      expect(solveSpy.mock.calls[0][0].sceneEv).toBe(4);
+      expect(solveSpy.mock.calls[1][0].sceneEv).toBe(4);
+      expect(text.status).toBe("ok");
+      expect(text).toEqual(photo);
+    });
+
+    it("fractional measured EV 9.3 → passed as 9.3, not rounded to a condition's EV", async () => {
+      const result = await getSettings("", gear, null, { image: image({ exif: EXIF_EV_9_3 }) });
+
+      const sceneEv = solveSpy.mock.calls[0][0].sceneEv;
+      expect(sceneEv).toBeCloseTo(9.3, 9);
+      expect(Object.values(LIGHT_CONDITION_EV)).not.toContain(sceneEv);
+      expect(result.status).toBe("ok");
     });
   });
 
