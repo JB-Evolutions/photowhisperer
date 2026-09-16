@@ -72,4 +72,11 @@ describe("exifExposureFromRaw", () => {
 
   it("null when a value is zero", () => expect(exifExposureFromRaw({ ...PLAIN_IPHONE, FNumber: 0 })).toBeNull());
   it("null for null input", () => expect(exifExposureFromRaw(null)).toBeNull());
+
+  // What an iOS in-app capture actually returns: Safari strips the exposure
+  // tags and leaves Orientation behind, so readRawExif sees a non-empty object
+  // and returns it rather than null. The exposure still has to come back null
+  // so resolveSceneEv drops to tier 2/3 instead of reading a partial EV.
+  it("null for an orientation-only reading (iOS capture)", () =>
+    expect(exifExposureFromRaw({ Orientation: 6 })).toBeNull());
 });

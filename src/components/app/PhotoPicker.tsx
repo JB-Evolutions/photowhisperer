@@ -15,7 +15,14 @@ import { isOnline } from "@/lib/image/composer";
 
 // ─── ACTION SHEET ORDER ────────────────────────────────────────────────
 // The order the photo sources appear in the sheet. Change it here only.
-export const PHOTO_SOURCE_ORDER = ["camera", "library"] as const;
+//
+// Library first, deliberately. On iOS a capture="environment" input strips EXIF
+// from the photo it returns, whatever the accept value and whatever the camera
+// format setting — there is no workaround. A library photo keeps its exposure
+// metadata and resolves at tier 1; a captured one has nothing to measure and
+// falls to tier 2/3. Leading with the library steers people to the path that
+// produces the better answer.
+export const PHOTO_SOURCE_ORDER = ["library", "camera"] as const;
 // ───────────────────────────────────────────────────────────────────────
 
 type PhotoSource = (typeof PHOTO_SOURCE_ORDER)[number];
