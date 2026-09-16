@@ -284,13 +284,36 @@ export default function AppShell({
                 />
               </div>
 
-              {/* Empty state — centered, conditionally rendered (not just hidden) */}
+              {/* Empty state — centered, conditionally rendered (not just hidden).
+
+                  min-h-0 is load-bearing, not tidying. A flex item defaults to
+                  min-height:auto, which floors it at its content height (384px
+                  for the heading + four chips) and makes flex-1 a growth rule
+                  only — it will not shrink. At 375x667 that floor plus the
+                  banners and the composer exceeds the h-dvh shell, so the
+                  composer is pushed past the bottom edge and clipped by the
+                  shell's overflow-hidden: with five lines typed the send and
+                  photo buttons land below the viewport entirely, reachable
+                  only by page-scrolling a shell that is meant not to scroll.
+                  The thread branch above never hit this because overflow-y-auto
+                  resolves min-height:auto to zero for it; this branch has
+                  visible overflow, so it needs both halves stated explicitly.
+
+                  overflow-y-auto keeps the chips reachable once the box is
+                  allowed to be shorter than them, and centring moves from
+                  items-center to my-auto on the child: a centred flex item
+                  that outgrows its box puts the overflow above the scroll
+                  origin where it cannot be scrolled to, whereas auto margins
+                  centre when there is room and collapse to zero when there
+                  isn't. */}
               {!hasThread && (
-                <div data-shot="app-empty-state" className="flex min-w-0 flex-1 items-center justify-center">
-                  <EmptyState
-                    onChipSelect={setComposerValue}
-                    disabled={outOfCredits}
-                  />
+                <div data-shot="app-empty-state" className="flex min-h-0 min-w-0 flex-1 justify-center overflow-y-auto">
+                  <div className="my-auto w-full">
+                    <EmptyState
+                      onChipSelect={setComposerValue}
+                      disabled={outOfCredits}
+                    />
+                  </div>
                 </div>
               )}
 
