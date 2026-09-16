@@ -8,8 +8,10 @@ import {
   useState,
   type ChangeEvent,
   type KeyboardEvent,
+  type CSSProperties,
   type MouseEvent,
 } from "react";
+import { useVisualViewport } from "@/hooks/useVisualViewport";
 import { IMAGE_ACCEPT } from "@/lib/image/limits";
 import { isOnline } from "@/lib/image/composer";
 
@@ -75,6 +77,9 @@ const PhotoPicker = forwardRef<PhotoPickerHandle, PhotoPickerProps>(function Pho
   ref,
 ) {
   const [sheetOpen, setSheetOpen] = useState(false);
+  // The mobile sheet is position:fixed, which resolves against the layout
+  // viewport — unchanged by the keyboard — so it would otherwise open behind it.
+  const { bottomInset } = useVisualViewport();
   const buttonRef = useRef<HTMLButtonElement>(null);
   const sheetRef = useRef<HTMLDivElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -210,8 +215,14 @@ const PhotoPicker = forwardRef<PhotoPickerHandle, PhotoPickerProps>(function Pho
             role="menu"
             aria-label="Add a photo"
             onKeyDown={handleMenuKeyDown}
+            /* The inset rides in a custom property rather than an inline
+               `bottom` so the md: variant can still take over on desktop,
+               where the sheet is absolutely positioned above the trigger and
+               the visual viewport is irrelevant. It is 0px on browsers without
+               visualViewport, which is the old bottom-0 behaviour exactly. */
+            style={{ "--pw-vv-bottom": `${bottomInset}px` } as CSSProperties}
             className={[
-              "pw-expand-in fixed inset-x-0 bottom-0 z-50 flex flex-col gap-1 rounded-t-2xl border-t border-border bg-surface p-2",
+              "pw-expand-in fixed inset-x-0 bottom-[var(--pw-vv-bottom,0px)] z-50 flex flex-col gap-1 rounded-t-2xl border-t border-border bg-surface p-2",
               "pb-[max(0.5rem,env(safe-area-inset-bottom))]",
               "md:absolute md:inset-x-auto md:bottom-full md:left-0 md:mb-2 md:w-[240px] md:rounded-2xl md:border md:pb-2",
             ].join(" ")}

@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useRef, useEffect, createContext, useContext } from "react";
 import type { ReactNode } from "react";
+import { useVisualViewport } from "@/hooks/useVisualViewport";
 
 export async function copyToClipboard(text: string): Promise<boolean> {
   if (navigator.clipboard?.writeText) {
@@ -33,6 +34,10 @@ export function useToast(): {
 } {
   const [message, setMessage] = useState<string | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Fixed-bottom, so the layout viewport is its containing block and the
+  // keyboard covers it. bottomInset is 0 without visualViewport, which leaves
+  // the safe-area offset on its own exactly as before.
+  const { bottomInset } = useVisualViewport();
 
   useEffect(() => {
     return () => {
@@ -50,7 +55,8 @@ export function useToast(): {
     <div
       role="status"
       aria-live="polite"
-      className="pw-toast fixed bottom-[max(2rem,env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2 z-[100] rounded-xl border border-border-strong bg-surface-3 px-4 py-2 text-sm text-text shadow-lg"
+      style={{ bottom: `calc(${bottomInset}px + max(2rem, env(safe-area-inset-bottom)))` }}
+      className="pw-toast fixed left-1/2 -translate-x-1/2 z-[100] rounded-xl border border-border-strong bg-surface-3 px-4 py-2 text-sm text-text shadow-lg"
     >
       {message}
     </div>

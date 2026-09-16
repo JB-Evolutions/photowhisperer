@@ -12,9 +12,16 @@ export interface VisualViewport {
   // layout viewport itself never moves, so anything anchored to it has to
   // add this back to stay on screen.
   offsetTop: number;
+  // Distance from the layout viewport's bottom edge up to the bottom edge of
+  // the visible band, i.e. how much of the layout viewport the keyboard is
+  // covering. `position: fixed` resolves against the layout viewport, so a
+  // fixed-bottom element needs exactly this much bottom offset to sit on the
+  // visible edge instead of behind the keyboard. 0 when the API is absent, so
+  // adding it is a no-op on browsers without it.
+  bottomInset: number;
 }
 
-const ABSENT: VisualViewport = { height: null, offsetTop: 0 };
+const ABSENT: VisualViewport = { height: null, offsetTop: 0, bottomInset: 0 };
 
 /**
  * Tracks window.visualViewport.
@@ -46,12 +53,19 @@ export function useVisualViewport(): VisualViewport {
 
     const read = () => {
       frame = 0;
-      // Bail on an unchanged pair so a scroll storm can't re-render the
-      // whole shell every frame for nothing.
+      // window.innerHeight, not vv.height: with `resizes-visual` the former
+      // keeps reporting the full layout-viewport height, which is what a
+      // fixed element's containing block actually is.
+      const bottomInset = Math.max(
+        0,
+        Math.round(window.innerHeight - (vv.offsetTop + vv.height)),
+      );
       setViewport((prev) =>
-        prev.height === vv.height && prev.offsetTop === vv.offsetTop
+        prev.height === vv.height &&
+        prev.offsetTop === vv.offsetTop &&
+        prev.bottomInset === bottomInset
           ? prev
-          : { height: vv.height, offsetTop: vv.offsetTop },
+          : { height: vv.height, offsetTop: vv.offsetTop, bottomInset },
       );
     };
 

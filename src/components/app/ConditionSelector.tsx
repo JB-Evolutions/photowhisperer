@@ -5,6 +5,7 @@
 // choice rides on every request for the rest of the session.
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
 import type { BrightnessIntent, LightCondition } from "@/lib/contract/types";
+import { useVisualViewport } from "@/hooks/useVisualViewport";
 import {
   CONDITION_GROUPS,
   LET_IT_DECIDE_LABEL,
@@ -49,6 +50,9 @@ interface ConditionSelectorProps {
   disabled?: boolean;
 }
 
+// mb-2 on the panel, in px — the gap it keeps above the trigger.
+const PANEL_MARGIN = 8;
+
 export default function ConditionSelector({
   condition,
   intent,
@@ -64,10 +68,20 @@ export default function ConditionSelector({
   // this is the one number that still has to come from the trigger to keep it
   // opening upward out of the pill.
   const [panelBottom, setPanelBottom] = useState(0);
+  // Room between the top of the visible band and the trigger, which is all the
+  // panel has to open upward into. null when visualViewport is unavailable, and
+  // then the 40dvh class cap stands alone as before.
+  const [panelSpace, setPanelSpace] = useState<number | null>(null);
+  const { height: viewportHeight, offsetTop: viewportOffsetTop } = useVisualViewport();
 
   function measure() {
     const rect = toggleRef.current?.getBoundingClientRect();
-    if (rect) setPanelBottom(window.innerHeight - rect.top);
+    if (!rect) return;
+    setPanelBottom(window.innerHeight - rect.top);
+    const vv = window.visualViewport;
+    // rect is layout-viewport relative, so offsetTop converts the trigger's
+    // position into the visible band. PANEL_MARGIN is the mb-2 below the panel.
+    setPanelSpace(vv ? Math.max(0, Math.round(rect.top - vv.offsetTop - PANEL_MARGIN)) : null);
   }
 
   function close() {
@@ -80,9 +94,27 @@ export default function ConditionSelector({
   // Measured again on open so the first paint is already in the right place,
   // and kept there while open: the composer grows as the textarea does, and on
   // mobile the whole row moves when the keyboard opens.
+  //
+  // That last case is why the viewport half of this is driven by
+  // useVisualViewport and not by window listeners. The keyboard resizes only
+  // the visual viewport, so neither window "resize" nor a capturing window
+  // "scroll" ever fires for it — the panel kept the bottom offset it was
+  // measured with before the keyboard appeared, which put it 106px inside the
+  // keyboard band on a 375x667 screen.
+  //
+  // Going through the hook rather than adding a visualViewport listener here
+  // is what makes the re-measure correct, not just present. The shell resizes
+  // itself from the same event, so a listener on this component would read the
+  // trigger's rect in the same tick, before React had committed the shell's new
+  // geometry — measuring the old position and never firing again. Depending on
+  // the hook's values instead means this effect runs after that commit, so the
+  // layout it measures is the one the user is looking at.
   useEffect(() => {
     if (!expanded) return;
     measure();
+    if (viewportHeight !== null) return;
+    // No visualViewport: keep the old listeners, which are still the best
+    // available signal for rotation and desktop window resizing.
     const onViewportChange = () => measure();
     window.addEventListener("resize", onViewportChange);
     window.addEventListener("scroll", onViewportChange, true);
@@ -90,7 +122,7 @@ export default function ConditionSelector({
       window.removeEventListener("resize", onViewportChange);
       window.removeEventListener("scroll", onViewportChange, true);
     };
-  }, [expanded]);
+  }, [expanded, viewportHeight, viewportOffsetTop]);
 
   return (
     <div
@@ -157,7 +189,16 @@ export default function ConditionSelector({
       {expanded && (
         <div
           id={panelId}
-          style={{ bottom: panelBottom }}
+          /* 40dvh is 267px of a 375x667 screen, but with the keyboard up only
+             407px of that is visible and the panel has to fit between the top
+             of the visible band and the trigger — it overflowed 14px past the
+             top edge, where nothing can scroll it back. min() keeps 40dvh as
+             the cap on tall viewports and lets the measured space win when it
+             is the smaller of the two; the panel already scrolls internally. */
+          style={{
+            bottom: panelBottom,
+            ...(panelSpace !== null ? { maxHeight: `min(40dvh, ${panelSpace}px)` } : null),
+          }}
           className="pw-expand-in fixed inset-x-0 z-40 mx-auto mb-2 max-h-[40dvh] w-[min(92vw,30rem)] overflow-y-auto rounded-2xl border border-border bg-surface p-3"
         >
           <div role="radiogroup" aria-label="Light" onKeyDown={moveRadioFocus} className="flex flex-col gap-3">
