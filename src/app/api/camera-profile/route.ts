@@ -7,11 +7,8 @@ import {
   upsertCameraProfile,
   type CameraProfile,
 } from "@/lib/camera-profile";
-import {
-  loadStructuredProfile,
-  saveStructuredProfile,
-  validateStructuredProfile,
-} from "./structured";
+import { validateStructuredProfile } from "./structured";
+import { loadStructuredProfile, saveStructuredProfile } from "./persist";
 
 const VALID_FLASH = new Set(["none", "speedlight", "studio"]);
 
@@ -116,7 +113,7 @@ export async function GET() {
     // legacy profile response.
     let structured = null;
     try {
-      structured = await loadStructuredProfile(supabase, user.id);
+      structured = await loadStructuredProfile(user.id);
     } catch (err) {
       console.error("GET /api/camera-profile structured read failure:", err);
     }
@@ -162,7 +159,7 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: "validation", message: checked.message }, { status: 400 });
     }
     try {
-      await saveStructuredProfile(supabase, user.id, checked.value);
+      await saveStructuredProfile(user.id, checked.value);
       const { body: savedBody, ...savedStructured } = checked.value;
       return NextResponse.json({ body: savedBody, structured: savedStructured });
     } catch (err) {

@@ -52,8 +52,29 @@ All colors, spacing, and typography must come from the CSS variables defined in 
 ## Stable code
 `src/api/` and `src/calculator/` are treated as stable. Do not modify files in these directories unless a build phase explicitly calls for it.
 
-## Tests
-Run `pnpm exec vitest run` before every commit. The entire suite must pass — no failures, no skips. Do not modify test files to make tests pass.
+## Pre-commit checks
+Run all three before every commit. All three must pass — no failures, no skips.
+
+1. `pnpm build`
+2. `pnpm exec tsc --noEmit`
+3. `pnpm exec vitest run`
+
+Do not modify test files to make tests pass.
+
+`pnpm build` is not optional and is not covered by the other two. Turbopack is
+the only one of the three that sees the client/server bundle split, so it is the
+only one that catches a server-only module reaching the browser — anything that
+imports `next/headers`, in practice `src/lib/supabase/server.ts` and everything
+downstream of it such as `src/lib/camera-profile.ts`. A `"use client"` component
+importing a module that transitively pulls that in fails the build while `tsc`
+and vitest stay green, because the edge is a bundling fact, not a type or a
+runtime path either of them exercises. Type-only imports (`import type`) are
+erased and are safe; a value import is not.
+
+When it does fail, read the **"Client Component Browser"** import trace in the
+error, not the "Pages Router" wording in the message — that wording is
+misleading and this project has no `pages/` directory. The trace names the exact
+chain from the client component down to the offending module.
 
 ## Commit messages
 No Co-Authored-By lines. No AI attribution of any kind. Write commit messages as if authored by the project team.

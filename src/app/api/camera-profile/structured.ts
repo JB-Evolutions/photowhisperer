@@ -1,21 +1,12 @@
 // Structured camera profile: validation of the PUT payload, and the shape the
-// route reads and writes it in. Validation is route-local on purpose; the rows
-// themselves are getGearProfile/upsertGearProfile's, and this file calls into
-// them rather than parsing lenses and writing camera_lenses a second time.
+// route reads and writes it in. Pure — no I/O, no Next or Supabase imports.
 //
-// Not atomic: upsertGearProfile issues the profile upsert, lens delete and lens
-// insert as three statements. A failure part-way leaves the previous lenses
-// deleted; the onboarding UI keeps the unsaved list in state and offers a
-// retry, and a retried save rewrites the whole set.
-import { getGearProfile, upsertGearProfile } from "@/lib/camera-profile";
-import type { createClient } from "@/lib/supabase/server";
+// KEEP IT THAT WAY. The onboarding screen is a client component and imports
+// MAX_LENSES from here, so anything this file pulls in lands in the browser
+// bundle. A value import of the persistence layer reaches next/headers through
+// the server Supabase client and fails the Turbopack build. That is why the
+// storage half lives in ./persist, which only the route imports.
 import type { BodyProfile, Confidence, LensProfile } from "@/lib/contract/types";
-
-// The route hands its request-scoped client to both functions below. Neither
-// uses it any more — camera-profile.ts opens its own cookie-scoped client, so
-// the two see the same user under RLS — but the parameter stays so the route
-// keeps its existing call shape.
-type ServerClient = Awaited<ReturnType<typeof createClient>>;
 
 export type StructuredProfileInput = {
   body: string | null;
@@ -163,38 +154,4 @@ export function validateStructuredProfile(body: unknown, raw: unknown): Validati
     ok: true,
     value: { body: body as string | null, cropFactor, ibisStops, isoBase, isoMode, isoValue, isoMax, lenses },
   };
-}
-
-export async function saveStructuredProfile(
-  _supabase: ServerClient,
-  userId: string,
-  input: StructuredProfileInput,
-): Promise<void> {
-  // The lenses are already parsed — validateLens built them from the payload's
-  // own fields — so they go straight through. body is nullable here and
-  // BodyProfile.label is not; upsertGearProfile stores a blank label as NULL.
-  await upsertGearProfile(userId, {
-    body: {
-      label: input.body ?? "",
-      cropFactor: input.cropFactor,
-      ibisStops: input.ibisStops,
-      isoBase: input.isoBase,
-      isoMode: input.isoMode,
-      isoValue: input.isoValue,
-      isoMax: input.isoMax,
-    },
-    lenses: input.lenses,
-  });
-}
-
-export async function loadStructuredProfile(
-  _supabase: ServerClient,
-  userId: string,
-): Promise<StructuredProfileRead | null> {
-  const gear = await getGearProfile(userId);
-  if (!gear) return null;
-  // The free-text body label is served by the legacy half of the GET response,
-  // so it is dropped here rather than duplicated.
-  const { cropFactor, ibisStops, isoBase, isoMode, isoValue, isoMax } = gear.body;
-  return { cropFactor, ibisStops, isoBase, isoMode, isoValue, isoMax, lenses: gear.lenses };
 }
