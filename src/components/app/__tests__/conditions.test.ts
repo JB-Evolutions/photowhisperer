@@ -14,13 +14,18 @@ import {
 describe("condition vocabulary", () => {
   it("lists every LightCondition exactly once", () => {
     const listed = CONDITION_GROUPS.flatMap((g) => g.options.map((o) => o.value));
-    expect(listed).toHaveLength(14);
-    expect(new Set(listed).size).toBe(14);
+    expect(listed).toHaveLength(18);
+    expect(new Set(listed).size).toBe(18);
     expect([...listed].sort()).toEqual(Object.keys(LIGHT_CONDITION_EV).sort());
   });
 
-  it("groups Outdoor, Night, Indoor in that order", () => {
-    expect(CONDITION_GROUPS.map((g) => g.label)).toEqual(["Outdoor", "Night", "Indoor"]);
+  it("groups Outdoor, Night, Indoor, Lit subject in that order", () => {
+    expect(CONDITION_GROUPS.map((g) => g.label)).toEqual([
+      "Outdoor",
+      "Night",
+      "Indoor",
+      "Lit subject",
+    ]);
   });
 
   it("defaults to Let it decide and Natural", () => {

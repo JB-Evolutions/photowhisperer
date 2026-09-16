@@ -7,7 +7,10 @@ import {
 } from "@/lib/contract/types";
 
 export type ConditionOption = { value: LightCondition; label: string };
-export type ConditionGroup = { label: "Outdoor" | "Night" | "Indoor"; options: ConditionOption[] };
+export type ConditionGroup = {
+  label: "Outdoor" | "Night" | "Indoor" | "Lit subject";
+  options: ConditionOption[];
+};
 
 export const CONDITION_GROUPS: readonly ConditionGroup[] = [
   {
@@ -37,6 +40,18 @@ export const CONDITION_GROUPS: readonly ConditionGroup[] = [
       { value: "indoor_artificial", label: "Room lighting" },
       { value: "indoor_dim", label: "Dim room" },
       { value: "candlelit", label: "Candlelight" },
+    ],
+  },
+  // Last, and deliberately apart from the three ambient groups: these describe
+  // the subject, not the light falling on the scene, so picking one is a
+  // different question from the ones above.
+  {
+    label: "Lit subject",
+    options: [
+      { value: "moon_subject", label: "The moon itself" },
+      { value: "fireworks", label: "Fireworks" },
+      { value: "stage_lit", label: "Stage / spotlit" },
+      { value: "neon_signage", label: "Neon sign" },
     ],
   },
 ];

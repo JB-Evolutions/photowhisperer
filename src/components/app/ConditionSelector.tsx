@@ -3,7 +3,7 @@
 // Light-condition picker, paired with the brightness stepper in the row above
 // the composer. Never a mandatory step: "Let it decide" is the default, and the
 // choice rides on every request for the rest of the session.
-import { useId, useRef, useState, type KeyboardEvent } from "react";
+import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
 import type { BrightnessIntent, LightCondition } from "@/lib/contract/types";
 import {
   CONDITION_GROUPS,
@@ -59,6 +59,17 @@ export default function ConditionSelector({
   const panelId = useId();
   const toggleRef = useRef<HTMLButtonElement>(null);
 
+  // Distance from the viewport's bottom edge to the trigger's top edge. The
+  // panel is positioned against the viewport (see the panel comment below), so
+  // this is the one number that still has to come from the trigger to keep it
+  // opening upward out of the pill.
+  const [panelBottom, setPanelBottom] = useState(0);
+
+  function measure() {
+    const rect = toggleRef.current?.getBoundingClientRect();
+    if (rect) setPanelBottom(window.innerHeight - rect.top);
+  }
+
   function close() {
     setOpen(false);
     toggleRef.current?.focus();
@@ -66,9 +77,24 @@ export default function ConditionSelector({
 
   const expanded = open && !disabled;
 
+  // Measured again on open so the first paint is already in the right place,
+  // and kept there while open: the composer grows as the textarea does, and on
+  // mobile the whole row moves when the keyboard opens.
+  useEffect(() => {
+    if (!expanded) return;
+    measure();
+    const onViewportChange = () => measure();
+    window.addEventListener("resize", onViewportChange);
+    window.addEventListener("scroll", onViewportChange, true);
+    return () => {
+      window.removeEventListener("resize", onViewportChange);
+      window.removeEventListener("scroll", onViewportChange, true);
+    };
+  }, [expanded]);
+
   return (
     <div
-      className="relative min-w-0"
+      className="min-w-0"
       onKeyDown={(e) => {
         if (e.key === "Escape" && expanded) {
           e.stopPropagation();
@@ -82,7 +108,10 @@ export default function ConditionSelector({
         aria-expanded={expanded}
         aria-controls={panelId}
         disabled={disabled}
-        onClick={() => setOpen((o) => !o)}
+        onClick={() => {
+          if (!open) measure();
+          setOpen((o) => !o);
+        }}
         className={[
           "inline-flex min-h-[44px] w-full max-w-[18rem] items-center gap-2 rounded-full border border-border bg-surface px-4 text-sm text-text-muted",
           "transition-colors duration-200 ease-[cubic-bezier(0.2,0,0,1)] hover:text-text",
@@ -114,11 +143,22 @@ export default function ConditionSelector({
           panel would otherwise size to max-content (every chip on one line) and
           blow the row out. Opening upward keeps it clear of the composer, the
           same way PhotoPicker's sheet sits on desktop. Width is set here, not
-          by the trigger, so the chips wrap exactly as they always have. */}
+          by the trigger, so the chips wrap exactly as they always have.
+
+          Positioned against the viewport, not the pill. min(92vw,30rem) is a
+          viewport measurement — it means "full width bar a 4vw gutter each
+          side, capped at 30rem" — and that only holds if the box it centres in
+          is the viewport. Anchored to the pill instead, inset-x-0 + mx-auto had
+          a ~345px panel to centre in a ~183px wrapper; over-constrained, the
+          auto margins collapse to zero, and it left-aligned off the right edge.
+          Only `bottom` still comes from the trigger, so the upward anchor is
+          unchanged. Centring is left to mx-auto rather than a translate, which
+          pw-expand-in animates. */}
       {expanded && (
         <div
           id={panelId}
-          className="pw-expand-in absolute inset-x-0 bottom-full z-40 mx-auto mb-2 max-h-[40dvh] w-[min(92vw,30rem)] overflow-y-auto rounded-2xl border border-border bg-surface p-3"
+          style={{ bottom: panelBottom }}
+          className="pw-expand-in fixed inset-x-0 z-40 mx-auto mb-2 max-h-[40dvh] w-[min(92vw,30rem)] overflow-y-auto rounded-2xl border border-border bg-surface p-3"
         >
           <div role="radiogroup" aria-label="Light" onKeyDown={moveRadioFocus} className="flex flex-col gap-3">
             <div className="flex flex-wrap gap-2">
