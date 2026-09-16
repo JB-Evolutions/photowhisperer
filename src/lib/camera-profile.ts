@@ -7,12 +7,18 @@
 //   - GearProfile (BodyProfile + LensProfile[]) for the exposure ladder.
 // camera_profiles.lenses (TEXT[]) stays the compatibility anchor until it is
 // dropped; camera_lenses is written alongside it.
+//
+// Every camera_lenses write in the app goes through writeLensRows below —
+// the structured route persists through upsertGearProfile rather than
+// repeating the parse-and-insert.
 import { createClient as createServerClient } from "./supabase/server";
 import { parseLensString } from "./lens/parse";
 import type { BodyProfile, Confidence, LensProfile } from "./contract/types";
 import type { CameraProfile, GearProfile } from "../api/types";
 
 export type { CameraProfile, GearProfile };
+
+type ServerClient = Awaited<ReturnType<typeof createServerClient>>;
 
 const LENS_COLUMNS =
   "label, focal_min_mm, focal_max_mm, aper_wide, aper_tele, stabilised, stab_stops, confidence";
@@ -87,6 +93,28 @@ function lensRow(userId: string, lens: LensProfile, ordinal: number) {
   };
 }
 
+// The one place camera_lenses is written. Delete-then-insert rewrites the whole
+// set, so ordinals stay dense and a lens the user removed leaves no row behind.
+// Throws on either statement; callers decide whether that is fatal.
+async function writeLensRows(
+  supabase: ServerClient,
+  userId: string,
+  lenses: LensProfile[]
+): Promise<void> {
+  const { error: deleteError } = await supabase
+    .from("camera_lenses")
+    .delete()
+    .eq("user_id", userId);
+  if (deleteError) throw deleteError;
+
+  if (lenses.length === 0) return;
+
+  const { error: insertError } = await supabase
+    .from("camera_lenses")
+    .insert(lenses.map((lens, i) => lensRow(userId, lens, i)));
+  if (insertError) throw insertError;
+}
+
 export async function getCameraProfile(
   user_id: string
 ): Promise<CameraProfile | null> {
@@ -159,19 +187,7 @@ export async function upsertCameraProfile(
 
   if (updates.lenses !== undefined) {
     try {
-      const { error: deleteError } = await supabase
-        .from("camera_lenses")
-        .delete()
-        .eq("user_id", user_id);
-      if (deleteError) throw deleteError;
-
-      const labels = updates.lenses ?? [];
-      if (labels.length > 0) {
-        const { error: insertError } = await supabase
-          .from("camera_lenses")
-          .insert(labels.map((label, i) => lensRow(user_id, lensFromLabel(label), i)));
-        if (insertError) throw insertError;
-      }
+      await writeLensRows(supabase, user_id, (updates.lenses ?? []).map(lensFromLabel));
     } catch (lensErr) {
       console.error("upsertCameraProfile: camera_lenses write failed (legacy column saved):", lensErr);
     }
@@ -237,7 +253,10 @@ export async function upsertGearProfile(
   const { error: profileError } = await supabase.from("camera_profiles").upsert(
     {
       user_id: userId,
-      body: body.label,
+      // The column is nullable and "no body stated" is a real state, so a blank
+      // label is stored as NULL rather than an empty string. getGearProfile
+      // reads either back as "unknown", so the round trip is unchanged.
+      body: body.label.trim() === "" ? null : body.label,
       lenses: lenses.length > 0 ? lenses.map((lens) => lens.label) : null,
       crop_factor: body.cropFactor,
       ibis_stops: body.ibisStops,
@@ -251,16 +270,5 @@ export async function upsertGearProfile(
   );
   if (profileError) throw profileError;
 
-  const { error: deleteError } = await supabase
-    .from("camera_lenses")
-    .delete()
-    .eq("user_id", userId);
-  if (deleteError) throw deleteError;
-
-  if (lenses.length === 0) return;
-
-  const { error: insertError } = await supabase
-    .from("camera_lenses")
-    .insert(lenses.map((lens, i) => lensRow(userId, lens, i)));
-  if (insertError) throw insertError;
+  await writeLensRows(supabase, userId, lenses);
 }

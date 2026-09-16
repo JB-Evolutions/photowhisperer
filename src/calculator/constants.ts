@@ -135,10 +135,6 @@ export const SUBJECT_MOTION_MIN_S: Record<Exclude<SubjectMotion, "static">, numb
   fast: 1 / 250,
 };
 
-// Rung 3 of the exposure ladder in auto ISO mode stops here; anything beyond
-// is reported as shortfallStops rather than ridden further.
-export const AUTO_ISO_CEILING = 25600;
-
 // When the lens is unknown, the ladder does its arithmetic at this aperture
 // but reports aperture as null — it is never emitted as a recommendation.
 export const UNKNOWN_LENS_NOTIONAL_APERTURE = 4.0;

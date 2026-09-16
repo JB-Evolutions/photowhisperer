@@ -127,7 +127,14 @@ Do not return a "condition" field.`;
 PHOTO ATTACHED (the image before the text is the user's scene)
 1. This photo has no exposure metadata. Do NOT estimate light from image brightness — the camera that took it normalised the brightness.
 ${imageRules(image)}
-6. Add "condition" to the ok response: null unless the scene is clearly OUTDOORS with legible shadow hardness, in which case exactly one of "snow_sand", "direct_sun", "hazy_sun", "overcast", "open_shade", "golden_hour", "blue_hour", "night_street", "night_no_street", "night_moonlit". Any indoor scene returns null.`;
+6. Add "condition" to the ok response, naming the light class of the scene, or null.
+First decide WHAT the reading describes. If the thing being photographed is ITSELF a light source, or is lit independently of the ambient scene, classify on the subject and not on the surroundings — "lit by X" and "X is the subject" are different scenes. Subject classes, usable indoors or out:
+- "moon_subject" = the moon (or a bright planet) is the subject, filling or dominating the frame
+- "fireworks" = the bursts themselves are the subject
+- "stage_lit" = a performer, speaker or player under stage, spot or flood lighting, with the room or stadium around them dark
+- "neon_signage" = a lit sign, display or illuminated window read as the subject
+Otherwise the reading describes the ambient light, and is given only when the scene is clearly OUTDOORS with legible shadow hardness: exactly one of "snow_sand", "direct_sun", "hazy_sun", "overcast", "open_shade", "golden_hour", "blue_hour", "night_street", "night_no_street", "night_moonlit". An indoor ambient scene returns null.
+A landscape under the moon is "night_moonlit"; the moon itself in the frame is "moon_subject". A dark venue photographed as a room is null; the lit performer in it is "stage_lit".`;
 }
 
 export function buildClassifierPrompt(

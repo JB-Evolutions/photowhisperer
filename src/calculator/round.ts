@@ -33,14 +33,16 @@ function stepAtOrBelow(steps: readonly number[], value: number): number {
 // clamp gives some back), so shortfallStops is recomputed to match what the
 // user actually dials in.
 //
-// isoCeiling is a hard limit the ISO may never round past: pass body.isoMax
-// for isoMode "capped" and body.isoValue for "locked" (so a locked ISO never
-// moves); leave it undefined for "auto".
-export function roundToCameraSteps(s: ExposureSolution, isoCeiling?: number): ExposureSolution {
+// isoCeiling is a hard limit the ISO may never round or ride past. It is
+// required, not optional: an omitted ceiling used to mean "auto ISO has no
+// limit at all", which let a dark scene surface ISO 25600. Callers pass
+// effectiveIsoCeiling(body) from the contract, which resolves the locked,
+// capped and defaulted cases in one place. Pass Infinity only to test the
+// rounding itself in isolation.
+export function roundToCameraSteps(s: ExposureSolution, isoCeiling: number): ExposureSolution {
   const aperture = s.aperture == null ? null : stepAtOrAbove(CAMERA_APERTURE_STEPS, s.aperture);
   const shutterS = stepAtOrBelow(CAMERA_SHUTTER_STEPS_S, s.shutterS);
-  const roundedIso = stepAtOrAbove(CAMERA_ISO_STEPS, s.iso);
-  const iso = isoCeiling == null ? roundedIso : Math.min(roundedIso, isoCeiling);
+  const iso = Math.min(stepAtOrAbove(CAMERA_ISO_STEPS, s.iso), isoCeiling);
 
   // Exposure ∝ shutter × ISO / N². Positive = light lost by rounding. A null
   // aperture is the same notional f-number before and after, so costs 0.

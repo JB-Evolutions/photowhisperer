@@ -2,11 +2,12 @@ import { APIError } from "@anthropic-ai/sdk";
 import { callClassifier } from "./classifier";
 import { solveExposure } from "../calculator/ladder";
 import { roundToCameraSteps } from "../calculator/round";
-import { AUTO_ISO_CEILING, WB_COLOR_TEMP } from "../calculator/constants";
+import { WB_COLOR_TEMP } from "../calculator/constants";
 import { formatAperture, formatShutter } from "../calculator/format";
 import { describeShutter } from "../calculator/shutterFloor";
 import type { WhiteBalance } from "../calculator/types";
 import {
+  effectiveIsoCeiling,
   INTENT_STOPS,
   LIGHT_CONDITION_EV,
   type BodyProfile,
@@ -202,6 +203,10 @@ const CONDITION_LABEL: Record<LightCondition, string> = {
   indoor_artificial: "indoor artificial light",
   indoor_dim: "dim indoor light",
   candlelit: "candlelight",
+  moon_subject: "the moon itself",
+  fireworks: "fireworks",
+  stage_lit: "stage lighting on the subject",
+  neon_signage: "lit neon signage",
 };
 
 const INDOOR_RE =
@@ -222,7 +227,15 @@ const TEXT_RULES: readonly TextRule[] = [
   { re: /\b(snow\w*|skiing|sand)\b|❄️?|⛄|☃️?/iu, outdoor: "snow_sand", indoor: "indoor_window" },
   { re: /\b(golden hour|sunset|sunrise)\b|🌅|🌄/iu, outdoor: "golden_hour", indoor: "indoor_window" },
   { re: /\b(blue hour|dusk|twilight)\b/iu, outdoor: "blue_hour", indoor: "indoor_dim" },
-  { re: /\b(moon\w*)\b|🌙|🌛|🌜|🌕|🌝/iu, outdoor: "night_moonlit", indoor: "indoor_dim" },
+  // The moon as the LIGHT SOURCE: ambient, and dark. This must stay above the
+  // bare-moon rule below, which would otherwise swallow "moonlit" and
+  // "moonlight" and read a landscape as if the moon were the subject. The
+  // emoji live here too — 🌙 in a caption marks night, not a lunar telephoto.
+  { re: /\b(moonlit|moonlight\w*|lit by (the )?moon|under (the )?moon)\b|🌙|🌛|🌜|🌕|🌝/iu, outdoor: "night_moonlit", indoor: "indoor_dim" },
+  // The moon as the SUBJECT: its own disc, ~17 stops brighter than the ground
+  // it lights. Indoors reads the same — the moon through a window is still the
+  // moon, and the room's light never reaches it.
+  { re: /\b(moons?|moonrise|moonset|supermoon)\b/iu, outdoor: "moon_subject", indoor: "moon_subject" },
   { re: /\b(no street ?lights?|pitch black|stars|starlight|milky way)\b|🌌/iu, outdoor: "night_no_street", indoor: "indoor_dim" },
   { re: /\b(street ?lights?|street ?lamps?|city lights|neon)\b|🌃|🌆|🌉/iu, outdoor: "night_street", indoor: "indoor_artificial" },
   { re: /\b(dim|dimly|dimmed|low[- ]light|dark room)\b/iu, outdoor: "blue_hour", indoor: "indoor_dim" },
@@ -369,12 +382,6 @@ const DEFAULTED_ASSUMPTION_TEXT: Record<string, string> = {
   white_balance: "Assumed auto white balance (lighting colour not specified).",
 };
 
-function isoCeilingFor(body: BodyProfile): number | undefined {
-  if (body.isoMode === "capped") return body.isoMax ?? undefined;
-  if (body.isoMode === "locked") return body.isoValue ?? body.isoBase;
-  return undefined;
-}
-
 function shortfallLine(
   stops: number,
   body: BodyProfile,
@@ -388,7 +395,7 @@ function shortfallLine(
   } else if (body.isoMode === "capped" && body.isoMax !== null) {
     cause = `your ISO cap (ISO ${iso})`;
   } else {
-    cause = `the ISO cap (ISO ${Math.min(iso, AUTO_ISO_CEILING)})`;
+    cause = `the ISO ceiling (ISO ${Math.min(iso, effectiveIsoCeiling(body))})`;
   }
   const lensPart = aperture !== null ? ` and the lens aperture limit (${formatAperture(aperture)})` : "";
   return `Still ${stops.toFixed(1)} stops underexposed — limited by ${cause}${lensPart}, with the shutter at its ${describeShutter(floorS)} floor.`;
@@ -415,7 +422,8 @@ function solveAndFormat(args: {
     support: scene.support,
   });
   // Rounded BEFORE anything reaches the response: the user dials camera steps.
-  const rounded = roundToCameraSteps(raw, isoCeilingFor(body));
+  const isoCeiling = effectiveIsoCeiling(body);
+  const rounded = roundToCameraSteps(raw, isoCeiling);
 
   const assumptions: string[] = [...lightAssumptions];
   for (const field of scene.defaulted) {
@@ -430,9 +438,16 @@ function solveAndFormat(args: {
     assumptions.push(`Stabilisation of "${lens.label}" unknown — assumed none for the shutter floor.`);
   }
 
-  // A raw shortfall is a real limit. Rounding alone can open a sliver of a gap
-  // (e.g. a too-bright scene's shutter snapping faster), which isn't one.
-  const shortfallStops = raw.shortfallStops > 0 ? rounded.shortfallStops : 0;
+  // A raw shortfall is a real limit, and so is light the ISO ceiling refuses to
+  // give. The ladder reads the same effectiveIsoCeiling, so it has normally
+  // counted that cost already — but it only consults the ceiling on rung 3,
+  // and a body whose isoBase sits above the ceiling can return from rung 2
+  // reporting no shortfall at an ISO the clamp then takes back. Rounding alone
+  // can open a sliver of a gap (a too-bright scene's shutter snapping faster),
+  // which is not a limit and must not be reported as one.
+  const clampedByIsoCeiling = raw.iso > isoCeiling * (1 + 1e-9);
+  const shortfallStops =
+    raw.shortfallStops > 0 || clampedByIsoCeiling ? rounded.shortfallStops : 0;
   if (shortfallStops >= 0.05) {
     assumptions.push(shortfallLine(shortfallStops, body, rounded.iso, rounded.aperture, rounded.shutterS));
   }

@@ -153,7 +153,7 @@ Handler sequence:
 
 Helper module src/lib/sessions.ts:
 - ensureSession(user_id, session_id?) → { session_id, was_created }
-- appendMessages(session_id, user_content, assistant_content) → void
+- appendMessages(session_id, user_content, assistant_content) → { userMessageId, assistantMessageId }
 - updateSessionTitle(session_id, title) → void
 
 Helper module src/lib/quota.ts:

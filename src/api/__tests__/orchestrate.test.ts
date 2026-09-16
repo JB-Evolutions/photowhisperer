@@ -25,9 +25,10 @@ vi.mock("../../calculator/ladder", async (importOriginal) => {
 
 import { APIError } from "@anthropic-ai/sdk";
 import { solveExposure } from "../../calculator/ladder";
-import { LIGHT_CONDITION_EV } from "../../lib/contract/types";
+import { DEFAULT_ISO_CEILING, LIGHT_CONDITION_EV } from "../../lib/contract/types";
 import {
   getSettings,
+  inferConditionFromText,
   CLARIFICATION_QUESTION,
   HIGHLIGHT_WARNING,
   WIDEST_APERTURE_LABEL,
@@ -472,6 +473,31 @@ describe("getSettings", () => {
       expect(Object.values(LIGHT_CONDITION_EV)).not.toContain(sceneEv);
       expect(result.status).toBe("ok");
     });
+
+    it("condition moon_subject → solver gets exactly EV 15", async () => {
+      await getSettings("the moon", gear, null, { condition: "moon_subject" });
+
+      expect(solveSpy.mock.calls[0][0].sceneEv).toBe(LIGHT_CONDITION_EV.moon_subject);
+      expect(solveSpy.mock.calls[0][0].sceneEv).toBe(15);
+    });
+
+    it("condition night_moonlit is unchanged at EV −2", async () => {
+      await getSettings("a moonlit field", gear, null, { condition: "night_moonlit" });
+
+      expect(solveSpy.mock.calls[0][0].sceneEv).toBe(LIGHT_CONDITION_EV.night_moonlit);
+      expect(solveSpy.mock.calls[0][0].sceneEv).toBe(-2);
+    });
+
+    it("a measured EV bypasses the table even when a condition is also stated", async () => {
+      await getSettings("the moon", gear, null, {
+        image: image({ exif: EXIF_EV_9_3 }),
+        condition: "moon_subject",
+      });
+
+      const sceneEv = solveSpy.mock.calls[0][0].sceneEv;
+      expect(sceneEv).toBeCloseTo(9.3, 9);
+      expect(sceneEv).not.toBe(LIGHT_CONDITION_EV.moon_subject);
+    });
   });
 
   // ─── Structured scene input ────────────────────────────────────────────────
@@ -595,5 +621,183 @@ describe("getSettings", () => {
 
       expect(result.status === "ok" && result.warnings).toEqual([HIGHLIGHT_WARNING]);
     });
+  });
+
+  // ─── ISO ceiling ───────────────────────────────────────────────────────────
+  describe("the ISO ceiling binds and says so", () => {
+    const FIFTY_PRIME = {
+      label: "50mm f/1.8",
+      focalMinMm: 50,
+      focalMaxMm: 50,
+      aperWide: 1.8,
+      aperTele: 1.8,
+      stabilised: false,
+      stabStops: null,
+      confidence: "high" as const,
+    };
+
+    beforeEach(() => {
+      mockCreate.mockResolvedValue(okScene({ focal_length_mm: 50 }));
+    });
+
+    it("an auto body in moonlight stops at ISO 6400 and names the ceiling that bound it", async () => {
+      const gear: GearProfile = { body: AUTO_BODY, lenses: [FIFTY_PRIME] };
+
+      const result = await getSettings("a field", gear, null, { condition: "night_moonlit" });
+
+      expect(result.status).toBe("ok");
+      if (result.status === "ok") {
+        expect(result.iso).toBe(DEFAULT_ISO_CEILING);
+        expect(result.shortfallStops).toBeGreaterThan(0);
+        const line = result.assumptions.find((a) => a.includes("underexposed"));
+        expect(line).toMatch(
+          /^Still \d+\.\d stops underexposed — limited by the ISO ceiling \(ISO 6400\) and the lens aperture limit \(f\/1\.8\), with the shutter at its .+ floor\.$/
+        );
+      }
+    });
+
+    it("a capped body at 3000 still returns 3000", async () => {
+      const gear: GearProfile = {
+        body: { ...AUTO_BODY, isoMode: "capped", isoMax: 3000 },
+        lenses: [FIFTY_PRIME],
+      };
+
+      const result = await getSettings("a field", gear, null, { condition: "night_moonlit" });
+
+      expect(result.status === "ok" && result.iso).toBe(3000);
+    });
+
+    it("a body declaring isoMax 12800 reaches 12800", async () => {
+      const gear: GearProfile = {
+        body: { ...AUTO_BODY, isoMode: "capped", isoMax: 12800 },
+        lenses: [FIFTY_PRIME],
+      };
+
+      const result = await getSettings("a field", gear, null, { condition: "night_moonlit" });
+
+      expect(result.status === "ok" && result.iso).toBe(12800);
+    });
+
+    it("a reachable scene keeps ISO under the ceiling and reports no shortfall", async () => {
+      const gear: GearProfile = { body: AUTO_BODY, lenses: [FIFTY_PRIME] };
+
+      const result = await getSettings("a room", gear, null, { condition: "night_no_street" });
+
+      expect(result.status).toBe("ok");
+      if (result.status === "ok") {
+        expect(result.iso).toBeLessThan(DEFAULT_ISO_CEILING);
+        expect(result.shortfallStops).toBe(0);
+        expect(result.assumptions.some((a) => a.includes("underexposed"))).toBe(false);
+      }
+    });
+
+    it("a base ISO above the ceiling is clamped, and the stops it costs are reported", async () => {
+      // Rung 3 never runs — the scene is bright enough that the shutter stays
+      // inside its floor — so the ladder reports no shortfall at ISO 12800.
+      // The clamp to 6400 still costs a real stop, and it has to surface.
+      const gear: GearProfile = {
+        body: { ...AUTO_BODY, isoBase: 12800 },
+        lenses: [FIFTY_PRIME],
+      };
+
+      const result = await getSettings("a room", gear, null, { condition: "indoor_dim" });
+
+      expect(result.status).toBe("ok");
+      if (result.status === "ok") {
+        expect(result.iso).toBe(DEFAULT_ISO_CEILING);
+        // At least the full stop the clamp took; the shutter's own rounding
+        // loss rides along once a real limit has bound.
+        expect(result.shortfallStops).toBeGreaterThanOrEqual(1);
+        expect(result.assumptions.some((a) => a.includes("the ISO ceiling (ISO 6400)"))).toBe(true);
+      }
+    });
+
+    it("moon_subject is a bright, reachable exposure where night_moonlit was not", async () => {
+      const gear: GearProfile = { body: AUTO_BODY, lenses: [FIFTY_PRIME] };
+
+      const moon = await getSettings("the moon", gear, null, { condition: "moon_subject" });
+      const field = await getSettings("a field", gear, null, { condition: "night_moonlit" });
+
+      expect(moon.status).toBe("ok");
+      if (moon.status === "ok") {
+        expect(moon.iso).toBe(100);
+        expect(moon.shortfallStops).toBe(0);
+        // Fractions of a second, not the seconds-long drag the ambient read gives.
+        expect(moon.shutter_speed.startsWith("1/")).toBe(true);
+      }
+      expect(field.status === "ok" && field.iso).toBe(DEFAULT_ISO_CEILING);
+      expect(field.status === "ok" && field.shortfallStops).toBeGreaterThan(0);
+    });
+  });
+});
+
+// ─── Text inference: the moon lights a scene or is the scene ─────────────────
+describe("inferConditionFromText — moon as light source vs moon as subject", () => {
+  it.each([
+    ["shooting the moon", "moon_subject"],
+    ["full moon close up", "moon_subject"],
+    ["moonrise over the bay", "moon_subject"],
+    ["a supermoon tonight", "moon_subject"],
+    ["moonlit landscape", "night_moonlit"],
+    ["a field under moonlight", "night_moonlit"],
+    ["a barn lit by the moon", "night_moonlit"],
+    ["walking under the moon", "night_moonlit"],
+  ])("%s → %s", (text, condition) => {
+    expect(inferConditionFromText(text)?.condition).toBe(condition);
+  });
+
+  it("the moonlit forms win the race: the bare-moon rule never swallows them", () => {
+    // Both rules can see "moon"; only the ordering keeps these ambient.
+    for (const text of ["moonlit", "moonlight", "moonlighting under the stars"]) {
+      expect(inferConditionFromText(text)?.condition).toBe("night_moonlit");
+    }
+  });
+
+  it("a moon emoji still marks night, not a lunar telephoto", () => {
+    expect(inferConditionFromText("out for a walk 🌙")?.condition).toBe("night_moonlit");
+  });
+
+  it("the moon is the subject indoors too — a window does not dim it", () => {
+    expect(inferConditionFromText("the moon from my bedroom window")?.condition).toBe("moon_subject");
+    // But a room lit by it is still a dim room.
+    expect(inferConditionFromText("a bedroom lit by the moon")?.condition).toBe("indoor_dim");
+  });
+});
+
+describe("text inference reaches the solver", () => {
+  beforeEach(() => {
+    mockCreate.mockReset();
+    mockCreate.mockResolvedValue(apiResponse(JSON.stringify({
+      status: "ok", motion: "static", support: "tripod", focal_length_mm: 400,
+      white_balance: "daylight", lighting_direction: "front", highlight_risk: false,
+      defaulted: [], scene_summary: "The moon.",
+    })));
+  });
+
+  it('"shooting the moon" is solved at EV 15, not the EV −2 of the ground below it', async () => {
+    const solveSpy = vi.mocked(solveExposure);
+    solveSpy.mockClear();
+
+    const result = await getSettings("shooting the moon");
+
+    expect(solveSpy.mock.calls[0][0].sceneEv).toBe(LIGHT_CONDITION_EV.moon_subject);
+    expect(result.status).toBe("ok");
+    if (result.status === "ok") {
+      expect(result.iso).toBe(100);
+      expect(result.shortfallStops).toBe(0);
+      expect(result.assumptions).toContain('Light read as the moon itself from "moon".');
+    }
+  });
+
+  it('"a moonlit landscape" is still solved at EV −2', async () => {
+    const solveSpy = vi.mocked(solveExposure);
+    solveSpy.mockClear();
+
+    const result = await getSettings("a moonlit landscape");
+
+    expect(solveSpy.mock.calls[0][0].sceneEv).toBe(LIGHT_CONDITION_EV.night_moonlit);
+    expect(result.status === "ok" && result.assumptions).toContain(
+      'Light read as a moonlit night from "moonlit".'
+    );
   });
 });

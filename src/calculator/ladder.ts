@@ -1,4 +1,5 @@
 import {
+  effectiveIsoCeiling,
   INTENT_STOPS,
   type BodyProfile,
   type BrightnessIntent,
@@ -8,11 +9,7 @@ import {
   type Support,
 } from "../lib/contract/types";
 import { apertureAtFocal } from "../lib/lens/parse";
-import {
-  AUTO_ISO_CEILING,
-  STANDARD_SHUTTERS,
-  UNKNOWN_LENS_NOTIONAL_APERTURE,
-} from "./constants";
+import { STANDARD_SHUTTERS, UNKNOWN_LENS_NOTIONAL_APERTURE } from "./constants";
 import { formatAperture } from "./format";
 import { computeShutterFloor, describeShutter } from "./shutterFloor";
 
@@ -121,11 +118,12 @@ export function solveExposure(args: {
     return { aperture: lensLimit, shutterS, iso: startIso, shortfallStops: stopsShort, floor, ladderTrace };
   }
 
-  // Rung 3.
-  const ceiling = Math.max(
-    startIso,
-    body.isoMode === "capped" ? (body.isoMax ?? AUTO_ISO_CEILING) : AUTO_ISO_CEILING
-  );
+  // Rung 3. The ceiling is the contract's, the same one roundToCameraSteps
+  // clamps to, so the trace names the limit the user will actually hit and the
+  // shortfall is counted once here rather than reappearing after rounding.
+  // Math.max keeps a body whose base ISO already sits above its ceiling from
+  // being handed a ceiling below the ISO it starts at.
+  const ceiling = Math.max(startIso, effectiveIsoCeiling(body));
   const neededIso = startIso * 2 ** stopsShort;
 
   if (neededIso <= ceiling) {
