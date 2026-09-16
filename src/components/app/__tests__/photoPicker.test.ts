@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { PHOTO_SOURCE_ORDER } from "@/components/app/PhotoPicker";
+import { PHOTO_SOURCE_ORDER, SOURCE_HINTS } from "@/components/app/PhotoPicker";
 import { IMAGE_ACCEPT } from "@/lib/image/limits";
 
 describe("PHOTO_SOURCE_ORDER", () => {
@@ -17,5 +17,14 @@ describe("PHOTO_SOURCE_ORDER", () => {
   // place the wildcard could creep back in.
   it("feeds both inputs an accept with no wildcard", () => {
     expect(IMAGE_ACCEPT).not.toMatch(/\*/);
+  });
+});
+
+describe("SOURCE_HINTS", () => {
+  // The hint exists to steer people off the capture path. On the library row it
+  // would be advising them to do what they are already doing.
+  it("hints on the camera row only", () => {
+    expect(SOURCE_HINTS.camera).toMatch(/Camera app/);
+    expect(SOURCE_HINTS.library).toBeUndefined();
   });
 });

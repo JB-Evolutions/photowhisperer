@@ -32,6 +32,14 @@ const SOURCE_LABELS: Record<PhotoSource, string> = {
   library: "Choose from library",
 };
 
+// Only the camera row carries a hint, and only because the EXIF strip described
+// above has no workaround we can apply for the user — the best we can do is say
+// out loud what produces a better reading. Guidance, not a warning: a capture
+// still works, it just measures less.
+export const SOURCE_HINTS: Partial<Record<PhotoSource, string>> = {
+  camera: "For the most accurate reading, shoot in your Camera app and pick it from your library.",
+};
+
 const focusRing =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--border-accent)]";
 
@@ -215,13 +223,18 @@ const PhotoPicker = forwardRef<PhotoPickerHandle, PhotoPickerProps>(function Pho
                 role="menuitem"
                 onClick={() => openSource(source)}
                 className={[
-                  "pw-pressable flex min-h-[44px] items-center gap-3 rounded-xl px-3 text-left text-base text-text",
+                  "pw-pressable flex min-h-[44px] items-center gap-3 rounded-xl px-3 py-2 text-left text-base text-text",
                   "transition-colors duration-200 ease-[cubic-bezier(0.2,0,0,1)] hover:bg-surface-2",
                   focusRing,
                 ].join(" ")}
               >
                 <SourceIcon source={source} />
-                {SOURCE_LABELS[source]}
+                <span className="flex min-w-0 flex-col">
+                  {SOURCE_LABELS[source]}
+                  {SOURCE_HINTS[source] ? (
+                    <span className="mt-0.5 text-xs leading-snug text-text-muted">{SOURCE_HINTS[source]}</span>
+                  ) : null}
+                </span>
               </button>
             ))}
           </div>
