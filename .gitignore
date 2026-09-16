@@ -49,3 +49,7 @@ supabase/.temp/
 
 # local test helper (tier-flip script), never commit
 set-tier-tmp.mjs
+
+# pitch screenshot pipeline
+pitch/screenshots/
+pitch/.auth.json

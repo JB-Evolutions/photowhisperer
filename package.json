@@ -18,7 +18,9 @@
     "test:integration": "vitest run --config vitest.integration.config.ts",
     "typecheck": "tsc --noEmit",
     "test:e2e": "tsx scripts/e2e.ts",
-    "smoke": "tsx scripts/smoke.ts"
+    "smoke": "tsx scripts/smoke.ts",
+    "pitch:seed": "tsx scripts/seed-pitch-data.ts",
+    "pitch:shots": "tsx scripts/pitch-shots.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.95.2",
@@ -45,6 +47,8 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.6",
     "jsdom": "^30.0.1",
+    "playwright": "^1.62.1",
+    "sharp": "^0.34.5",
     "tsx": "^4.21.0",
     "typescript": "^5",
     "vitest": "^1.6.0"
