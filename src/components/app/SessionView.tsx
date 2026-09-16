@@ -69,6 +69,11 @@ interface SessionViewProps {
   // onQuotaExceeded.
   onRequestSucceeded?: () => void;
   onPreFillComposer?: (text: string) => void;
+  // Mirrors the in-flight flag so AppShell can disable the controls above the
+  // composer while a request runs. Driven off the `pending` state rather than
+  // called at each site, so every completion path — ok, error, quota,
+  // rate-limit, abort — reports through the one place that clears it.
+  onPendingChange?: (pending: boolean) => void;
   // Fired whenever the active session id changes — new session created by
   // send(), a past session loaded via loadSession(), or cleared by reset().
   // Single callback so AppShell tracks one thing instead of three.
@@ -108,6 +113,7 @@ const SessionView = forwardRef<SessionViewHandle, SessionViewProps>(
       onQuotaExceeded,
       onRequestSucceeded,
       onPreFillComposer,
+      onPendingChange,
       onSessionIdChange,
       condition = null,
       intent = DEFAULT_INTENT,
@@ -181,6 +187,10 @@ const SessionView = forwardRef<SessionViewHandle, SessionViewProps>(
         abortControllerRef.current?.abort();
       };
     }, []);
+
+    useEffect(() => {
+      onPendingChange?.(pending);
+    }, [pending, onPendingChange]);
 
     async function send(text: string, opts: SendOptions = {}) {
       const { attachment = null, condition: conditionOverride, echoPhoto = true } = opts;

@@ -1,13 +1,12 @@
 "use client";
 
-// Two-axis light picker under the composer. Never a mandatory step: "Let it
-// decide" and Natural are the defaults, and the choice rides on every request
-// for the rest of the session.
+// Light-condition picker, paired with the brightness stepper in the row above
+// the composer. Never a mandatory step: "Let it decide" is the default, and the
+// choice rides on every request for the rest of the session.
 import { useId, useRef, useState, type KeyboardEvent } from "react";
 import type { BrightnessIntent, LightCondition } from "@/lib/contract/types";
 import {
   CONDITION_GROUPS,
-  INTENT_OPTIONS,
   LET_IT_DECIDE_LABEL,
   selectionSummary,
 } from "@/components/app/conditions";
@@ -43,9 +42,10 @@ function moveRadioFocus(e: KeyboardEvent<HTMLElement>) {
 
 interface ConditionSelectorProps {
   condition: LightCondition | null;
+  // Read-only here — the stepper owns changing it; the collapsed pill just
+  // summarises both axes.
   intent: BrightnessIntent;
   onConditionChange: (condition: LightCondition | null) => void;
-  onIntentChange: (intent: BrightnessIntent) => void;
   disabled?: boolean;
 }
 
@@ -53,7 +53,6 @@ export default function ConditionSelector({
   condition,
   intent,
   onConditionChange,
-  onIntentChange,
   disabled = false,
 }: ConditionSelectorProps) {
   const [open, setOpen] = useState(false);
@@ -69,7 +68,7 @@ export default function ConditionSelector({
 
   return (
     <div
-      className="mt-2"
+      className="relative min-w-0"
       onKeyDown={(e) => {
         if (e.key === "Escape" && expanded) {
           e.stopPropagation();
@@ -85,14 +84,16 @@ export default function ConditionSelector({
         disabled={disabled}
         onClick={() => setOpen((o) => !o)}
         className={[
-          "inline-flex min-h-[44px] max-w-full items-center gap-2 rounded-full border border-border bg-surface px-4 text-sm text-text-muted",
+          "inline-flex min-h-[44px] w-full max-w-[18rem] items-center gap-2 rounded-full border border-border bg-surface px-4 text-sm text-text-muted",
           "transition-colors duration-200 ease-[cubic-bezier(0.2,0,0,1)] hover:text-text",
           "disabled:cursor-not-allowed disabled:opacity-40",
           focusRing,
         ].join(" ")}
       >
-        <span className="text-text-dim">Light</span>
-        <span className="truncate text-text">{selectionSummary(condition, intent)}</span>
+        <span className="flex-none text-text-dim">Light</span>
+        <span className="min-w-0 flex-1 truncate text-left text-text">
+          {selectionSummary(condition, intent)}
+        </span>
         <svg
           viewBox="0 0 24 24"
           width="14"
@@ -109,10 +110,15 @@ export default function ConditionSelector({
         </svg>
       </button>
 
+      {/* Anchored above the control row rather than in flow: as a flex item the
+          panel would otherwise size to max-content (every chip on one line) and
+          blow the row out. Opening upward keeps it clear of the composer, the
+          same way PhotoPicker's sheet sits on desktop. Width is set here, not
+          by the trigger, so the chips wrap exactly as they always have. */}
       {expanded && (
         <div
           id={panelId}
-          className="pw-expand-in mt-2 max-h-[40dvh] overflow-y-auto rounded-2xl border border-border bg-surface p-3"
+          className="pw-expand-in absolute inset-x-0 bottom-full z-40 mx-auto mb-2 max-h-[40dvh] w-[min(92vw,30rem)] overflow-y-auto rounded-2xl border border-border bg-surface p-3"
         >
           <div role="radiogroup" aria-label="Light" onKeyDown={moveRadioFocus} className="flex flex-col gap-3">
             <div className="flex flex-wrap gap-2">
@@ -153,40 +159,6 @@ export default function ConditionSelector({
                 </div>
               </div>
             ))}
-          </div>
-
-          <p aria-hidden="true" className="mb-2 mt-4 text-[11px] font-medium uppercase tracking-widest text-text-dim">
-            Brightness
-          </p>
-          <div
-            role="radiogroup"
-            aria-label="Brightness"
-            onKeyDown={moveRadioFocus}
-            className="grid grid-cols-3 gap-1 rounded-xl border border-border bg-bg p-1"
-          >
-            {INTENT_OPTIONS.map((option) => {
-              const selected = intent === option.value;
-              return (
-                <button
-                  key={option.value}
-                  type="button"
-                  role="radio"
-                  aria-checked={selected}
-                  aria-label={`${option.label}, ${option.stops}`}
-                  tabIndex={selected ? 0 : -1}
-                  onClick={() => onIntentChange(option.value)}
-                  className={[
-                    "flex min-h-[44px] flex-col items-center justify-center rounded-lg px-2 py-1 text-sm",
-                    "transition-colors duration-200 ease-[cubic-bezier(0.2,0,0,1)]",
-                    selected ? "bg-surface-3 text-text" : "text-text-muted hover:text-text",
-                    focusRing,
-                  ].join(" ")}
-                >
-                  <span>{option.label}</span>
-                  <span className="text-xs text-text-dim">{option.stops}</span>
-                </button>
-              );
-            })}
           </div>
         </div>
       )}

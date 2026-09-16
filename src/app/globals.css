@@ -216,6 +216,16 @@ body {
   .pw-expand-in { animation: pw-expand-in 180ms cubic-bezier(0.2, 0, 0, 1) both; }
 }
 
+/* Brightness stepper: the label crossfades as it changes. Reduced motion gets
+   the new label immediately (no animation declared inside the query). */
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes pw-intent-fade {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+  .pw-intent-fade { animation: pw-intent-fade 120ms cubic-bezier(0.2, 0, 0, 1) both; }
+}
+
 /* Cookie banner: slide-in for motion-preferring users; appears immediately under reduced-motion */
 @media (prefers-reduced-motion: no-preference) {
   @keyframes pw-cookie-banner-in {

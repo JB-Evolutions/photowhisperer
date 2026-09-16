@@ -65,6 +65,38 @@ export const INTENT_OPTIONS: readonly { value: BrightnessIntent; label: string; 
   ["moody", "natural", "bright"] as const
 ).map((value) => ({ value, label: INTENT_LABELS[value], stops: formatStops(INTENT_STOPS[value]) }));
 
+// ─── BRIGHTNESS STEPPER ────────────────────────────────────────────────
+// The order the stepper walks, dimmest first. It never wraps, so this also
+// serves as the clamp range.
+export const INTENT_ORDER = ["moody", "natural", "bright"] as const;
+
+export function intentIndex(intent: BrightnessIntent): number {
+  return INTENT_ORDER.indexOf(intent);
+}
+
+// Clamped, never cyclic: stepping past either end returns the same intent, so
+// callers can compare identity to know an end was reached.
+export function stepIntent(intent: BrightnessIntent, delta: -1 | 1): BrightnessIntent {
+  const next = intentIndex(intent) + delta;
+  if (next < 0 || next >= INTENT_ORDER.length) return intent;
+  return INTENT_ORDER[next];
+}
+
+export function canStepIntent(intent: BrightnessIntent, delta: -1 | 1): boolean {
+  return stepIntent(intent, delta) !== intent;
+}
+
+// Compact label for the stepper: the word alone at 0 stops, word + signed stop
+// otherwise ("Moody −1", "Natural", "Bright +1"). Deliberately shorter than
+// formatStops(), which words the full "−1 stop" the expanded panel uses — both
+// read from INTENT_STOPS, so neither restates the contract.
+export function intentStepperLabel(intent: BrightnessIntent): string {
+  const stops = INTENT_STOPS[intent];
+  if (stops === 0) return INTENT_LABELS[intent];
+  return `${INTENT_LABELS[intent]} ${stops > 0 ? "+" : "−"}${Math.abs(stops)}`;
+}
+// ───────────────────────────────────────────────────────────────────────
+
 export function conditionLabel(condition: LightCondition | null): string {
   if (condition === null) return LET_IT_DECIDE_LABEL;
   for (const group of CONDITION_GROUPS) {

@@ -5,6 +5,7 @@ import type { BodyProfile, BrightnessIntent, LightCondition } from "@/lib/contra
 import { prepareImage } from "@/lib/image/prepare";
 import { clearComposerDraft, restoreComposerDraft, saveComposerDraft } from "@/lib/image/composer";
 import ConditionSelector from "@/components/app/ConditionSelector";
+import BrightnessStepper from "@/components/app/BrightnessStepper";
 import { DEFAULT_INTENT } from "@/components/app/conditions";
 import { attachmentErrorKind, jpegDataUri, type ComposerAttachment } from "@/components/app/photoAttachment";
 import { ToastProvider } from "@/components/app/useToast";
@@ -61,6 +62,11 @@ export default function AppShell({
   const [intent, setIntent] = useState<BrightnessIntent>(DEFAULT_INTENT);
   // Words the shortfall line; unknown until the profile loads (or if it fails).
   const [isoMode, setIsoMode] = useState<BodyProfile["isoMode"] | null>(null);
+
+  // Mirrors SessionView's in-flight flag so the controls above the composer
+  // dim while a request runs. SessionView already ignores a send() during
+  // flight — this is the visible half of that rule.
+  const [isSending, setIsSending] = useState(false);
 
   const [attachment, setAttachment] = useState<ComposerAttachment | null>(null);
   // Bumped whenever the attachment is replaced, removed or sent, so a late
@@ -269,6 +275,7 @@ export default function AppShell({
                     setComposerValue(text);
                     composerRef.current?.focus();
                   }}
+                  onPendingChange={setIsSending}
                   condition={condition}
                   intent={intent}
                   isoMode={isoMode}
@@ -323,6 +330,24 @@ export default function AppShell({
                         </button>
                       </p>
                     )}
+                    {/* Brightness and light, centred directly above the text
+                        box. flex-wrap drops the pair onto two centred lines on
+                        a narrow screen; neither control shrinks (the stepper is
+                        flex-none, the light pill truncates its own label), so
+                        the row never scrolls sideways. */}
+                    <div className="mb-3 flex flex-wrap items-center justify-center gap-3">
+                      <BrightnessStepper
+                        intent={intent}
+                        onChange={setIntent}
+                        disabled={outOfCredits || rateLimited || isSending}
+                      />
+                      <ConditionSelector
+                        condition={condition}
+                        intent={intent}
+                        onConditionChange={setCondition}
+                        disabled={outOfCredits || rateLimited || isSending}
+                      />
+                    </div>
                     <ChatComposer
                       ref={composerRef}
                       value={composerValue}
@@ -339,13 +364,6 @@ export default function AppShell({
                       }
                       disabled={outOfCredits || rateLimited}
                       sendDisabled={outOfCredits || rateLimited || account == null}
-                    />
-                    <ConditionSelector
-                      condition={condition}
-                      intent={intent}
-                      onConditionChange={setCondition}
-                      onIntentChange={setIntent}
-                      disabled={outOfCredits || rateLimited}
                     />
                   </>
                 )}
