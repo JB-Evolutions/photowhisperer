@@ -182,7 +182,7 @@ const ChatComposer = forwardRef<ChatComposerHandle, ChatComposerProps>(
                   <button
                     type="button"
                     onClick={() => pickerRef.current?.openSheet()}
-                    className={`inline-flex min-h-[44px] items-center rounded-md text-sm text-text underline underline-offset-2 hover:text-text-muted ${focusRing}`}
+                    className={`pw-pressable inline-flex min-h-[44px] items-center rounded-md text-sm text-text underline underline-offset-2 hover:text-text-muted ${focusRing}`}
                   >
                     Try another photo
                   </button>
@@ -193,7 +193,7 @@ const ChatComposer = forwardRef<ChatComposerHandle, ChatComposerProps>(
               type="button"
               aria-label={`Remove ${attachment.name}`}
               onClick={onRemoveAttachment}
-              className={`flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl text-text-muted transition-colors duration-200 ease-[cubic-bezier(0.2,0,0,1)] hover:bg-surface-2 hover:text-text ${focusRing}`}
+              className={`pw-pressable flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl text-text-muted transition-colors duration-200 ease-[cubic-bezier(0.2,0,0,1)] hover:bg-surface-2 hover:text-text ${focusRing}`}
             >
               <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <line x1="18" y1="6" x2="6" y2="18" />

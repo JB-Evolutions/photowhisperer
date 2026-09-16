@@ -16,7 +16,7 @@ const focusRing =
 
 function chipClass(selected: boolean) {
   return [
-    "inline-flex min-h-[44px] items-center rounded-full border px-4 text-sm",
+    "pw-pressable inline-flex min-h-[44px] items-center rounded-full border px-4 text-sm",
     "transition-colors duration-200 ease-[cubic-bezier(0.2,0,0,1)]",
     selected
       ? "border-border-strong bg-surface-3 text-text"
@@ -113,7 +113,7 @@ export default function ConditionSelector({
           setOpen((o) => !o);
         }}
         className={[
-          "inline-flex min-h-[44px] w-full max-w-[18rem] items-center gap-2 rounded-full border border-border bg-surface px-4 text-sm text-text-muted",
+          "pw-pressable inline-flex min-h-[44px] w-full max-w-[18rem] items-center gap-2 rounded-full border border-border bg-surface px-4 text-sm text-text-muted",
           "transition-colors duration-200 ease-[cubic-bezier(0.2,0,0,1)] hover:text-text",
           "disabled:cursor-not-allowed disabled:opacity-40",
           focusRing,

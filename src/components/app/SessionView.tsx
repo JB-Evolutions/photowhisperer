@@ -556,7 +556,7 @@ const SessionView = forwardRef<SessionViewHandle, SessionViewProps>(
                   send(inFlight.text, { image: inFlight.image, condition: inFlight.condition });
                 }}
                 className={[
-                  "self-start rounded-lg border border-border px-3 py-2 text-sm text-text-muted",
+                  "pw-pressable self-start rounded-lg border border-border px-3 py-2 text-sm text-text-muted",
                   "transition-colors duration-200 ease-[cubic-bezier(0.2,0,0,1)]",
                   "hover:bg-surface-2 hover:text-text",
                   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--border-accent)]",

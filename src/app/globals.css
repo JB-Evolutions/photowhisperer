@@ -12,6 +12,9 @@
   --border: rgba(184, 211, 240, 0.10);
   --border-strong: rgba(184, 211, 240, 0.20);
   --border-accent: rgba(242, 200, 121, 0.28);
+  /* Composited over whatever background a control already has to darken it
+     by one surface step while pressed (see .pw-pressable). */
+  --press-tint: rgba(0, 0, 0, 0.22);
   --text: #E8F1FC;
   --text-muted: #9DB4CE;
   --text-dim: #879CB5;
@@ -35,6 +38,9 @@
   --border: rgba(184, 211, 240, 0.10);
   --border-strong: rgba(184, 211, 240, 0.20);
   --border-accent: rgba(242, 200, 121, 0.28);
+  /* Composited over whatever background a control already has to darken it
+     by one surface step while pressed (see .pw-pressable). */
+  --press-tint: rgba(0, 0, 0, 0.22);
   --text: #E8F1FC;
   --text-muted: #9DB4CE;
   --text-dim: #879CB5;
@@ -58,6 +64,8 @@
   --border: rgba(26, 20, 16, 0.08);
   --border-strong: rgba(26, 20, 16, 0.16);
   --border-accent: rgba(154, 110, 51, 0.30);
+  /* See the dark-theme note above; the light surfaces step down by much less. */
+  --press-tint: rgba(26, 20, 16, 0.07);
   --text: #1A1410;
   --text-muted: #6B5E4F;
   --text-dim: #817363;
@@ -160,6 +168,54 @@ body {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     scroll-behavior: auto !important;
+  }
+}
+
+/* === Press feedback ===
+   One utility applied to every interactive control, so a click or tap is
+   always visibly acknowledged.
+
+   Written as a keyframe animation rather than a transition on purpose: most
+   controls in this codebase already carry Tailwind's `transition-colors`, and
+   an unlayered `transition` shorthand here would silently replace it on every
+   one of them. An animation adds the press without touching what the element
+   already transitions.
+
+   The darkening is an inset shadow rather than a background-color so it
+   composites over whatever the control already has — a token surface, the
+   primary button's gradient, or nothing at all — without this utility having
+   to know which surface step the element started on.
+
+   :active only. Nothing here keys off :hover, which on touch devices sticks
+   after the finger lifts. */
+@keyframes pw-press {
+  from {
+    transform: scale(1);
+    box-shadow: inset 0 0 0 999px rgba(0, 0, 0, 0);
+  }
+  to {
+    transform: scale(0.97);
+    box-shadow: inset 0 0 0 999px var(--press-tint);
+  }
+}
+
+.pw-pressable {
+  transform-origin: center;
+  /* We draw our own press state; the platform's grey tap flash would double it. */
+  -webkit-tap-highlight-color: transparent;
+}
+
+.pw-pressable:active:not(:disabled):not([aria-disabled="true"]) {
+  animation: pw-press 70ms ease-out both;
+}
+
+/* Reduced motion: no scale, but the press still has to read. The global rule
+   above collapses animation-duration to 0.01ms, so rather than animate to a
+   state instantly, drop the animation and apply the tint on its own. */
+@media (prefers-reduced-motion: reduce) {
+  .pw-pressable:active:not(:disabled):not([aria-disabled="true"]) {
+    animation: none;
+    box-shadow: inset 0 0 0 999px var(--press-tint);
   }
 }
 

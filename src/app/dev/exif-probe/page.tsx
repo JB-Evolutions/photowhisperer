@@ -254,7 +254,7 @@ export default function ExifProbePage() {
           type="button"
           onClick={copyAll}
           disabled={results.length === 0}
-          className="rounded-lg border border-border-accent bg-surface-2 px-4 py-2 text-sm text-accent disabled:opacity-40"
+          className="pw-pressable rounded-lg border border-border-accent bg-surface-2 px-4 py-2 text-sm text-accent disabled:opacity-40"
         >
           Copy all results as JSON
         </button>

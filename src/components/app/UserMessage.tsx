@@ -25,7 +25,7 @@ export default function UserMessage({ text, photo }: UserMessageProps) {
               type="button"
               onClick={() => setOverlayOpen(true)}
               aria-label={`${alt} — open full size`}
-              className="block overflow-hidden rounded-[12px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--border-accent)]"
+              className="pw-pressable block overflow-hidden rounded-[12px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--border-accent)]"
             >
               {/* eslint-disable-next-line @next/next/no-img-element -- data: URI, not an optimisable asset */}
               <img src={photo.src} alt="" className="block h-auto w-full max-w-[200px]" />

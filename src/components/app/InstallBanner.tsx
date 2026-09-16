@@ -42,7 +42,7 @@ export default function InstallBanner({
           <button
             type="button"
             onClick={onDismissForever}
-            className="text-xs text-text-dim underline-offset-2 hover:text-text-muted hover:underline"
+            className="pw-pressable text-xs text-text-dim underline-offset-2 hover:text-text-muted hover:underline"
           >
             Don&apos;t remind me
           </button>
@@ -52,7 +52,7 @@ export default function InstallBanner({
         type="button"
         aria-label="Dismiss"
         onClick={onDismissSession}
-        className="absolute right-3 top-3 leading-none text-text-dim hover:text-text-muted"
+        className="pw-pressable absolute right-3 top-3 leading-none text-text-dim hover:text-text-muted"
       >
         ×
       </button>

@@ -37,7 +37,7 @@ export default function ClarificationCard({ question, chips, onChipSelect }: Cla
                 type="button"
                 onClick={() => onChipSelect!(chip)}
                 className={[
-                  "inline-flex min-h-[44px] items-center rounded-full border border-border bg-surface-2 px-4 text-sm text-text",
+                  "pw-pressable inline-flex min-h-[44px] items-center rounded-full border border-border bg-surface-2 px-4 text-sm text-text",
                   "transition-colors duration-200 ease-[cubic-bezier(0.2,0,0,1)] hover:border-border-strong",
                   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--border-accent)]",
                 ].join(" ")}

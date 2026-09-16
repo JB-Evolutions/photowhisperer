@@ -132,7 +132,7 @@ export default function SuccessView({ type, pack }: SuccessViewProps) {
           <button
             type="button"
             onClick={() => window.location.reload()}
-            className="text-sm text-text-muted underline hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--border-accent)]"
+            className="pw-pressable text-sm text-text-muted underline hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--border-accent)]"
           >
             Refresh to check
           </button>

@@ -136,7 +136,7 @@ export default function AutocompleteField({
               <button
                 type="button"
                 onClick={dismiss}
-                className="flex min-h-[44px] items-center px-2 text-sm text-text-muted"
+                className="pw-pressable flex min-h-[44px] items-center px-2 text-sm text-text-muted"
               >
                 Close
               </button>
@@ -157,7 +157,7 @@ export default function AutocompleteField({
                       aria-selected={index === highlightedIndex}
                       onMouseEnter={() => setHighlightedIndex(index)}
                       onClick={() => commit(option.label)}
-                      className={`flex min-h-[44px] w-full items-center px-4 text-left text-[15px] transition-colors sm:text-sm ${
+                      className={`pw-pressable flex min-h-[44px] w-full items-center px-4 text-left text-[15px] transition-colors sm:text-sm ${
                         index === highlightedIndex
                           ? "bg-surface-3 text-text"
                           : "text-text-muted hover:bg-surface-3 hover:text-text"

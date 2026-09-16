@@ -323,7 +323,7 @@ export default function AppShell({
                         Couldn&apos;t load your account.{" "}
                         <button
                           type="button"
-                          className="underline hover:text-text"
+                          className="pw-pressable underline hover:text-text"
                           onClick={() => window.location.reload()}
                         >
                           Retry

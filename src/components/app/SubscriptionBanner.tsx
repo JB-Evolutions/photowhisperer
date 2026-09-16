@@ -80,7 +80,7 @@ export default function SubscriptionBanner({
           <button
             type="button"
             disabled={portalPending}
-            className="underline-offset-2 hover:underline disabled:opacity-50"
+            className="pw-pressable underline-offset-2 hover:underline disabled:opacity-50"
             onClick={() => void handlePortal()}
           >
             {portalError
@@ -102,7 +102,7 @@ export default function SubscriptionBanner({
         Your {tierName} subscription has ended.{" "}
         <button
           type="button"
-          className="underline-offset-2 hover:text-text hover:underline"
+          className="pw-pressable underline-offset-2 hover:text-text hover:underline"
           onClick={() => router.push("/pricing")}
         >
           Resubscribe

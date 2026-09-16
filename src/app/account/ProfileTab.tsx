@@ -374,7 +374,7 @@ export default function ProfileTab({ email, newEmail, onDirtyChange, registerAct
                 <button
                   type="button"
                   onClick={() => setShowEmailModal(true)}
-                  className="self-start rounded text-sm text-accent transition-colors duration-[250ms] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--border-accent)]"
+                  className="pw-pressable self-start rounded text-sm text-accent transition-colors duration-[250ms] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--border-accent)]"
                 >
                   Use a different address
                 </button>
@@ -383,7 +383,7 @@ export default function ProfileTab({ email, newEmail, onDirtyChange, registerAct
               <button
                 type="button"
                 onClick={() => setShowEmailModal(true)}
-                className="self-start rounded text-sm text-accent transition-colors duration-[250ms] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--border-accent)]"
+                className="pw-pressable self-start rounded text-sm text-accent transition-colors duration-[250ms] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--border-accent)]"
               >
                 Edit email
               </button>
@@ -405,7 +405,7 @@ export default function ProfileTab({ email, newEmail, onDirtyChange, registerAct
               <button
                 type="button"
                 onClick={loadAccount}
-                className="rounded text-sm text-accent transition-colors duration-[250ms] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--border-accent)]"
+                className="pw-pressable rounded text-sm text-accent transition-colors duration-[250ms] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--border-accent)]"
               >
                 Retry
               </button>

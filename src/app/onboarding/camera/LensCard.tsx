@@ -73,7 +73,7 @@ function IconButton({ label, onClick, disabled, children }: IconButtonProps) {
       aria-label={label}
       onClick={onClick}
       disabled={disabled}
-      className={`flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl text-text-muted transition-colors duration-200 ease-[cubic-bezier(0.2,0,0,1)] hover:bg-surface-2 hover:text-text disabled:cursor-not-allowed disabled:opacity-30 ${focusRing}`}
+      className={`pw-pressable flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl text-text-muted transition-colors duration-200 ease-[cubic-bezier(0.2,0,0,1)] hover:bg-surface-2 hover:text-text disabled:cursor-not-allowed disabled:opacity-30 ${focusRing}`}
     >
       {children}
     </button>

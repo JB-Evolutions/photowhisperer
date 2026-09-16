@@ -20,7 +20,7 @@ interface ButtonProps {
 }
 
 export const buttonBase =
-  "inline-flex items-center gap-2 whitespace-nowrap rounded-[10px] font-body font-medium text-sm tracking-[0.01em] transition-all duration-[250ms] ease-[cubic-bezier(0.2,0,0,1)] border";
+  "pw-pressable inline-flex items-center gap-2 whitespace-nowrap rounded-[10px] font-body font-medium text-sm tracking-[0.01em] transition-all duration-[250ms] ease-[cubic-bezier(0.2,0,0,1)] border";
 
 export const buttonVariants: Record<Variant, string> = {
   primary:

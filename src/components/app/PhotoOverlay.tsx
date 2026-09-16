@@ -82,7 +82,7 @@ export default function PhotoOverlay({ src, alt, onClose }: PhotoOverlayProps) {
         type="button"
         aria-label="Close photo"
         onClick={onClose}
-        className="absolute right-3 top-[max(0.75rem,env(safe-area-inset-top))] flex h-11 w-11 items-center justify-center rounded-full border border-border bg-surface text-text transition-colors duration-200 hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--border-accent)]"
+        className="pw-pressable absolute right-3 top-[max(0.75rem,env(safe-area-inset-top))] flex h-11 w-11 items-center justify-center rounded-full border border-border bg-surface text-text transition-colors duration-200 hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--border-accent)]"
       >
         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <line x1="18" y1="6" x2="6" y2="18" />

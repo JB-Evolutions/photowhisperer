@@ -9,7 +9,7 @@ export default function MobileTopBar({ onMenuClick }: MobileTopBarProps) {
     <div className="flex items-center gap-3 border-b border-border bg-surface px-2 pb-2 pt-[max(0.5rem,env(safe-area-inset-top))] md:hidden">
       <button
         type="button"
-        className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg text-text transition-colors hover:bg-surface-2"
+        className="pw-pressable flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg text-text transition-colors hover:bg-surface-2"
         onClick={onMenuClick}
         aria-label="Open navigation menu"
       >

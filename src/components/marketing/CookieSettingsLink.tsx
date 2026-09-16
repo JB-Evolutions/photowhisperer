@@ -3,7 +3,7 @@
 import { COOKIE_SETTINGS_EVENT } from "@/lib/consent";
 
 const linkClass =
-  "text-sm text-text-muted transition-colors duration-[250ms] ease-[cubic-bezier(0.16,1,0.3,1)] hover:text-text";
+  "pw-pressable text-sm text-text-muted transition-colors duration-[250ms] ease-[cubic-bezier(0.16,1,0.3,1)] hover:text-text";
 
 export default function CookieSettingsLink() {
   return (

@@ -42,7 +42,7 @@ export default function SoftWarningBanner({ monthlyUsed, monthlyLimit }: SoftWar
         You've used {monthlyUsed} of {monthlyLimit} requests this month.{" "}
         <button
           type="button"
-          className="underline-offset-2 hover:text-text hover:underline"
+          className="pw-pressable underline-offset-2 hover:text-text hover:underline"
           onClick={() => router.push("/pricing")}
         >
           Upgrade
@@ -50,7 +50,7 @@ export default function SoftWarningBanner({ monthlyUsed, monthlyLimit }: SoftWar
         {" or "}
         <button
           type="button"
-          className="underline-offset-2 hover:text-text hover:underline"
+          className="pw-pressable underline-offset-2 hover:text-text hover:underline"
           onClick={() => setShowCreditsModal(true)}
         >
           Buy credits
@@ -61,7 +61,7 @@ export default function SoftWarningBanner({ monthlyUsed, monthlyLimit }: SoftWar
         type="button"
         aria-label="Dismiss"
         onClick={handleDismiss}
-        className="flex-shrink-0 leading-none text-text-dim hover:text-text-muted"
+        className="pw-pressable flex-shrink-0 leading-none text-text-dim hover:text-text-muted"
       >
         ×
       </button>

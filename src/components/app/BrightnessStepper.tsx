@@ -67,7 +67,7 @@ export default function BrightnessStepper({
     // adding per-button opacity on top would compound to near-invisible.
     const atEnd = !canStepIntent(intent, delta);
     return [
-      "flex h-11 w-11 flex-none items-center justify-center rounded-full text-text-muted",
+      "pw-pressable flex h-11 w-11 flex-none items-center justify-center rounded-full text-text-muted",
       "transition-colors duration-200 ease-[cubic-bezier(0.2,0,0,1)]",
       focusRing,
       disabled

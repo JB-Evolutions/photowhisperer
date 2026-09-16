@@ -154,7 +154,7 @@ export default function Sidebar({
             Couldn&apos;t load sessions.{" "}
             <button
               type="button"
-              className="underline hover:text-text"
+              className="pw-pressable underline hover:text-text"
               onClick={() => window.location.reload()}
             >
               Retry
@@ -182,7 +182,7 @@ export default function Sidebar({
                   <button
                     type="button"
                     title={s.title ?? "Untitled session"}
-                    className={`w-full border-l-2 px-4 py-2.5 text-left transition-colors ${
+                    className={`pw-pressable w-full border-l-2 px-4 py-2.5 text-left transition-colors ${
                       isActive
                         ? "border-accent bg-surface-2"
                         : "border-transparent hover:bg-surface-2"
@@ -255,7 +255,7 @@ export default function Sidebar({
               Couldn&apos;t load usage.{" "}
               <button
                 type="button"
-                className="underline hover:text-text"
+                className="pw-pressable underline hover:text-text"
                 onClick={() => window.location.reload()}
               >
                 Retry
@@ -274,7 +274,7 @@ export default function Sidebar({
                 <button
                   ref={plusButtonRef}
                   type="button"
-                  className="flex h-5 w-5 items-center justify-center rounded text-text-dim transition-colors hover:text-text"
+                  className="pw-pressable flex h-5 w-5 items-center justify-center rounded text-text-dim transition-colors hover:text-text"
                   onClick={() => setShowCreditsModal(true)}
                   aria-label="Buy more credits"
                   title="Buy more credits"
@@ -324,7 +324,7 @@ export default function Sidebar({
             <button
               type="button"
               onClick={onInstallClick}
-              className="flex w-full items-center gap-2.5 rounded-[10px] border border-border-strong bg-surface px-3 py-2.5 text-sm text-text-muted transition-all hover:-translate-y-px hover:border-text-muted hover:text-text"
+              className="pw-pressable flex w-full items-center gap-2.5 rounded-[10px] border border-border-strong bg-surface px-3 py-2.5 text-sm text-text-muted transition-all hover:-translate-y-px hover:border-text-muted hover:text-text"
             >
               <svg
                 viewBox="0 0 24 24"
@@ -357,7 +357,7 @@ export default function Sidebar({
           <ThemeToggle />
           <button
             type="button"
-            className="flex h-[38px] w-[38px] flex-shrink-0 items-center justify-center rounded-[10px] border border-border-strong bg-surface text-text-muted transition-all hover:-translate-y-px hover:border-text-muted hover:text-text"
+            className="pw-pressable flex h-[38px] w-[38px] flex-shrink-0 items-center justify-center rounded-[10px] border border-border-strong bg-surface text-text-muted transition-all hover:-translate-y-px hover:border-text-muted hover:text-text"
             onClick={() => router.push("/account")}
             aria-label="Settings"
             title="Settings"

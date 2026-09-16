@@ -98,7 +98,7 @@ export default function SigninForm({ initialBanner = null }: SigninFormProps) {
             type="button"
             onClick={() => setBanner(null)}
             aria-label="Dismiss"
-            className="shrink-0 text-danger hover:opacity-70"
+            className="pw-pressable shrink-0 text-danger hover:opacity-70"
           >
             ×
           </button>
@@ -123,7 +123,7 @@ export default function SigninForm({ initialBanner = null }: SigninFormProps) {
             type="button"
             onClick={handleResend}
             disabled={resend.isCoolingDown || resendPending}
-            className="underline hover:text-text disabled:no-underline disabled:opacity-60"
+            className="pw-pressable underline hover:text-text disabled:no-underline disabled:opacity-60"
           >
             {resend.label ?? "Resend link"}
           </button>

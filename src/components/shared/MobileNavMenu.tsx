@@ -57,7 +57,7 @@ export default function MobileNavMenu({ links, isLoggedIn, tier }: MobileNavMenu
         aria-expanded={open}
         aria-controls="mobile-nav-menu"
         aria-label={open ? "Close menu" : "Open menu"}
-        className="lg:hidden flex h-9 w-9 items-center justify-center rounded-[10px] text-text-muted transition-colors hover:text-text"
+        className="pw-pressable lg:hidden flex h-9 w-9 items-center justify-center rounded-[10px] text-text-muted transition-colors hover:text-text"
         onClick={() => setOpen((v) => !v)}
       >
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" aria-hidden="true">
@@ -83,7 +83,7 @@ export default function MobileNavMenu({ links, isLoggedIn, tier }: MobileNavMenu
                 type="button"
                 onClick={handleClose}
                 aria-label="Close menu"
-                className="flex h-8 w-8 items-center justify-center rounded text-text-muted transition-colors hover:text-text"
+                className="pw-pressable flex h-8 w-8 items-center justify-center rounded text-text-muted transition-colors hover:text-text"
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
                   <path d="M18 6L6 18M6 6l12 12" />

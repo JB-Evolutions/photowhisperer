@@ -40,7 +40,7 @@ export default function CancelView() {
                 key={option}
                 type="button"
                 onClick={() => handleSurvey(option)}
-                className="rounded-lg border border-border px-4 py-2.5 text-left text-sm text-text-muted transition-colors hover:border-border-strong hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--border-accent)]"
+                className="pw-pressable rounded-lg border border-border px-4 py-2.5 text-left text-sm text-text-muted transition-colors hover:border-border-strong hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--border-accent)]"
               >
                 {option}
               </button>
@@ -49,7 +49,7 @@ export default function CancelView() {
           <button
             type="button"
             onClick={() => setSurveyDone(true)}
-            className="self-start text-xs text-text-dim underline hover:text-text-muted focus-visible:outline-none"
+            className="pw-pressable self-start text-xs text-text-dim underline hover:text-text-muted focus-visible:outline-none"
           >
             Skip
           </button>

@@ -80,7 +80,7 @@ export default function FaqAccordion({ items }: { items: FaqItem[] }) {
                     aria-controls={panelId}
                     onClick={() => toggle(index)}
                     onKeyDown={(event) => handleKeyDown(event, index)}
-                    className="flex w-full items-center justify-between gap-4 px-6 py-5 text-left font-body text-base text-text transition-colors duration-200 hover:text-accent"
+                    className="pw-pressable flex w-full items-center justify-between gap-4 px-6 py-5 text-left font-body text-base text-text transition-colors duration-200 hover:text-accent"
                   >
                     {item.question}
                     <ChevronIcon open={isOpen} />

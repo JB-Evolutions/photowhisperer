@@ -47,7 +47,7 @@ export default function Segmented<T extends string>({ label, options, value, onC
             tabIndex={selected ? 0 : -1}
             onClick={() => onChange(option.value)}
             className={[
-              "min-h-[44px] rounded-lg border px-2 text-[13px] leading-5",
+              "pw-pressable min-h-[44px] rounded-lg border px-2 text-[13px] leading-5",
               "transition-colors duration-200 ease-[cubic-bezier(0.2,0,0,1)]",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--border-accent)]",
               selected

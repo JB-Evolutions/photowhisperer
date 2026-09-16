@@ -198,7 +198,7 @@ export default function PreferencesTab({ onDirtyChange, registerActions }: Prefe
             <button
               type="button"
               onClick={load}
-              className="rounded text-sm text-accent transition-colors duration-[250ms] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--border-accent)]"
+              className="pw-pressable rounded text-sm text-accent transition-colors duration-[250ms] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--border-accent)]"
             >
               Retry
             </button>
@@ -246,7 +246,7 @@ export default function PreferencesTab({ onDirtyChange, registerActions }: Prefe
                 aria-checked={productEmails}
                 onClick={() => setProductEmails((v) => !v)}
                 className={[
-                  "relative mt-0.5 h-6 w-11 flex-shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--border-accent)] focus-visible:ring-offset-2",
+                  "pw-pressable relative mt-0.5 h-6 w-11 flex-shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--border-accent)] focus-visible:ring-offset-2",
                   productEmails ? "bg-accent" : "bg-border-strong",
                 ].join(" ")}
               >

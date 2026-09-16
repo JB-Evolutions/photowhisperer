@@ -13,7 +13,7 @@ export default function ThemeToggle() {
   return (
     <>
       <button
-        className="theme-toggle-btn"
+        className="pw-pressable theme-toggle-btn"
         onClick={handleToggle}
         aria-label="Toggle theme"
         title="Toggle theme"

@@ -285,7 +285,7 @@ export default function AccountSettings({ email, newEmail }: { email: string; ne
                     tabIndex={active ? 0 : -1}
                     onClick={() => selectTab(tab.id)}
                     className={[
-                      "whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium transition-colors duration-[250ms]",
+                      "pw-pressable whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium transition-colors duration-[250ms]",
                       "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--border-accent)]",
                       "md:w-full md:text-left md:py-2.5 md:border-l-2 md:pl-[14px]",
                       active

@@ -96,7 +96,7 @@ export default function PasswordField({
           type="button"
           onClick={() => setRevealed((current) => !current)}
           aria-label={revealed ? "Hide password" : "Show password"}
-          className="absolute inset-y-0 right-0 flex w-12 items-center justify-center text-text-dim transition-colors hover:text-text"
+          className="pw-pressable absolute inset-y-0 right-0 flex w-12 items-center justify-center text-text-dim transition-colors hover:text-text"
         >
           <EyeIcon revealed={revealed} />
         </button>

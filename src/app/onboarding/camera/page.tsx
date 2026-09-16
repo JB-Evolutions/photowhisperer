@@ -122,7 +122,7 @@ function StepFrame({
         <button
           type="button"
           onClick={onBack}
-          className={`self-start text-sm text-text-muted transition-colors duration-200 hover:text-text ${focusRing}`}
+          className={`pw-pressable self-start text-sm text-text-muted transition-colors duration-200 hover:text-text ${focusRing}`}
         >
           ← Back
         </button>
@@ -473,7 +473,7 @@ export default function CameraOnboardingPage() {
                 <button
                   type="button"
                   onClick={() => setStep(1)}
-                  className={`min-h-[44px] text-sm text-text underline underline-offset-2 transition-colors duration-200 hover:text-text-muted ${focusRing}`}
+                  className={`pw-pressable min-h-[44px] text-sm text-text underline underline-offset-2 transition-colors duration-200 hover:text-text-muted ${focusRing}`}
                 >
                   Edit
                 </button>

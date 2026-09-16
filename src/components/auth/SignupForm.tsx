@@ -93,7 +93,7 @@ export default function SignupForm() {
           <button
             type="button"
             onClick={() => setShowReferral(true)}
-            className="text-sm text-text-muted underline hover:text-text"
+            className="pw-pressable text-sm text-text-muted underline hover:text-text"
           >
             Have a referral or promo code?
           </button>

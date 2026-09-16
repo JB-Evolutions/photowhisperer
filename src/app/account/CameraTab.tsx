@@ -211,7 +211,7 @@ export default function CameraTab({ onDirtyChange, registerActions }: CameraTabP
         <button
           type="button"
           onClick={load}
-          className="rounded text-sm text-accent transition-colors duration-[250ms] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--border-accent)]"
+          className="pw-pressable rounded text-sm text-accent transition-colors duration-[250ms] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--border-accent)]"
         >
           Retry
         </button>
@@ -260,7 +260,7 @@ export default function CameraTab({ onDirtyChange, registerActions }: CameraTabP
                     type="button"
                     onClick={() => removeLens(lens)}
                     aria-label={`Remove ${lens}`}
-                    className="flex h-5 w-5 items-center justify-center rounded-full text-text-muted transition-colors duration-200 hover:bg-surface-3 hover:text-text"
+                    className="pw-pressable flex h-5 w-5 items-center justify-center rounded-full text-text-muted transition-colors duration-200 hover:bg-surface-3 hover:text-text"
                   >
                     ×
                   </button>
