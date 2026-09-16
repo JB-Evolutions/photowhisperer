@@ -21,6 +21,7 @@ import RateLimitBanner from "@/components/app/RateLimitBanner";
 import SubscriptionBanner from "@/components/app/SubscriptionBanner";
 import InstallBanner from "@/components/app/InstallBanner";
 import { useInstallPrompt } from "@/hooks/useInstallPrompt";
+import { useVisualViewport } from "@/hooks/useVisualViewport";
 import { SOFT_WARNING_THRESHOLD, RATE_LIMIT_COOLDOWN_SECONDS } from "@/lib/quota";
 import type { ChatComposerHandle } from "@/components/app/ChatComposer";
 import type { SessionViewHandle } from "@/components/app/SessionView";
@@ -74,6 +75,14 @@ export default function AppShell({
   const attachmentIdRef = useRef(0);
 
   const install = useInstallPrompt();
+
+  // The shell is sized to the visual viewport, not to h-dvh. See
+  // useVisualViewport: the software keyboard never shrinks the layout
+  // viewport, so h-dvh keeps the shell at its full pre-keyboard height and
+  // the composer — pinned to the shell's bottom edge — ends up behind the
+  // keyboard. Measured at 375x667 with a 260px keyboard: textarea at
+  // y 584-644, entirely inside the keyboard band.
+  const { height: viewportHeight, offsetTop: viewportOffsetTop } = useVisualViewport();
 
   // Forces the §4.10 card on for a quota_exceeded response that arrived
   // without monthly_count/credits_remaining (so the real numeric condition
@@ -222,11 +231,35 @@ export default function AppShell({
 
   return (
     <ToastProvider>
+      {/* position:fixed with top = offsetTop, rather than a bottom inset on a
+          static box. A bottom inset is only right while the visual viewport
+          sits flush with the top of the layout viewport; the moment iOS pans
+          to reveal the focused field, offsetTop goes positive and a
+          top-anchored box of the correct height is simply scrolled off. Fixed
+          positioning resolves against the layout viewport, so top = offsetTop
+          lands the shell exactly over the visible band in both cases.
+
+          Deliberately not a transform: translateY would do the same job but
+          would also make this element the containing block for every
+          position:fixed descendant, silently re-anchoring the drawer, the
+          overlays and the modals. Those move on their own terms, not as a
+          side effect of this.
+
+          Taking the shell out of flow is safe because it never contributed
+          scroll height anyway — it is overflow-hidden, and body keeps its
+          min-height:100vh. */}
       <div
         className="flex h-dvh flex-col overflow-hidden md:grid md:grid-cols-[260px_1fr]"
+        style={
+          viewportHeight != null
+            ? { position: "fixed", top: viewportOffsetTop, left: 0, right: 0, height: viewportHeight }
+            : undefined
+        }
       >
         {/* Desktop sidebar — hidden on mobile */}
-        <aside className="hidden h-dvh overflow-hidden border-r border-border md:block">
+        {/* h-full, not h-dvh: the shell above is the one sized to the visual
+            viewport now, and a dvh-sized sidebar would outrun it. */}
+        <aside className="hidden h-full overflow-hidden border-r border-border md:block">
           <Sidebar {...sidebarProps} />
         </aside>
 
@@ -329,7 +362,24 @@ export default function AppShell({
               )}
 
               {/* Composer — always pinned at bottom */}
-              <div data-shot="app-composer" className="flex-shrink-0 border-t border-border p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+              <div
+                data-shot="app-composer"
+                className={`border-t border-border p-4 pb-[max(1rem,env(safe-area-inset-bottom))] ${
+                  // The composer stays rigid: it is the thing being pinned,
+                  // and it caps its own growth (the textarea is max-h-140px).
+                  // OutOfCreditsCard has no such cap — it is 349px of fixed
+                  // copy and buttons — so on a shell shorter than that it
+                  // would overflow the bottom edge and be unrecoverable.
+                  // Binding the shell to the visual viewport is what makes
+                  // short shells reachable in the first place, so the card
+                  // gets a shrink path in the same change that introduces
+                  // them. It cannot co-occur with the keyboard (the card
+                  // replaces ChatComposer, which unmounts the focused
+                  // textarea and dismisses it) — this is about short
+                  // viewports generally, not the keyboard.
+                  outOfCredits && account ? "min-h-0 overflow-y-auto" : "flex-shrink-0"
+                }`}
+              >
                 {/* account is guaranteed non-null here: send is gated on
                     account == null below, so a quota_exceeded response (and
                     therefore outOfCredits) can only ever arrive after
