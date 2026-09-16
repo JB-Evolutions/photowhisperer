@@ -1,0 +1,302 @@
+[
+  {
+    "id": "fx-indoor-dim-livingroom",
+    "file": "images/fx-indoor-dim-livingroom.jpg",
+    "capturedAt": "2026-01-14T19:22:10Z",
+    "condition": "indoor_dim",
+    "indoor": true,
+    "subjectLit": false,
+    "groundTruth": {
+      "ev100": 4.66,
+      "source": "meter",
+      "judgedOffStops": 0,
+      "confidence": "high"
+    },
+    "exif": {
+      "present": true,
+      "iso": 1600,
+      "apertureN": 1.8,
+      "shutterSec": 0.008,
+      "exposureBiasEv": 0,
+      "meteringMode": "5",
+      "make": "FUJIFILM",
+      "model": "X-T5"
+    },
+    "notes": "Lamp-lit living room, subject on the sofa."
+  },
+  {
+    "id": "fx-indoor-dim-hallway",
+    "file": "images/fx-indoor-dim-hallway.jpg",
+    "capturedAt": "2026-01-14T20:05:44Z",
+    "condition": "indoor_dim",
+    "indoor": true,
+    "subjectLit": false,
+    "groundTruth": {
+      "ev100": 3.55,
+      "source": "exif_auto_judged",
+      "judgedOffStops": -0.33,
+      "confidence": "medium"
+    },
+    "exif": {
+      "present": true,
+      "iso": 3200,
+      "apertureN": 2.8,
+      "shutterSec": 0.0166666666666667,
+      "exposureBiasEv": -0.33,
+      "meteringMode": "5",
+      "make": "FUJIFILM",
+      "model": "X-T5"
+    },
+    "notes": "Unlit hallway, light spilling from one open door."
+  },
+  {
+    "id": "fx-indoor-artificial-kitchen",
+    "file": "images/fx-indoor-artificial-kitchen.jpg",
+    "capturedAt": "2026-02-02T18:40:02Z",
+    "condition": "indoor_artificial",
+    "indoor": true,
+    "subjectLit": false,
+    "groundTruth": {
+      "ev100": 5.91,
+      "source": "exif_manual",
+      "judgedOffStops": 0,
+      "confidence": "high"
+    },
+    "exif": {
+      "present": true,
+      "iso": 1600,
+      "apertureN": 4.0,
+      "shutterSec": 0.0166666666666667,
+      "exposureBiasEv": 0,
+      "meteringMode": "2",
+      "make": "NIKON CORPORATION",
+      "model": "NIKON Z 6_2"
+    },
+    "notes": "Kitchen under ceiling spots, food on the counter."
+  },
+  {
+    "id": "fx-indoor-artificial-office",
+    "file": "images/fx-indoor-artificial-office.jpg",
+    "capturedAt": "2026-02-03T11:15:31Z",
+    "condition": "indoor_artificial",
+    "indoor": true,
+    "subjectLit": false,
+    "groundTruth": {
+      "ev100": 7.61,
+      "source": "exif_auto_judged",
+      "judgedOffStops": 0.67,
+      "confidence": "medium"
+    },
+    "exif": {
+      "present": true,
+      "iso": 800,
+      "apertureN": 2.8,
+      "shutterSec": 0.008,
+      "exposureBiasEv": 0.67,
+      "meteringMode": "5",
+      "make": "NIKON CORPORATION",
+      "model": "NIKON Z 6_2"
+    },
+    "notes": "Open-plan office under fluorescent tubes."
+  },
+  {
+    "id": "fx-candlelit-table",
+    "file": "images/fx-candlelit-table.jpg",
+    "capturedAt": "2026-02-14T21:03:18Z",
+    "condition": "candlelit",
+    "indoor": true,
+    "subjectLit": false,
+    "groundTruth": {
+      "ev100": 0.61,
+      "source": "meter",
+      "judgedOffStops": 0,
+      "confidence": "high"
+    },
+    "exif": {
+      "present": true,
+      "iso": 6400,
+      "apertureN": 1.4,
+      "shutterSec": 0.02,
+      "exposureBiasEv": 0,
+      "meteringMode": "3",
+      "make": "SONY",
+      "model": "ILCE-7M4"
+    },
+    "notes": "Two candles on a restaurant table, nothing else lit."
+  },
+  {
+    "id": "fx-moon-subject-telephoto",
+    "file": "images/fx-moon-subject-telephoto.jpg",
+    "capturedAt": "2026-03-01T22:47:09Z",
+    "condition": "moon_subject",
+    "indoor": false,
+    "subjectLit": true,
+    "groundTruth": {
+      "ev100": 13.88,
+      "source": "exif_manual",
+      "judgedOffStops": -1.0,
+      "confidence": "high"
+    },
+    "exif": {
+      "present": true,
+      "iso": 100,
+      "apertureN": 11,
+      "shutterSec": 0.004,
+      "exposureBiasEv": -1.0,
+      "meteringMode": "3",
+      "make": "Canon",
+      "model": "Canon EOS R6m2"
+    },
+    "notes": "Full moon filling the frame at 600mm."
+  },
+  {
+    "id": "fx-stage-lit-theatre",
+    "file": "images/fx-stage-lit-theatre.jpg",
+    "capturedAt": "2026-03-12T20:18:55Z",
+    "condition": "stage_lit",
+    "indoor": true,
+    "subjectLit": true,
+    "groundTruth": {
+      "ev100": 9.94,
+      "source": "meter",
+      "judgedOffStops": 0,
+      "confidence": "high"
+    },
+    "exif": {
+      "present": true,
+      "iso": 400,
+      "apertureN": 2.8,
+      "shutterSec": 0.002,
+      "exposureBiasEv": 0,
+      "meteringMode": "3",
+      "make": "Canon",
+      "model": "Canon EOS R6m2"
+    },
+    "notes": "Singer under a spot, auditorium black behind."
+  },
+  {
+    "id": "fx-neon-signage-alley",
+    "file": "images/fx-neon-signage-alley.jpg",
+    "capturedAt": "2026-03-20T23:31:40Z",
+    "condition": "neon_signage",
+    "indoor": false,
+    "subjectLit": true,
+    "groundTruth": {
+      "ev100": 8.3,
+      "source": "exif_auto_judged",
+      "judgedOffStops": -0.67,
+      "confidence": "medium"
+    },
+    "exif": {
+      "present": true,
+      "iso": 200,
+      "apertureN": 2.0,
+      "shutterSec": 0.004,
+      "exposureBiasEv": -0.67,
+      "meteringMode": "5",
+      "make": "SONY",
+      "model": "ILCE-7M4"
+    },
+    "notes": "Bar sign read as the subject, alley behind it dark."
+  },
+  {
+    "id": "fx-daylight-direct-sun-park",
+    "file": "images/fx-daylight-direct-sun-park.jpg",
+    "capturedAt": "2026-04-05T13:02:27Z",
+    "condition": "direct_sun",
+    "indoor": false,
+    "subjectLit": false,
+    "groundTruth": {
+      "ev100": 14.97,
+      "source": "exif_manual",
+      "judgedOffStops": 0,
+      "confidence": "high"
+    },
+    "exif": {
+      "present": true,
+      "iso": 100,
+      "apertureN": 16,
+      "shutterSec": 0.008,
+      "exposureBiasEv": 0,
+      "meteringMode": "5",
+      "make": "FUJIFILM",
+      "model": "X-T5"
+    },
+    "notes": "Open park, hard shadows, sun over the shoulder."
+  },
+  {
+    "id": "fx-daylight-hazy-sun-coast",
+    "file": "images/fx-daylight-hazy-sun-coast.jpg",
+    "capturedAt": "2026-04-06T10:44:12Z",
+    "condition": "hazy_sun",
+    "indoor": false,
+    "subjectLit": false,
+    "groundTruth": {
+      "ev100": 14.21,
+      "source": "exif_auto_judged",
+      "judgedOffStops": 0.33,
+      "confidence": "high"
+    },
+    "exif": {
+      "present": true,
+      "iso": 100,
+      "apertureN": 11,
+      "shutterSec": 0.008,
+      "exposureBiasEv": 0.33,
+      "meteringMode": "5",
+      "make": "FUJIFILM",
+      "model": "X-T5"
+    },
+    "notes": "Coast path under thin cloud, soft-edged shadows."
+  },
+  {
+    "id": "fx-night-moonlit-field",
+    "file": "images/fx-night-moonlit-field.jpg",
+    "capturedAt": "2026-04-18T01:12:03Z",
+    "condition": "night_moonlit",
+    "indoor": false,
+    "subjectLit": false,
+    "groundTruth": {
+      "ev100": -2.03,
+      "source": "meter",
+      "judgedOffStops": 0,
+      "confidence": "medium"
+    },
+    "exif": {
+      "present": true,
+      "iso": 3200,
+      "apertureN": 2.8,
+      "shutterSec": 1,
+      "exposureBiasEv": 0,
+      "meteringMode": "3",
+      "make": "SONY",
+      "model": "ILCE-7M4"
+    },
+    "notes": "Field under a full moon, tripod, no artificial light."
+  },
+  {
+    "id": "fx-night-street-noexif",
+    "file": "images/fx-night-street-noexif.jpg",
+    "capturedAt": null,
+    "condition": "night_street",
+    "indoor": false,
+    "subjectLit": false,
+    "groundTruth": {
+      "ev100": 7.4,
+      "source": "meter",
+      "judgedOffStops": 0,
+      "confidence": "low"
+    },
+    "exif": {
+      "present": false,
+      "iso": null,
+      "apertureN": null,
+      "shutterSec": null,
+      "exposureBiasEv": null,
+      "meteringMode": null,
+      "make": null,
+      "model": null
+    },
+    "notes": "Screenshot-processed street scene, all metadata gone."
+  }
+]

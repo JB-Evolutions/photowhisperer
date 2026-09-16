@@ -53,3 +53,7 @@ set-tier-tmp.mjs
 # pitch screenshot pipeline
 pitch/screenshots/
 pitch/.auth.json
+
+# exposure eval harness (scripts/eval-exposure.ts)
+eval-out/
+.corpus-cache/
